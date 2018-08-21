@@ -1,0 +1,52 @@
+name:                exalog-engine
+version:             0.1.0.0
+github:              "madgen/exalog-engine"
+license:             BSD3
+author:              "Mistral Contrastin"
+maintainer:          "madgenhetic@gmail.com"
+copyright:           "2018"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+synopsis:            A Datalog engine with support for external processes as predicates
+category:            Language
+description:         Please see the README on GitHub at <https://github.com/madgen/exalog-engine#readme>
+
+default-extensions:
+- NoImplicitPrelude
+- LambdaCase
+- OverloadedStrings
+
+ghc-options:
+- -Wall
+- -fwarn-tabs
+- -fwarn-incomplete-uni-patterns
+- -fwarn-incomplete-record-updates
+
+dependencies:
+- base >= 4.7 && < 5
+- bytestring >= 0.10.8 && < 0.11
+- containers >= 0.5 && < 0.7
+- comonad >= 5.0 && < 5.1
+- fgl >= 5.6 && < 5.7
+- singletons >= 2.4 && < 2.5
+- transformers >= 0.5 && < 0.6
+- protolude >= 0.2 && < 0.3
+- hspec >= 2.5 && < 2.6
+
+library:
+  source-dirs: src
+
+tests:
+  exalog-engine-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - exalog-engine
