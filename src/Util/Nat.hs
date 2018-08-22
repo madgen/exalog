@@ -12,6 +12,7 @@
 module Util.Nat
   ( Nat(..)
   , SNat
+  , Sing(..)
   ) where
 
 import Protolude hiding (Nat)
