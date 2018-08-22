@@ -5,10 +5,10 @@
 
 module Language.Exalog.Annotation
   ( AnnType(..)
-  , type PredicateAnn
-  , type LiteralAnn
-  , type ClauseAnn
-  , type ProgramAnn
+  , PredicateAnn(..)
+  , LiteralAnn(..)
+  , ClauseAnn(..)
+  , ProgramAnn(..)
   , type Ann
   , PeelableAnn(..)
   , DecorableAnn(..)
