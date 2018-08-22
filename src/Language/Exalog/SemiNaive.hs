@@ -33,9 +33,11 @@ semiNaive :: forall a. Eq (PredicateAnn a)
           => R.Solution a -> Program a -> IO (R.Solution a)
 semiNaive edb pr = do
   initEDB <- initEDBM
-  sol <- fix (\f sol -> do
+  sol <- (`fix` initEDB) $ \f sol -> do
     betterSol <- step sol
-    if _ betterSol then return betterSol else f betterSol) initEDB
+    if areAllDeltaEmpty betterSol
+      then return betterSol
+      else f betterSol
   return $ R.rename peel sol
   where
   (simpleClss, intensionalClss) = span isSimpleClause (clauses pr)
