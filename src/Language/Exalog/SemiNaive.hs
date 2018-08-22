@@ -27,6 +27,7 @@ import qualified Util.List.Zipper as LZ
 import           Language.Exalog.Core
 import qualified Language.Exalog.Relation as R
 import           Language.Exalog.Stratification (stratify)
+import qualified Language.Exalog.Tuples as T
 
 semiNaive :: forall a. Eq (PredicateAnn a)
           => R.Solution a -> Program a -> IO (R.Solution a)
@@ -84,8 +85,8 @@ semiNaive edb pr = do
 
   areAllDeltaEmpty :: R.Solution ('ADelta a) -> Bool
   areAllDeltaEmpty =
-      R.isEmpty'
-    . R.filter (\(p,ts) -> decor p == Delta && (not . R.isEmpty) ts)
+      R.isEmpty
+    . R.filter (\(p,ts) -> decor p == Delta && (not . T.isEmpty) ts)
 
   step :: R.Solution ('ADelta a) -> IO (R.Solution ('ADelta a))
   step = runDelta . updateFromDelta . shiftPrevs . filterPrevX2
