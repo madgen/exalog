@@ -10,7 +10,6 @@ module Language.Exalog.Relation
   , relation
   -- Helpers
   , findTuples
-  , empty
   , add
   , merge
   , rename
@@ -31,9 +30,6 @@ import           Util.Vector
 data Relation a = forall n. Relation (Predicate n a) (T.Tuples n)
 
 type Solution a = [ Relation a ]
-
-empty :: Predicate n a -> Relation a
-empty = (`Relation` [])
 
 isEmpty :: Solution a -> Bool
 isEmpty = null
