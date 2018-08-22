@@ -10,6 +10,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Language.Exalog.Core
   ( module Language.Exalog.Annotation
@@ -25,6 +26,7 @@ module Language.Exalog.Core
   -- Convenience functions
   , sameArity
   , predicateBox
+  , ($$)
   , search
   , findIntentionals
   -- Helper type classes
@@ -71,6 +73,10 @@ instance Eq (PredicateAnn ann) => Eq (Predicate n ann) where
     fxSym p == fxSym p' && ann == ann'
 
 data PredicateBox a = forall n. PredicateBox (Predicate n a)
+
+infixr 0 $$
+($$) :: (forall n. Predicate n a -> b) -> PredicateBox a -> b
+f $$ (PredicateBox p) = f p
 
 instance Eq (PredicateAnn ann) => Eq (PredicateBox ann) where
   PredicateBox p == PredicateBox p'
