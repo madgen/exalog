@@ -19,16 +19,16 @@ import Data.Kind
 data AnnType = ABase | ADelta AnnType | ADependency AnnType
 
 data family PredicateAnn (a :: AnnType)
-newtype instance PredicateAnn 'ABase = PredABase ()
+data instance PredicateAnn 'ABase = PredABase
 
 data family LiteralAnn (a :: AnnType)
-newtype instance LiteralAnn   'ABase = LitABase ()
+data instance LiteralAnn   'ABase = LitABase
 
 data family ClauseAnn  (a :: AnnType)
-newtype instance ClauseAnn    'ABase = ClABase ()
+data instance ClauseAnn    'ABase = ClABase
 
 data family ProgramAnn (a :: AnnType)
-newtype instance ProgramAnn   'ABase = ProgABase ()
+data instance ProgramAnn   'ABase = ProgABase
 
 type family Ann (a :: AnnType -> Type) :: (AnnType -> Type)
 
