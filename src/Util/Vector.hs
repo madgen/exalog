@@ -12,8 +12,8 @@ import Util.Nat
 
 infixr 5 :::
 data Vector :: Nat -> * -> * where
-  Nil   :: Vector Zero a
-  (:::) :: a -> Vector n a -> Vector (Succ n) a
+  Nil   :: Vector 'Zero a
+  (:::) :: a -> Vector n a -> Vector ('Succ n) a
 
 toList :: Vector n a -> [ a ]
 toList Nil = []
