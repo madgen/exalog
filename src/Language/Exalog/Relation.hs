@@ -32,8 +32,8 @@ data Relation a = forall n. Relation (Predicate n a) (T.Tuples n)
 
 type Solution a = [ Relation a ]
 
-empty :: PredicateBox a -> Relation a
-empty (PredicateBox p) = Relation p []
+empty :: Predicate n a -> Relation a
+empty = (`Relation` [])
 
 isEmpty :: Solution a -> Bool
 isEmpty = null

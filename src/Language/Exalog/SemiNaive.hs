@@ -227,7 +227,7 @@ mkADelta' deco Predicate{..} = Predicate
 genSolDelta :: Eq (PredicateAnn a)
             => Program a -> R.Solution a -> R.Solution ('ADelta a)
 genSolDelta pr sol =
-  foldr (R.add . R.empty) deltaRenamed normals
+  foldr (\(PredicateBox p) -> R.add . R.empty $ p) deltaRenamed normals
   where
   intentionals = findIntentionals pr
 
