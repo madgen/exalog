@@ -53,7 +53,7 @@ data Nature (n :: Nat) =
 
 data NatureBox = forall n. NatureBox (Nature n)
 
-type PredicateSym = ByteString
+type PredicateSym = Text
 
 -- |A predicate is a predicate symbol and an arity
 data Predicate (n :: Nat) a = Predicate
@@ -80,8 +80,8 @@ instance Eq (PredicateAnn ann) => Eq (PredicateBox ann) where
 -- |Polarity indicates whether a literal has negation in front of it
 data Polarity = Positive | Negative deriving (Eq)
 
-newtype Var = Var ByteString deriving (Eq)
-newtype Sym = Sym ByteString deriving (Eq)
+newtype Var = Var Text deriving (Eq)
+newtype Sym = Sym Text deriving (Eq)
 
 -- |A term is a variable or a symbol
 data Term = TVar Var | TSym Sym
