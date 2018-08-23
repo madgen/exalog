@@ -37,7 +37,7 @@ semiNaive edb pr = do
     if areAllDeltaEmpty betterSol
       then return betterSol
       else f betterSol
-  return $ R.rename peel sol
+  return $ dropSolDelta sol
   where
   -- A simple clause is one without references to IDB predicates in its body.
   simpleClss = flip filter (clauses pr) $ \Clause{body = body} ->
@@ -244,3 +244,6 @@ genSolDelta pr sol =
     if PredicateBox p `elem` intentionals
       then mkADelta' Delta  p
       else mkADelta' Normal p
+
+dropSolDelta :: R.Solution ('ADelta a) -> R.Solution a
+dropSolDelta = R.rename peel . R.filter (\(R.Relation p _) -> decor p == Normal)
