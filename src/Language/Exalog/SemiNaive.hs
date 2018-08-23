@@ -84,7 +84,9 @@ semiNaive edb pr = do
   axeDeltaRedundancies :: R.Solution ('ADelta a)
                        -> R.Solution ('ADelta a)
   axeDeltaRedundancies edb = (`R.atEach` edb) $ \(p, ts) ->
-    ts `T.difference` R.findTuples edb (updateDecor Normal p)
+    case decor p of
+      Delta -> ts `T.difference` R.findTuples edb (updateDecor Normal p)
+      _ -> ts
 
   areAllDeltaEmpty :: R.Solution ('ADelta a) -> Bool
   areAllDeltaEmpty =
