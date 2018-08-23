@@ -19,15 +19,13 @@ module Language.Exalog.Relation
   , size
   ) where
 
-import Protolude hiding (empty, filter)
+import Protolude hiding (empty, filter, pred)
 
 import qualified Data.List as L
 import           Data.Singletons.Decide (Decision(..))
 
 import           Language.Exalog.Core
 import qualified Language.Exalog.Tuples as T
-
-import           Util.Vector
 
 data Relation a = forall n. Relation (Predicate n a) (T.Tuples n)
 
