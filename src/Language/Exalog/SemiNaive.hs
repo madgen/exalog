@@ -114,7 +114,7 @@ execClause edb Clause{..} = deriveHead <$> foldrM walkBody [] body
 
 execLiteral :: Eq (PredicateAnn a)
             => R.Solution a -> Literal a -> IO [ Unifier ]
-execLiteral edb lit@Literal{predicate = p@Predicate{nature = nature}, ..}
+execLiteral edb Literal{predicate = p@Predicate{nature = nature}, ..}
   | Extralogical action <- nature = either panic id <$> action terms
   | otherwise = return $
       maybe (panic "The predicate is not known to the Datalog engine.")
