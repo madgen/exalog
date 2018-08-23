@@ -44,7 +44,7 @@ semiNaive edb pr = do
     not . any ((`elem` intentionals) . predicateBox) $ body
 
   initEDBM :: IO (R.Solution ('ADelta a))
-  initEDBM = genSolDelta pr <$> runAndUpdateClauses simpleClss edb
+  initEDBM = genSolDelta pr . foldr R.add edb <$> runClauses simpleClss edb
 
   intentionals :: [ PredicateBox a ]
   intentionals = findIntentionals pr
@@ -77,7 +77,15 @@ semiNaive edb pr = do
   filterPrevX2 sol = (`R.filter` sol) $ (/= PrevX2) . decor . fst
 
   runDelta :: R.Solution ('ADelta a) -> IO (R.Solution ('ADelta a))
-  runDelta = runAndUpdateClauses (clauses deltaPr)
+  runDelta edb = foldr R.add edb
+               . fmap (axeDeltaRedundancies edb)
+             <$> runClauses (clauses deltaPr) edb
+
+  axeDeltaRedundancies :: R.Solution ('ADelta a)
+                       -> R.Relation ('ADelta a)
+                       -> R.Relation ('ADelta a)
+  axeDeltaRedundancies edb (R.Relation p ts) =
+    R.Relation p $ ts `T.difference` R.findTuples edb (updateDecor Normal p)
 
   areAllDeltaEmpty :: R.Solution ('ADelta a) -> Bool
   areAllDeltaEmpty =
@@ -87,9 +95,9 @@ semiNaive edb pr = do
   step :: R.Solution ('ADelta a) -> IO (R.Solution ('ADelta a))
   step = runDelta . updateFromDelta . shiftPrevs . filterPrevX2
 
-runAndUpdateClauses :: (Eq (PredicateAnn a), Show (PredicateAnn a))
-                    => [ Clause a ] -> R.Solution a -> IO (R.Solution a)
-runAndUpdateClauses clss edb = foldr R.add edb <$> mapM (execClause edb) clss
+runClauses :: (Eq (PredicateAnn a), Show (PredicateAnn a))
+           => [ Clause a ] -> R.Solution a -> IO [ R.Relation a ]
+runClauses clss edb = mapM (execClause edb) clss
 
 execClause :: forall a. (Eq (PredicateAnn a), Show (PredicateAnn a))
            => R.Solution a -> Clause a -> IO (R.Relation a)
