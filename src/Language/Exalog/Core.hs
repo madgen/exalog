@@ -94,7 +94,7 @@ instance Eq (PredicateAnn ann) => Eq (PredicateBox ann) where
 -- |Polarity indicates whether a literal has negation in front of it
 data Polarity = Positive | Negative deriving (Eq)
 
-newtype Var = Var Text deriving (Eq)
+newtype Var = Var Text deriving (Eq, Show)
 newtype Sym = Sym Text deriving (Eq, Ord, Show)
 
 -- |A term is a variable or a symbol
