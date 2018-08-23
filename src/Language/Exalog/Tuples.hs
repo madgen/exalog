@@ -5,11 +5,13 @@ module Language.Exalog.Tuples
   ( Tuples
   , isEmpty
   , fromList, toList
+  , difference
   , size
   ) where
 
 import Protolude hiding (toList)
 
+import           Data.List ((\\))
 import qualified Data.Set as S
 
 import Language.Exalog.Core
@@ -34,6 +36,9 @@ toList (Tuples ts) = ts
 
 fromList :: [ Vector n Sym ] -> Tuples n
 fromList = Tuples
+
+difference :: Tuples n -> Tuples n -> Tuples n
+Tuples ts `difference` Tuples ts' = Tuples $ ts \\ ts'
 
 size :: Tuples n -> Int
 size (Tuples ts) = length ts
