@@ -21,7 +21,7 @@ instance Eq (Tuples n) where
   Tuples ts == Tuples ts' = S.fromList ts == S.fromList ts'
 
 instance Semigroup (Tuples n) where
-  Tuples ts <> Tuples ts' = Tuples $ ts ++ ts'
+  Tuples ts <> Tuples ts' = Tuples . S.toList . S.fromList $ ts ++ ts'
 
 instance Monoid (Tuples n) where
   mempty = Tuples []
