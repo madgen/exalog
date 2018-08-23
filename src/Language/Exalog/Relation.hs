@@ -52,10 +52,8 @@ add rel@(Relation p ts) (rel'@(Relation p' ts') : sol)
   , p == p' = Relation p (ts <> ts') : sol
   | otherwise = rel' : add rel sol
 
-filter :: (forall n. (Predicate n a, T.Tuples n) -> Bool)
-       -> Solution a
-       -> Solution a
-filter pred = L.filter (\(Relation p ts) -> pred (p,ts))
+filter :: (Relation a -> Bool) -> Solution a -> Solution a
+filter = L.filter
 
 merge :: Eq (PredicateAnn a) => Solution a -> Solution a -> Solution a
 merge sol sol' = foldr add sol' sol

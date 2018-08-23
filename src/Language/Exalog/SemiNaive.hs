@@ -74,7 +74,7 @@ semiNaive edb pr = do
       _      -> p
 
   filterPrevX2 :: R.Solution ('ADelta a) -> R.Solution ('ADelta a)
-  filterPrevX2 sol = (`R.filter` sol) $ (/= PrevX2) . decor . fst
+  filterPrevX2 sol = (`R.filter` sol) $ \(R.Relation p _) -> decor p /= PrevX2
 
   runDelta :: R.Solution ('ADelta a) -> IO (R.Solution ('ADelta a))
   runDelta edb = axeDeltaRedundancies
@@ -91,7 +91,7 @@ semiNaive edb pr = do
   areAllDeltaEmpty :: R.Solution ('ADelta a) -> Bool
   areAllDeltaEmpty =
       R.isEmpty
-    . R.filter (\(p,ts) -> decor p == Delta && (not . T.isEmpty) ts)
+    . R.filter (\(R.Relation p ts) -> decor p == Delta && (not . T.isEmpty) ts)
 
   step :: R.Solution ('ADelta a) -> IO (R.Solution ('ADelta a))
   step = runDelta . updateFromDelta . shiftPrevs . filterPrevX2
