@@ -60,7 +60,7 @@ semiNaive edb pr = do
   updateFromDelta' :: PredicateBox a
                    -> R.Solution ('ADelta a)
                    -> R.Solution ('ADelta a)
-  updateFromDelta' predBox@(PredicateBox p) edb =
+  updateFromDelta' (PredicateBox p) edb =
     case R.findTuples edb (mkADelta' Delta p) of
       Just ts -> R.add (R.relation (mkADelta' Normal p) ts) edb
       Nothing ->
@@ -69,7 +69,7 @@ semiNaive edb pr = do
   -- Sets PrevX2 to Prev, Prev to Normal
   shiftPrevs :: R.Solution ('ADelta a)
              -> R.Solution ('ADelta a)
-  shiftPrevs edb = _ $ (`R.rename` edb) $ \p ->
+  shiftPrevs edb = (`R.rename` edb) $ \p ->
     case decor p of
       Normal -> updateDecor Prev   p
       Prev   -> updateDecor PrevX2 p
