@@ -68,10 +68,15 @@ semiNaive edb pr = do
   shiftPrevs :: R.Solution ('ADelta a)
              -> R.Solution ('ADelta a)
   shiftPrevs edb = (`R.rename` edb) $ \p ->
-    case decor p of
-      Normal -> updateDecor Prev   p
-      Prev   -> updateDecor PrevX2 p
-      _      -> p
+    -- This is stupidly inefficient
+    if PredicateBox (peel p) `elem` intentionals
+      then
+        case decor p of
+          Normal -> updateDecor Prev   p
+          Prev   -> updateDecor PrevX2 p
+          _      -> p
+      else
+        p
 
   filterPrevX2 :: R.Solution ('ADelta a) -> R.Solution ('ADelta a)
   filterPrevX2 sol = (`R.filter` sol) $ \(R.Relation p _) -> decor p /= PrevX2
