@@ -81,7 +81,7 @@ f $$ (PredicateBox p) = f p
 instance Eq (PredicateAnn ann) => Eq (PredicateBox ann) where
   PredicateBox p == PredicateBox p'
     | Proved Refl <- sameArity p p' = p == p'
-    | _ = False
+    | otherwise = False
 
 -- |Polarity indicates whether a literal has negation in front of it
 data Polarity = Positive | Negative deriving (Eq)
