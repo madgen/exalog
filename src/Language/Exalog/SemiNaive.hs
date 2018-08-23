@@ -15,7 +15,7 @@ module Language.Exalog.SemiNaive where
 import Protolude hiding (head, pred)
 
 import           Data.Function (id)
-import           Data.List (concatMap, span, lookup)
+import           Data.List (concatMap, lookup)
 import           Data.Maybe (mapMaybe, fromJust)
 
 import           Control.Comonad (Comonad(..))
