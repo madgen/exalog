@@ -39,7 +39,9 @@ semiNaive edb pr = do
       else f betterSol
   return $ R.rename peel sol
   where
-  (simpleClss, intensionalClss) = span isSimpleClause (clauses pr)
+  -- A simple clause is one without references to IDB predicates in its body.
+  simpleClss = flip filter (clauses pr) $ \Clause{body = body} ->
+    not . any ((`elem` intentionals) . predicateBox) $ body
 
   initEDBM :: IO (R.Solution ('ADelta a))
   initEDBM = genSolDelta pr <$> runAndUpdateClauses simpleClss edb
@@ -47,11 +49,6 @@ semiNaive edb pr = do
   intentionals :: [ PredicateBox a ]
   intentionals = findIntentionals pr
 
-  -- A clause is simple if it does not reference any IDB predicates in its
-  -- body.
-  isSimpleClause :: Clause a -> Bool
-  isSimpleClause Clause{body = body} =
-    not . any ((`elem` intentionals) . predicateBox) $ body
 
   deltaPr :: Program ('ADelta a)
   deltaPr = genProgDelta pr
