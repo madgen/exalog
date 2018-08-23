@@ -17,7 +17,6 @@ import Protolude hiding (head)
 import           Data.Function (id)
 import           Data.List (concatMap, span, lookup)
 import           Data.Maybe (mapMaybe, fromJust)
-import           Data.Singletons.Decide (Decision(..), (%~))
 
 import           Control.Comonad (Comonad(..))
 
