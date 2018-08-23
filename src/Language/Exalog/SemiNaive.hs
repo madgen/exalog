@@ -28,7 +28,7 @@ import qualified Language.Exalog.Relation as R
 import           Language.Exalog.Stratification (stratify)
 import qualified Language.Exalog.Tuples as T
 
-semiNaive :: forall a. Eq (PredicateAnn a)
+semiNaive :: forall a. (Eq (PredicateAnn a), Show (PredicateAnn a))
           => R.Solution a -> Program a -> IO (R.Solution a)
 semiNaive edb pr = do
   initEDB <- initEDBM
@@ -89,11 +89,11 @@ semiNaive edb pr = do
   step :: R.Solution ('ADelta a) -> IO (R.Solution ('ADelta a))
   step = runDelta . updateFromDelta . shiftPrevs . filterPrevX2
 
-runAndUpdateClauses :: Eq (PredicateAnn a)
+runAndUpdateClauses :: (Eq (PredicateAnn a), Show (PredicateAnn a))
                     => [ Clause a ] -> R.Solution a -> IO (R.Solution a)
 runAndUpdateClauses clss edb = foldr R.add edb <$> mapM (execClause edb) clss
 
-execClause :: forall a. Eq (PredicateAnn a)
+execClause :: forall a. (Eq (PredicateAnn a), Show (PredicateAnn a))
            => R.Solution a -> Clause a -> IO (R.Relation a)
 execClause edb Clause{..} = deriveHead <$> foldrM walkBody [] body
   where
@@ -112,14 +112,14 @@ execClause edb Clause{..} = deriveHead <$> foldrM walkBody [] body
       guard (isJust extendedUnifier)
       return $ fromJust extendedUnifier
 
-execLiteral :: Eq (PredicateAnn a)
+execLiteral :: (Eq (PredicateAnn a), Show (PredicateAnn a))
             => R.Solution a -> Literal a -> IO [ Unifier ]
 execLiteral edb Literal{predicate = p@Predicate{nature = nature}, ..}
   | Extralogical action <- nature = either panic id <$> action terms
-  | otherwise = return $
-      maybe (panic "The predicate is not known to the Datalog engine.")
-            (mapMaybe (unify terms))
-            (T.toList <$> R.findTuples edb p)
+  | otherwise = return $ maybe
+      (panic $ "The predicate " <> show p <> " is not known to the engine.")
+      (mapMaybe (unify terms))
+      (T.toList <$> R.findTuples edb p)
 
 extends :: Unifier -> Unifier -> Maybe Unifier
 extends [] u' = Just u'
@@ -148,12 +148,14 @@ unify (TSym s ::: ts) (s' ::: ss)
 -- Generating delta versions of predicates
 --------------------------------------------------------------------------------
 
-data Decor = Normal | Delta | Prev | PrevX2 deriving (Eq)
+data Decor = Normal | Delta | Prev | PrevX2 deriving (Eq, Show)
 
 data    instance PredicateAnn ('ADelta a) = PredADelta Decor (PredicateAnn a)
 data    instance LiteralAnn ('ADelta a)   = LitADelta (LiteralAnn a)
 newtype instance ClauseAnn  ('ADelta a)   = ClADelta (ClauseAnn a)
 newtype instance ProgramAnn ('ADelta a)   = ProgADelta (ProgramAnn a)
+
+deriving instance Show (PredicateAnn a) => Show (PredicateAnn ('ADelta a))
 
 updateDecor :: Decor -> Predicate n ('ADelta a) -> Predicate n ('ADelta a)
 updateDecor decor p@Predicate{annotation = PredADelta _ prevAnn} =
