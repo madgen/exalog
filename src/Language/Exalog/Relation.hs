@@ -16,6 +16,7 @@ module Language.Exalog.Relation
   , rename
   , filter
   , isEmpty
+  , atEach
   , size
   ) where
 
@@ -68,6 +69,11 @@ findTuples (Relation p ts : s) p'
   | Proved Refl <- sameArity p p'
   , p == p' = ts
   | otherwise = findTuples s p'
+
+atEach :: (forall n. (Predicate n a, T.Tuples n) -> T.Tuples n)
+       -> Solution a
+       -> Solution a
+atEach f = map (\(Relation p ts) -> Relation p $ f (p, ts))
 
 size :: Solution a -> Int
 size = foldr (\(Relation _ ts) -> (T.size ts +)) 0

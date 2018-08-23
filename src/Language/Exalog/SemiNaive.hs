@@ -77,15 +77,14 @@ semiNaive edb pr = do
   filterPrevX2 sol = (`R.filter` sol) $ (/= PrevX2) . decor . fst
 
   runDelta :: R.Solution ('ADelta a) -> IO (R.Solution ('ADelta a))
-  runDelta edb = foldr R.add edb
-               . fmap (axeDeltaRedundancies edb)
+  runDelta edb = axeDeltaRedundancies
+               . foldr R.add edb
              <$> runClauses (clauses deltaPr) edb
 
   axeDeltaRedundancies :: R.Solution ('ADelta a)
-                       -> R.Relation ('ADelta a)
-                       -> R.Relation ('ADelta a)
-  axeDeltaRedundancies edb (R.Relation p ts) =
-    R.Relation p $ ts `T.difference` R.findTuples edb (updateDecor Normal p)
+                       -> R.Solution ('ADelta a)
+  axeDeltaRedundancies edb = (`R.atEach` edb) $ \(p, ts) ->
+    ts `T.difference` R.findTuples edb (updateDecor Normal p)
 
   areAllDeltaEmpty :: R.Solution ('ADelta a) -> Bool
   areAllDeltaEmpty =
