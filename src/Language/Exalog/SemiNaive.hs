@@ -12,7 +12,7 @@
 
 module Language.Exalog.SemiNaive where
 
-import Protolude hiding (head)
+import Protolude hiding (head, pred)
 
 import           Data.Function (id)
 import           Data.List (concatMap, span, lookup)
