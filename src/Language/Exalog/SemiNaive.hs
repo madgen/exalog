@@ -105,10 +105,13 @@ execClause edb Clause{..} = deriveHead <$> foldrM walkBody [] body
     unifierExtensions <- execLiteral edb lit
     return $ do
       extension <- unifierExtensions
-      unifier <- unifiers
-      let extendedUnifier = extension `extends` unifier
-      guard (isJust extendedUnifier)
-      return $ fromJust extendedUnifier
+      if null unifiers
+        then return extension
+        else do
+          unifier <- unifiers
+          let extendedUnifier = extension `extends` unifier
+          guard (isJust extendedUnifier)
+          return $ fromJust extendedUnifier
 
 execLiteral :: (Eq (PredicateAnn a), Show (PredicateAnn a))
             => R.Solution a -> Literal a -> IO [ Unifier ]
