@@ -5,6 +5,7 @@ module Language.Exalog.Tuples
   ( Tuples
   , isEmpty
   , fromList, toList
+  , size
   ) where
 
 import Protolude hiding (toList)
@@ -33,3 +34,6 @@ toList (Tuples ts) = ts
 
 fromList :: [ Vector n Sym ] -> Tuples n
 fromList = Tuples
+
+size :: Tuples n -> Int
+size (Tuples ts) = length ts

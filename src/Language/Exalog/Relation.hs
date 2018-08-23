@@ -18,6 +18,7 @@ module Language.Exalog.Relation
   , rename
   , filter
   , isEmpty
+  , size
   ) where
 
 import Protolude hiding (empty, filter)
@@ -74,3 +75,6 @@ findTuples (Relation p ts : s) p'
   | Proved Refl <- sameArity p p'
   , p == p' = ts
   | otherwise = findTuples s p'
+
+size :: Solution a -> Int
+size = foldr (\(Relation _ ts) -> (T.size ts +)) 0
