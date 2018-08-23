@@ -156,8 +156,8 @@ newtype instance ClauseAnn  ('ADelta a)   = ClADelta (ClauseAnn a)
 newtype instance ProgramAnn ('ADelta a)   = ProgADelta (ProgramAnn a)
 
 updateDecor :: Decor -> Predicate n ('ADelta a) -> Predicate n ('ADelta a)
-updateDecor decor Predicate{annotation = PredADelta _ prevAnn} =
-  Predicate{annotation = PredADelta decor prevAnn, ..}
+updateDecor decor p@Predicate{annotation = PredADelta _ prevAnn} =
+  p {annotation = PredADelta decor prevAnn}
 
 decor :: Predicate n ('ADelta a) -> Decor
 decor Predicate{annotation = PredADelta decor _} = decor
