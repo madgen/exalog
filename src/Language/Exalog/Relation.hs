@@ -2,6 +2,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Language.Exalog.Relation
   ( Solution
@@ -29,6 +31,13 @@ import qualified Language.Exalog.Tuples as T
 import           Util.Vector
 
 data Relation a = forall n. Relation (Predicate n a) (T.Tuples n)
+
+deriving instance Show (PredicateAnn a) => Show (Relation a)
+
+instance Eq (Relation a) where
+  Relation p ts == Relation p' ts'
+    | Proved Refl <- sameArity p p' = ts == ts'
+    | otherwise = False
 
 type Solution a = [ Relation a ]
 

@@ -14,7 +14,7 @@ import qualified Data.Set as S
 import Language.Exalog.Core
 import Util.Vector hiding (toList)
 
-newtype Tuples n = Tuples [ Vector n Sym ]
+newtype Tuples n = Tuples [ Vector n Sym ] deriving (Show)
 
 instance Eq (Tuples n) where
   Tuples ts == Tuples ts' = S.fromList ts == S.fromList ts'

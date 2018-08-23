@@ -19,7 +19,7 @@ import Protolude
 data AnnType = ABase | ADelta AnnType | ADependency AnnType
 
 data family PredicateAnn (a :: AnnType)
-data instance PredicateAnn 'ABase = PredABase deriving Eq
+data instance PredicateAnn 'ABase = PredABase deriving (Eq, Show)
 
 data family LiteralAnn (a :: AnnType)
 data instance LiteralAnn   'ABase = LitABase

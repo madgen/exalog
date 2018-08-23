@@ -42,6 +42,8 @@ import qualified Data.List.NonEmpty as NE
 import           Data.Maybe (mapMaybe)
 import           Data.Singletons.Decide (Decision(..), (%~))
 
+import qualified GHC.Show as Show
+
 import           Language.Exalog.Annotation
 
 import           Util.Vector as V
@@ -72,6 +74,12 @@ instance Eq (PredicateAnn ann) => Eq (Predicate n ann) where
   p@Predicate{annotation = ann} == p'@Predicate{annotation = ann'} =
     fxSym p == fxSym p' && ann == ann'
 
+instance Show (PredicateAnn ann) => Show (Predicate n ann) where
+  show Predicate{..} =
+    "Predicate{annotation = " <> show annotation <> ", " <>
+    "fxSym = " <> show fxSym <> "," <>
+    "arity = " <> show arity <> "}"
+
 data PredicateBox a = forall n. PredicateBox (Predicate n a)
 
 infixr 0 $$
@@ -87,7 +95,7 @@ instance Eq (PredicateAnn ann) => Eq (PredicateBox ann) where
 data Polarity = Positive | Negative deriving (Eq)
 
 newtype Var = Var Text deriving (Eq)
-newtype Sym = Sym Text deriving (Eq, Ord)
+newtype Sym = Sym Text deriving (Eq, Ord, Show)
 
 -- |A term is a variable or a symbol
 data Term = TVar Var | TSym Sym

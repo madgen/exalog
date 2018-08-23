@@ -21,6 +21,7 @@ data Vector :: Nat -> * -> * where
 
 deriving instance Eq a => Eq (Vector n a)
 deriving instance Ord a => Ord (Vector n a)
+deriving instance Show a => Show (Vector n a)
 deriving instance Functor (Vector n)
 
 toList :: Vector n a -> [ a ]

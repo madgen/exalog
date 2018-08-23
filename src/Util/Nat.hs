@@ -8,6 +8,7 @@
 {-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Util.Nat
   ( Nat(..)
@@ -17,10 +18,11 @@ module Util.Nat
 
 import Protolude hiding (Nat)
 
-import Data.Singletons.TH (singletons)
+import Data.Singletons.TH
 import Data.Singletons.Prelude.Eq
+import Data.Singletons.Prelude.Show
 import Data.Singletons.Prelude.Bool
 
 $(singletons [d|
-  data Nat = Zero | Succ Nat deriving (Eq)
+  data Nat = Zero | Succ Nat deriving (Eq, Show)
   |])
