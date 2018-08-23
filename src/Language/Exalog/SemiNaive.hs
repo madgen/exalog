@@ -129,6 +129,7 @@ extends (binding@(v,s) : u) u' =
     Nothing -> (binding:) <$> extends u u'
 
 substitute :: Vector n Term -> Unifier -> Maybe (Vector n Sym)
+substitute Nil _ = Just Nil
 substitute (t ::: ts) unifier
   | TSym s <- t = (s :::) <$> substitute ts unifier
   | TVar v <- t =
