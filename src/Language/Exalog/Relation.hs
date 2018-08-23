@@ -9,6 +9,7 @@ module Language.Exalog.Relation
   -- Smart constructor
   , relation
   -- Helpers
+  , fromList
   , findTuples
   , add
   , merge
@@ -34,11 +35,14 @@ type Solution a = [ Relation a ]
 isEmpty :: Solution a -> Bool
 isEmpty = null
 
+fromList :: [ Relation a ] -> Solution a
+fromList rs = rs
+
 add :: Eq (PredicateAnn a) => Relation a -> Solution a -> Solution a
 add rel [] = [ rel ]
 add rel@(Relation p ts) (rel'@(Relation p' ts') : sol)
   | Proved Refl <- sameArity p p'
-  , p == p' = Relation p (ts ++ ts') : sol
+  , p == p' = Relation p (ts <> ts') : sol
   | otherwise = rel' : add rel sol
 
 filter :: (forall n. (Predicate n a, T.Tuples n) -> Bool)
@@ -52,7 +56,7 @@ merge sol sol' = foldr add sol' sol
 rename :: (forall n. Predicate n a -> Predicate n b) -> Solution a -> Solution b
 rename renamer = map (\(Relation p ts) -> Relation (renamer p) ts)
 
-relation :: Predicate n a -> [ Vector n Sym ] -> Relation a
+relation :: Predicate n a -> T.Tuples n -> Relation a
 relation = Relation
 
 findTuples :: Eq (PredicateAnn a)

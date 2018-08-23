@@ -104,7 +104,7 @@ execClause edb Clause{..} = deriveHead <$> foldrM walkBody [] body
   deriveHead :: [ Unifier ] -> R.Relation a
   deriveHead unifiers
     | Literal{predicate = pred, terms = terms} <- head =
-      R.relation pred (mapMaybe (substitute terms) unifiers)
+      R.relation pred (T.fromList $ mapMaybe (substitute terms) unifiers)
 
   walkBody :: Literal a -> [ Unifier ] -> IO [ Unifier ]
   walkBody lit unifiers = do
@@ -123,7 +123,7 @@ execLiteral edb lit@Literal{predicate = p@Predicate{nature = nature}, ..}
   | otherwise = return $
       maybe (panic "The predicate is not known to the Datalog engine.")
             (mapMaybe (unify terms))
-            (R.findTuples edb p)
+            (T.toList <$> R.findTuples edb p)
 
 extends :: Unifier -> Unifier -> Maybe Unifier
 extends [] u' = Just u'
@@ -227,7 +227,7 @@ mkADelta' deco Predicate{..} = Predicate
 genSolDelta :: Eq (PredicateAnn a)
             => Program a -> R.Solution a -> R.Solution ('ADelta a)
 genSolDelta pr sol =
-  foldr (R.add . ((`R.relation` []) $$)) deltaRenamed normals
+  foldr (R.add . ((`R.relation` mempty) $$)) deltaRenamed normals
   where
   intentionals = findIntentionals pr
 
