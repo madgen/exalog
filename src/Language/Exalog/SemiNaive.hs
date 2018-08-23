@@ -62,7 +62,7 @@ semiNaive edb pr = do
                    -> R.Solution ('ADelta a)
   updateFromDelta' (PredicateBox p) edb =
     let ts = R.findTuples edb (mkADelta' Delta p)
-    in R.add (R.relation (mkADelta' Normal p) ts) edb
+    in R.add (R.Relation (mkADelta' Normal p) ts) edb
 
   -- Sets PrevX2 to Prev, Prev to Normal
   shiftPrevs :: R.Solution ('ADelta a)
@@ -98,7 +98,7 @@ execClause edb Clause{..} = deriveHead <$> foldrM walkBody [] body
   deriveHead :: [ Unifier ] -> R.Relation a
   deriveHead unifiers
     | Literal{predicate = pred, terms = terms} <- head =
-      R.relation pred (T.fromList $ mapMaybe (substitute terms) unifiers)
+      R.Relation pred (T.fromList $ mapMaybe (substitute terms) unifiers)
 
   walkBody :: Literal a -> [ Unifier ] -> IO [ Unifier ]
   walkBody lit unifiers = do
@@ -224,7 +224,7 @@ mkADelta' deco Predicate{..} = Predicate
 genSolDelta :: Eq (PredicateAnn a)
             => Program a -> R.Solution a -> R.Solution ('ADelta a)
 genSolDelta pr sol =
-  foldr (R.add . ((`R.relation` mempty) $$)) deltaRenamed normals
+  foldr (R.add . ((`R.Relation` mempty) $$)) deltaRenamed normals
   where
   intentionals = findIntentionals pr
 

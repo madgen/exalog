@@ -25,7 +25,7 @@ parentTuples =
   ]
 
 parentRel :: Relation 'ABase
-parentRel = relation parPred . T.fromList $ fmap Sym <$> parentTuples
+parentRel = Relation parPred . T.fromList $ fmap Sym <$> parentTuples
 
 ancestorTuples :: [ Vector ('Succ ('Succ 'Zero)) Text ]
 ancestorTuples =
@@ -39,7 +39,7 @@ ancestorTuples =
   ]
 
 ancestorRel :: Relation 'ABase
-ancestorRel = relation ancPred . T.fromList $ fmap Sym <$> ancestorTuples
+ancestorRel = Relation ancPred . T.fromList $ fmap Sym <$> ancestorTuples
 
 initEDB :: Solution 'ABase
 initEDB = [ parentRel ]

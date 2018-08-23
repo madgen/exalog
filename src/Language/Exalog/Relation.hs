@@ -7,9 +7,7 @@
 
 module Language.Exalog.Relation
   ( Solution
-  , Relation
-  -- Smart constructor
-  , relation
+  , Relation(..)
   -- Helpers
   , fromList
   , findTuples
@@ -65,9 +63,6 @@ merge sol sol' = foldr add sol' sol
 
 rename :: (forall n. Predicate n a -> Predicate n b) -> Solution a -> Solution b
 rename renamer = map (\(Relation p ts) -> Relation (renamer p) ts)
-
-relation :: Predicate n a -> T.Tuples n -> Relation a
-relation = Relation
 
 findTuples :: Eq (PredicateAnn a) => Solution a -> Predicate n a -> T.Tuples n
 findTuples [] _ = T.fromList []
