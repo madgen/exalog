@@ -61,10 +61,8 @@ semiNaive edb pr = do
                    -> R.Solution ('ADelta a)
                    -> R.Solution ('ADelta a)
   updateFromDelta' (PredicateBox p) edb =
-    case R.findTuples edb (mkADelta' Delta p) of
-      Just ts -> R.add (R.relation (mkADelta' Normal p) ts) edb
-      Nothing ->
-        panic "Impossible: couldn't find delta of an intentional predicate."
+    let ts = R.findTuples edb (mkADelta' Delta p)
+    in R.add (R.relation (mkADelta' Normal p) ts) edb
 
   -- Sets PrevX2 to Prev, Prev to Normal
   shiftPrevs :: R.Solution ('ADelta a)
@@ -116,10 +114,7 @@ execLiteral :: (Eq (PredicateAnn a), Show (PredicateAnn a))
             => R.Solution a -> Literal a -> IO [ Unifier ]
 execLiteral edb Literal{predicate = p@Predicate{nature = nature}, ..}
   | Extralogical action <- nature = either panic id <$> action terms
-  | otherwise = return $ maybe
-      (panic $ "The predicate " <> show p <> " is not known to the engine.")
-      (mapMaybe (unify terms))
-      (T.toList <$> R.findTuples edb p)
+  | otherwise = return $ mapMaybe (unify terms) (T.toList $ R.findTuples edb p)
 
 extends :: Unifier -> Unifier -> Maybe Unifier
 extends [] u' = Just u'

@@ -68,10 +68,9 @@ rename renamer = map (\(Relation p ts) -> Relation (renamer p) ts)
 relation :: Predicate n a -> T.Tuples n -> Relation a
 relation = Relation
 
-findTuples :: Eq (PredicateAnn a)
-           => Solution a -> Predicate n a -> Maybe (T.Tuples n)
-findTuples [] _ = Nothing
+findTuples :: Eq (PredicateAnn a) => Solution a -> Predicate n a -> T.Tuples n
+findTuples [] _ = T.fromList []
 findTuples (Relation p ts : s) p'
   | Proved Refl <- sameArity p p'
-  , p == p' = Just ts
+  , p == p' = ts
   | otherwise = findTuples s p'
