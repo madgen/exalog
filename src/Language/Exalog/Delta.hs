@@ -30,7 +30,7 @@ import qualified Util.List.Zipper as LZ
 import           Language.Exalog.Core
 import qualified Language.Exalog.Relation as R
 
-data Decor = Normal | Delta | Prev | PrevX2 deriving (Eq, Show)
+data Decor = Normal | Delta | Prev | PrevX2 deriving (Eq, Ord, Show)
 
 data    instance PredicateAnn ('ADelta a) = PredADelta Decor (PredicateAnn a)
 data    instance LiteralAnn ('ADelta a)   = LitADelta (LiteralAnn a)
@@ -38,6 +38,19 @@ newtype instance ClauseAnn  ('ADelta a)   = ClADelta (ClauseAnn a)
 newtype instance ProgramAnn ('ADelta a)   = ProgADelta (ProgramAnn a)
 
 deriving instance Show (PredicateAnn a) => Show (PredicateAnn ('ADelta a))
+deriving instance Show (LiteralAnn a)   => Show (LiteralAnn ('ADelta a))
+deriving instance Show (ClauseAnn a)    => Show (ClauseAnn ('ADelta a))
+deriving instance Show (ProgramAnn a)   => Show (ProgramAnn ('ADelta a))
+
+deriving instance Eq (PredicateAnn a) => Eq (PredicateAnn ('ADelta a))
+deriving instance Eq (LiteralAnn a)   => Eq (LiteralAnn ('ADelta a))
+deriving instance Eq (ClauseAnn a)    => Eq (ClauseAnn ('ADelta a))
+deriving instance Eq (ProgramAnn a)   => Eq (ProgramAnn ('ADelta a))
+
+deriving instance Ord (PredicateAnn a) => Ord (PredicateAnn ('ADelta a))
+deriving instance Ord (LiteralAnn a)   => Ord (LiteralAnn ('ADelta a))
+deriving instance Ord (ClauseAnn a)    => Ord (ClauseAnn ('ADelta a))
+deriving instance Ord (ProgramAnn a)   => Ord (ProgramAnn ('ADelta a))
 
 updateDecor :: Decor -> Predicate n ('ADelta a) -> Predicate n ('ADelta a)
 updateDecor decor p@Predicate{annotation = PredADelta _ prevAnn} =
@@ -58,8 +71,6 @@ instance DecorableAnn ProgramAnn 'ADelta where
 
 instance PeelableAnn PredicateAnn 'ADelta where
   peelA (PredADelta _ prevAnn) = prevAnn
-
-deriving instance Eq (PredicateAnn a) => Eq (PredicateAnn ('ADelta a))
 
 -- |For each clause, generate a version for each IDB predicate where the
 -- IDB predicate appears in delta form i.e. we focus on the newly generated

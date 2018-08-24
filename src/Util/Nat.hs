@@ -19,10 +19,7 @@ module Util.Nat
 import Protolude hiding (Nat)
 
 import Data.Singletons.TH
-import Data.Singletons.Prelude.Eq
-import Data.Singletons.Prelude.Show
-import Data.Singletons.Prelude.Bool
 
 $(singletons [d|
-  data Nat = Zero | Succ Nat deriving (Eq, Show)
+  data Nat = Zero | Succ Nat deriving (Eq, Ord, Show)
   |])

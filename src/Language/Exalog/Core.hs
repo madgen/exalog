@@ -11,6 +11,7 @@
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Language.Exalog.Core
   ( module Language.Exalog.Annotation
@@ -40,6 +41,9 @@ import Protolude hiding (Nat, head)
 import           Data.Kind (Type)
 import qualified Data.List.NonEmpty as NE
 import           Data.Maybe (mapMaybe)
+import qualified Data.Set as S
+import           Data.Singletons (fromSing)
+import           Data.Singletons.Prelude (sCompare)
 import           Data.Singletons.Decide (Decision(..), (%~))
 
 import qualified GHC.Show as Show
@@ -74,6 +78,10 @@ instance Eq (PredicateAnn ann) => Eq (Predicate n ann) where
   p@Predicate{annotation = ann} == p'@Predicate{annotation = ann'} =
     fxSym p == fxSym p' && ann == ann'
 
+instance Ord (PredicateAnn ann) => Ord (Predicate n ann) where
+  p@Predicate{annotation = ann} `compare` p'@Predicate{annotation = ann'} =
+    (ann, fxSym p) `compare` (ann', fxSym p')
+
 instance Show (PredicateAnn ann) => Show (Predicate n ann) where
   show Predicate{..} =
     "Predicate{annotation = " <> show annotation <> ", " <>
@@ -92,13 +100,13 @@ instance Eq (PredicateAnn ann) => Eq (PredicateBox ann) where
     | otherwise = False
 
 -- |Polarity indicates whether a literal has negation in front of it
-data Polarity = Positive | Negative deriving (Eq)
+data Polarity = Positive | Negative deriving (Eq, Ord, Show)
 
-newtype Var = Var Text deriving (Eq, Show)
+newtype Var = Var Text deriving (Eq, Ord, Show)
 newtype Sym = Sym Text deriving (Eq, Ord, Show)
 
 -- |A term is a variable or a symbol
-data Term = TVar Var | TSym Sym
+data Term = TVar Var | TSym Sym deriving (Eq, Ord, Show)
 
 -- |If p is a predicate with arity n and (x_1,...,x_n) is a tuple of terms,
 -- p(x_1,...,x_n) and neg p(x_1,...,x_n) are literals.
@@ -108,6 +116,32 @@ data Literal a = forall n . Literal
   , predicate  :: Predicate n a
   , terms      :: Vector n Term
   }
+
+instance ( Eq (LiteralAnn a)
+         , Eq (PredicateAnn a)
+         ) => Eq (Literal a) where
+  l@Literal{annotation = ann, predicate = p, terms = ts} ==
+    l'@Literal{annotation = ann', predicate = p', terms = ts'}
+    | Proved Refl <- sameArity p p' =
+      ann == ann' &&
+      p == p' &&
+      polarity l == polarity l' &&
+      ts == ts'
+    | otherwise = False
+
+instance ( Ord (LiteralAnn a)
+         , Ord (PredicateAnn a)
+         ) => Ord (Literal a) where
+  Literal ann pol p@Predicate{arity = n} ts `compare`
+    Literal ann' pol' p'@Predicate{arity = n'} ts'
+    | Proved Refl <- sameArity p p' =
+        (ann, pol, p, ts) `compare` (ann', pol', p', ts')
+    | otherwise = fromSing $ sCompare n n'
+
+deriving instance
+  ( Show (LiteralAnn a)
+  , Show (PredicateAnn a)
+  ) => Show (Literal a)
 
 predicateBox :: Literal a -> PredicateBox a
 predicateBox Literal{predicate = p} = PredicateBox p
@@ -122,11 +156,22 @@ data Clause a = Clause
   , body       :: Body a
   }
 
+deriving instance (Ord (ClauseAnn a), Ord (Literal a)) => Ord (Clause a)
+deriving instance (Eq (ClauseAnn a), Eq (Literal a)) => Eq (Clause a)
+deriving instance (Show (ClauseAnn a), Show (Literal a)) => Show (Clause a)
+
 -- |A set of clauses
 data Program a = Program
   { annotation :: ProgramAnn a
   , clauses    :: [ Clause a ]
   }
+
+instance (Ord (Clause a), Eq (ProgramAnn a)) => Eq (Program a) where
+  Program{annotation = ann, clauses = clss} ==
+    Program{annotation = ann', clauses = clss'} =
+    ann == ann' &&
+    S.fromList clss == S.fromList clss'
+deriving instance (Show (Clause a), Show (ProgramAnn a)) => Show (Program a)
 
 -- |Find the intentional predicates of a program
 findIntentionals :: Program a -> [ PredicateBox a ]
