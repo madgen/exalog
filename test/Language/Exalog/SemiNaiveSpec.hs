@@ -16,5 +16,9 @@ spec =
     describe "Ancestor" $ do
 
       finalEDB <- runIO $ semiNaive AncEDB.initEDB LAnc.program
-      it "evaluates linear ancestor correctly" $ do
+      it "evaluates linear ancestor correctly" $
+        finalEDB `shouldBe` AncEDB.finalEDB
+
+      finalEDB <- runIO $ semiNaive AncEDB.initEDB NLAnc.program
+      it "evaluates non-linear ancestor correctly" $
         finalEDB `shouldBe` AncEDB.finalEDB
