@@ -22,6 +22,7 @@ parentTuples =
   , "Orhan"       ::: "Hulusi"  ::: Nil
   , "Nazli"       ::: "Emir"    ::: Nil
   , "Hulusi"      ::: "Emir"    ::: Nil
+  , "Omer"        ::: "Orhan"   ::: Nil
   ]
 
 parentRel :: Relation 'ABase
@@ -36,6 +37,10 @@ ancestorTuples =
   , "Jean-Pierre" ::: "Mistral" ::: Nil
   , "Simone"      ::: "Mistral" ::: Nil
   , "Orhan"       ::: "Emir"    ::: Nil
+  , "Omer"        ::: "Nilufer" ::: Nil
+  , "Omer"        ::: "Hulusi"  ::: Nil
+  , "Omer"        ::: "Mistral" ::: Nil
+  , "Omer"        ::: "Emir"    ::: Nil
   ]
 
 ancestorRel :: Relation 'ABase
