@@ -10,7 +10,7 @@ import Protolude
 import qualified Data.List.NonEmpty as NE
 
 import           Language.Exalog.Core
-import           Language.Exalog.SemiNaive
+import           Language.Exalog.Delta
 
 import Fixture.Ancestor.Common
 import Fixture.Util
@@ -34,8 +34,8 @@ program = Program ProgABase
 |-}
 deltaProgram :: Program ('ADelta 'ABase)
 deltaProgram = Program (decorA ProgABase)
-  [ Clause (decorA ClABase) (mkADelta Delta $ ancLit (tvar "X") (tvar "Z"))
+  [ Clause (decorA ClABase) (mkDeltaLiteral Delta $ ancLit (tvar "X") (tvar "Z"))
       $ NE.fromList
-        [ mkADelta Normal $ parLit (tvar "X") (tvar "Y")
-        , mkADelta Delta $ ancLit (tvar "Y") (tvar "Z") ]
+        [ mkDeltaLiteral Normal $ parLit (tvar "X") (tvar "Y")
+        , mkDeltaLiteral Delta $ ancLit (tvar "Y") (tvar "Z") ]
   ]

@@ -8,7 +8,6 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
 
 module Language.Exalog.SemiNaive where
 
@@ -18,12 +17,10 @@ import           Data.Function (id)
 import           Data.List (concatMap, lookup)
 import           Data.Maybe (mapMaybe, fromJust)
 
-import           Control.Comonad (Comonad(..))
-
 import           Util.Vector
-import qualified Util.List.Zipper as LZ
 
 import           Language.Exalog.Core
+import           Language.Exalog.Delta
 import qualified Language.Exalog.Relation as R
 import           Language.Exalog.Stratification (stratify)
 import qualified Language.Exalog.Tuples as T
@@ -37,24 +34,23 @@ semiNaive edb pr = do
     if areAllDeltaEmpty betterSol
       then return betterSol
       else f betterSol
-  return $ dropSolDelta sol
+  return $ cleanDeltaSolution sol
   where
   -- A simple clause is one without references to IDB predicates in its body.
   simpleClss = flip filter (clauses pr) $ \Clause{body = body} ->
     not . any ((`elem` intentionals) . predicateBox) $ body
 
   initEDBM :: IO (R.Solution ('ADelta a))
-  initEDBM = genSolDelta pr . foldr R.add edb <$> runClauses simpleClss edb
+  initEDBM = mkDeltaSolution pr . foldr R.add edb <$> runClauses simpleClss edb
 
   intentionals :: [ PredicateBox a ]
   intentionals = findIntentionals pr
 
-
   deltaPr :: Program ('ADelta a)
-  deltaPr = genProgDelta pr
+  deltaPr = mkDeltaProgram pr
 
   -- Adds the current deltas to the normal version of the relation.
-  -- Basicall S_i = S_{i-1} \cup delta S
+  -- Basicall S_{i+1} = S_i \cup delta S_i
   updateFromDelta :: R.Solution ('ADelta a) -> R.Solution ('ADelta a)
   updateFromDelta edb = foldr updateFromDelta' edb intentionals
 
@@ -62,9 +58,9 @@ semiNaive edb pr = do
                    -> R.Solution ('ADelta a)
                    -> R.Solution ('ADelta a)
   updateFromDelta' (PredicateBox p) edb =
-    let ts = R.findTuples edb (mkADelta' Delta p)
-        tsPrev = R.findTuples edb (mkADelta' Prev p)
-    in R.add (R.Relation (mkADelta' Normal p) (ts <> tsPrev)) edb
+    let ts = R.findTuples edb (mkDeltaPredicate Delta p)
+        tsPrev = R.findTuples edb (mkDeltaPredicate Prev p)
+    in R.add (R.Relation (mkDeltaPredicate Normal p) (ts <> tsPrev)) edb
 
   -- Sets PrevX2 to Prev, Prev to Normal
   shiftPrevs :: R.Solution ('ADelta a)
@@ -79,9 +75,6 @@ semiNaive edb pr = do
           _      -> p
       else
         p
-
-  filterPrevX2 :: R.Solution ('ADelta a) -> R.Solution ('ADelta a)
-  filterPrevX2 sol = (`R.filter` sol) $ \(R.Relation p _) -> decor p /= PrevX2
 
   runDelta :: R.Solution ('ADelta a) -> IO (R.Solution ('ADelta a))
   runDelta edb = axeDeltaRedundancies
@@ -101,7 +94,7 @@ semiNaive edb pr = do
     . R.filter (\(R.Relation p ts) -> decor p == Delta && (not . T.isEmpty) ts)
 
   step :: R.Solution ('ADelta a) -> IO (R.Solution ('ADelta a))
-  step = runDelta . updateFromDelta . shiftPrevs . filterPrevX2
+  step = runDelta . updateFromDelta . shiftPrevs . elimDecor PrevX2
 
 runClauses :: (Eq (PredicateAnn a), Show (PredicateAnn a))
            => [ Clause a ] -> R.Solution a -> IO [ R.Relation a ]
@@ -157,100 +150,3 @@ unify (TVar v ::: ts) (s ::: ss) = ((v,s):) <$> unify ts ss
 unify (TSym s ::: ts) (s' ::: ss)
   | s == s' = unify ts ss
   | otherwise = Nothing
-
---------------------------------------------------------------------------------
--- Generating delta versions of predicates
---------------------------------------------------------------------------------
-
-data Decor = Normal | Delta | Prev | PrevX2 deriving (Eq, Show)
-
-data    instance PredicateAnn ('ADelta a) = PredADelta Decor (PredicateAnn a)
-data    instance LiteralAnn ('ADelta a)   = LitADelta (LiteralAnn a)
-newtype instance ClauseAnn  ('ADelta a)   = ClADelta (ClauseAnn a)
-newtype instance ProgramAnn ('ADelta a)   = ProgADelta (ProgramAnn a)
-
-deriving instance Show (PredicateAnn a) => Show (PredicateAnn ('ADelta a))
-
-updateDecor :: Decor -> Predicate n ('ADelta a) -> Predicate n ('ADelta a)
-updateDecor decor p@Predicate{annotation = PredADelta _ prevAnn} =
-  p {annotation = PredADelta decor prevAnn}
-
-decor :: Predicate n ('ADelta a) -> Decor
-decor Predicate{annotation = PredADelta decor _} = decor
-
-instance DecorableAnn LiteralAnn 'ADelta where
-  decorA = LitADelta
-instance DecorableAnn ClauseAnn 'ADelta where
-  decorA = ClADelta
-instance DecorableAnn ProgramAnn 'ADelta where
-  decorA = ProgADelta
-
-instance PeelableAnn PredicateAnn 'ADelta where
-  peelA (PredADelta _ prevAnn) = prevAnn
-
-deriving instance Eq (PredicateAnn a) => Eq (PredicateAnn ('ADelta a))
-
--- |For each clause, generate a version for each IDB predicate where the
--- IDB predicate appears in delta form i.e. we focus on the newly generated
--- facts for the predicate in focus.
---
--- The IDB predicates that precede the delta predicate refer to the
--- previous generation and those that follow refer to the generation
--- before. This optimises repeated predicates.
---
--- It eliminates all clauses that does not have any intensional predicates
--- in its body.
-genProgDelta :: forall a. Eq (PredicateBox a)
-             => Program a -> Program ('ADelta a)
-genProgDelta pr@(Program ann cs) = Program (decorA ann) (concatMap mkCls cs)
-  where
-  intentionals = findIntentionals pr
-
-  mkCls :: Clause a -> [ Clause ('ADelta a) ]
-  mkCls Clause{..} =
-      fmap (Clause (decorA annotation) (mkADelta Delta head) . LZ.toNonEmptyList)
-    . mapMaybe processBody
-    . LZ.toList
-    . duplicate
-    . LZ.fromNonEmptyList $ body
-
-  processBody :: LZ.Zipper (Literal a)
-              -> Maybe (LZ.Zipper (Literal ('ADelta a)))
-  processBody lits
-    | (`elem` intentionals) . predicateBox . LZ.focus $ lits = Just
-      . LZ.threeWayMap (mkPrev Prev) (mkADelta Delta) (mkPrev PrevX2) $ lits
-    | otherwise = Nothing
-
-  mkPrev :: Decor -> Literal a -> Literal ('ADelta a)
-  mkPrev deco lit
-    | predicateBox lit `elem` intentionals = mkADelta deco lit
-    | otherwise = mkADelta Normal lit
-
-mkADelta :: Decor -> Literal a -> Literal ('ADelta a)
-mkADelta deco Literal{..} =
-  Literal { annotation = decorA annotation
-          , predicate  = mkADelta' deco predicate
-          , ..}
-
-mkADelta' :: Decor -> Predicate n a -> Predicate n ('ADelta a)
-mkADelta' deco Predicate{..} = Predicate
-  { annotation = PredADelta deco annotation
-  , ..}
-
-genSolDelta :: Eq (PredicateAnn a)
-            => Program a -> R.Solution a -> R.Solution ('ADelta a)
-genSolDelta pr sol =
-  foldr (R.add . ((`R.Relation` mempty) $$)) deltaRenamed normals
-  where
-  intentionals = findIntentionals pr
-
-  normals = flip map intentionals $ \case
-    PredicateBox p -> PredicateBox $ mkADelta' Normal p
-
-  deltaRenamed = (`R.rename` sol) $ \p ->
-    if PredicateBox p `elem` intentionals
-      then mkADelta' Delta  p
-      else mkADelta' Normal p
-
-dropSolDelta :: R.Solution ('ADelta a) -> R.Solution a
-dropSolDelta = R.rename peel . R.filter (\(R.Relation p _) -> decor p == Normal)
