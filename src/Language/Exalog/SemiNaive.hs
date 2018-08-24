@@ -54,6 +54,7 @@ semiNaive edb pr = do
   deltaPr = genProgDelta pr
 
   -- Adds the current deltas to the normal version of the relation.
+  -- Basicall S_i = S_{i-1} \cup delta S
   updateFromDelta :: R.Solution ('ADelta a) -> R.Solution ('ADelta a)
   updateFromDelta edb = foldr updateFromDelta' edb intentionals
 
@@ -62,7 +63,8 @@ semiNaive edb pr = do
                    -> R.Solution ('ADelta a)
   updateFromDelta' (PredicateBox p) edb =
     let ts = R.findTuples edb (mkADelta' Delta p)
-    in R.add (R.Relation (mkADelta' Normal p) ts) edb
+        tsPrev = R.findTuples edb (mkADelta' Prev p)
+    in R.add (R.Relation (mkADelta' Normal p) (ts <> tsPrev)) edb
 
   -- Sets PrevX2 to Prev, Prev to Normal
   shiftPrevs :: R.Solution ('ADelta a)
