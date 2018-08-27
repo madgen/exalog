@@ -41,7 +41,14 @@ semiNaive edb pr = do
     not . any ((`elem` intentionals) . predicateBox) $ body
 
   initEDBM :: IO (R.Solution ('ADelta a))
-  initEDBM = mkDeltaSolution pr . foldr R.add edb <$> runClauses simpleClss edb
+  initEDBM = do
+    rels <- runClauses simpleClss edb
+    let deltaSol = mkDeltaSolution pr . foldr R.add edb $ rels
+    return $ (`R.atEach` deltaSol) $ \case
+      (p, ts)
+        | Prev   <- decor p -> R.findTuples deltaSol (updateDecor Delta p)
+        | PrevX2 <- decor p -> R.findTuples deltaSol (updateDecor Delta p)
+        | otherwise -> ts
 
   intentionals :: [ PredicateBox a ]
   intentionals = findIntentionals pr
