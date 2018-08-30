@@ -37,28 +37,28 @@ module Language.Exalog.Core
   , Formula(..)
   ) where
 
-import Protolude hiding (Nat, head)
+import Protolude hiding (head)
 
 import           Data.Kind (Type)
 import qualified Data.List.NonEmpty as NE
 import           Data.Maybe (mapMaybe)
 import qualified Data.Set as S
 import           Data.Singletons (fromSing)
+import           Data.Singletons.TypeLits (SNat)
 import           Data.Singletons.Prelude (sCompare)
 import           Data.Singletons.Decide (Decision(..), (%~))
+import qualified Data.Vector.Sized as V
 
 import qualified GHC.Show as Show
 
 import           Language.Exalog.Annotation
-
-import           Util.Vector as V
 
 type Unifier = [ (Var, Sym) ]
 
 -- |Type indicating the nature of Datalog predicate
 data Nature (n :: Nat) =
     Logical
-  | Extralogical (Vector n Term -> IO (Either Text [ Unifier ]))
+  | Extralogical (V.Vector n Term -> IO (Either Text [ Unifier ]))
 
 data NatureBox = forall n. NatureBox (Nature n)
 
@@ -115,7 +115,7 @@ data Literal a = forall n . Literal
   { annotation :: LiteralAnn a
   , polarity   :: Polarity
   , predicate  :: Predicate n a
-  , terms      :: Vector n Term
+  , terms      :: V.Vector n Term
   }
 
 instance ( Eq (LiteralAnn a)

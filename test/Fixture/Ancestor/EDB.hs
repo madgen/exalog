@@ -4,43 +4,44 @@ module Fixture.Ancestor.EDB (initEDB, finalEDB) where
 
 import Protolude
 
+import           Data.Maybe (fromJust)
+import qualified Data.Vector.Sized as V
+
 import qualified Language.Exalog.Tuples as T
 import           Language.Exalog.Relation
 import           Language.Exalog.Core
 
-import Util.Vector
-
 import Fixture.Ancestor.Common
 
-parentTuples :: [ Vector ('Succ ('Succ 'Zero)) Text ]
-parentTuples =
-  [ "Laurent"     ::: "Mistral" ::: Nil
-  , "Nilufer"     ::: "Mistral" ::: Nil
-  , "Jean-Pierre" ::: "Laurent" ::: Nil
-  , "Simone"      ::: "Laurent" ::: Nil
-  , "Orhan"       ::: "Nilufer" ::: Nil
-  , "Orhan"       ::: "Hulusi"  ::: Nil
-  , "Nazli"       ::: "Emir"    ::: Nil
-  , "Hulusi"      ::: "Emir"    ::: Nil
-  , "Omer"        ::: "Orhan"   ::: Nil
+parentTuples :: [ V.Vector 2 Text ]
+parentTuples = fromJust . V.fromList <$>
+  [ [ "Laurent"     , "Mistral" ]
+  , [ "Nilufer"     , "Mistral" ]
+  , [ "Jean-Pierre" , "Laurent" ]
+  , [ "Simone"      , "Laurent" ]
+  , [ "Orhan"       , "Nilufer" ]
+  , [ "Orhan"       , "Hulusi"  ]
+  , [ "Nazli"       , "Emir"    ]
+  , [ "Hulusi"      , "Emir"    ]
+  , [ "Omer"        , "Orhan"   ]
   ]
 
 parentRel :: Relation 'ABase
 parentRel = Relation parPred . T.fromList $ fmap Sym <$> parentTuples
 
-ancestorTuples :: [ Vector ('Succ ('Succ 'Zero)) Text ]
+ancestorTuples :: [ V.Vector 2 Text ]
 ancestorTuples =
   -- From the first clause
-  parentTuples ++
+  (parentTuples ++) $ fromJust . V.fromList <$>
   -- From the second clause
-  [ "Orhan"       ::: "Mistral" ::: Nil
-  , "Jean-Pierre" ::: "Mistral" ::: Nil
-  , "Simone"      ::: "Mistral" ::: Nil
-  , "Orhan"       ::: "Emir"    ::: Nil
-  , "Omer"        ::: "Nilufer" ::: Nil
-  , "Omer"        ::: "Hulusi"  ::: Nil
-  , "Omer"        ::: "Mistral" ::: Nil
-  , "Omer"        ::: "Emir"    ::: Nil
+  [ [ "Orhan"       , "Mistral" ]
+  , [ "Jean-Pierre" , "Mistral" ]
+  , [ "Simone"      , "Mistral" ]
+  , [ "Orhan"       , "Emir"    ]
+  , [ "Omer"        , "Nilufer" ]
+  , [ "Omer"        , "Hulusi"  ]
+  , [ "Omer"        , "Mistral" ]
+  , [ "Omer"        , "Emir"    ]
   ]
 
 ancestorRel :: Relation 'ABase

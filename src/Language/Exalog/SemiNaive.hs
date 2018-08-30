@@ -15,9 +15,8 @@ import Protolude hiding (head, pred)
 
 import           Data.Function (id)
 import           Data.List (concatMap, lookup)
-import           Data.Maybe (mapMaybe, fromJust)
-
-import           Util.Vector
+import           Data.Maybe (mapMaybe, catMaybes, fromJust)
+import qualified Data.Vector.Sized as V
 
 import           Language.Exalog.Core
 import           Language.Exalog.Delta
@@ -142,18 +141,16 @@ extends (binding@(v,s) : u) u' =
     Just s' -> if s == s' then extends u u' else Nothing
     Nothing -> (binding:) <$> extends u u'
 
-substitute :: Vector n Term -> Unifier -> Maybe (Vector n Sym)
-substitute Nil _ = Just Nil
-substitute (t ::: ts) unifier
-  | TSym s <- t = (s :::) <$> substitute ts unifier
-  | TVar v <- t =
-    case v `lookup` unifier of
-      Just s  -> (s :::) <$> substitute ts unifier
-      Nothing -> Nothing
+substitute :: V.Vector n Term -> Unifier -> Maybe (V.Vector n Sym)
+substitute v unifier = (`traverse` v) $ \case
+  TSym s -> Just s
+  TVar v -> v `lookup` unifier
 
-unify :: Vector n Term -> Vector n Sym -> Maybe Unifier
-unify Nil Nil = Just []
-unify (TVar v ::: ts) (s ::: ss) = ((v,s):) <$> unify ts ss
-unify (TSym s ::: ts) (s' ::: ss)
-  | s == s' = unify ts ss
-  | otherwise = Nothing
+unify :: V.Vector n Term -> V.Vector n Sym -> Maybe Unifier
+unify v w = catMaybes . V.toList <$> V.zipWithM attempt v w
+  where
+  attempt :: Term -> Sym -> Maybe (Maybe (Var, Sym))
+  attempt (TVar var) sym  = return $ Just (var,sym)
+  attempt (TSym sym) sym'
+    | sym == sym' = return Nothing
+    | otherwise   = Nothing

@@ -8,8 +8,10 @@ module Language.Exalog.SemiNaiveSpec (spec) where
 
 import Protolude hiding (Nat)
 
-import Data.String (fromString)
-import Data.Singletons
+import           Data.String (fromString)
+import           Data.Singletons
+import           Data.Singletons.TypeLits
+import qualified Data.Vector.Sized as V
 
 import Control.Monad (liftM2, replicateM)
 
@@ -29,30 +31,22 @@ import qualified Language.Exalog.Tuples as T
 import qualified Language.Exalog.Relation as R
 import           Language.Exalog.SemiNaive
 
-import           Util.Vector
-
 instance Arbitrary PredicateSym where
   arbitrary = fromString <$> arbitrary
-
-instance Arbitrary Nat where
-  arbitrary = oneof $ return <$> take 9 (fix (\f x -> x : fmap Succ (f x)) Zero)
 
 instance Arbitrary Sym where
   arbitrary = Sym . fromString <$> arbitrary
 
 instance Arbitrary (R.Relation 'ABase) where
   arbitrary = do
-    n <- arbitrary
+    n <- oneof $ return <$> [1..10]
     len <- arbitrary
     withSomeSing n $
       \(snat :: SNat n) ->
-        R.Relation
-          <$> (Predicate PredABase <$> arbitrary <*> pure snat <*> pure Logical)
-          <*> (T.fromList <$> replicateM len (tabulate snat))
-    where
-    tabulate :: SNat n -> Gen (Vector n Sym)
-    tabulate SZero = return Nil
-    tabulate (SSucc n) = liftM2 (:::) arbitrary (tabulate n)
+        withKnownNat snat $
+          R.Relation
+            <$> (Predicate PredABase <$> arbitrary <*> pure snat <*> pure Logical)
+            <*> (T.fromList <$> replicateM len (V.replicateM arbitrary :: Gen (V.Vector n Sym)))
 
 spec :: Spec
 spec =

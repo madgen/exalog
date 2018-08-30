@@ -13,11 +13,11 @@ import Protolude hiding (toList)
 
 import           Data.List ((\\))
 import qualified Data.Set as S
+import qualified Data.Vector.Sized as V
 
 import Language.Exalog.Core
-import Util.Vector hiding (toList)
 
-newtype Tuples n = Tuples [ Vector n Sym ] deriving (Show)
+newtype Tuples n = Tuples [ V.Vector n Sym ] deriving (Show)
 
 instance Eq (Tuples n) where
   Tuples ts == Tuples ts' = S.fromList ts == S.fromList ts'
@@ -31,10 +31,10 @@ instance Monoid (Tuples n) where
 isEmpty :: Tuples n -> Bool
 isEmpty (Tuples ts) = null ts
 
-toList :: Tuples n -> [ Vector n Sym ]
+toList :: Tuples n -> [ V.Vector n Sym ]
 toList (Tuples ts) = ts
 
-fromList :: [ Vector n Sym ] -> Tuples n
+fromList :: [ V.Vector n Sym ] -> Tuples n
 fromList = Tuples
 
 difference :: Tuples n -> Tuples n -> Tuples n

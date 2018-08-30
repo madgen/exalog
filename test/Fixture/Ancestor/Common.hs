@@ -1,22 +1,27 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Fixture.Ancestor.Common
   ( parPred, parLit
   , ancPred, ancLit
   ) where
 
+import Protolude
+
+import           Data.Maybe (fromJust)
+import           Data.Singletons.TypeLits
+import qualified Data.Vector.Sized as V
+
 import Language.Exalog.Core
 
-import Util.Vector
-
 parLit :: Term -> Term -> Literal 'ABase
-parLit t1 t2 = Literal LitABase Positive parPred (t1 ::: t2 ::: Nil)
+parLit t1 t2 = Literal LitABase Positive parPred $ fromJust $ V.fromList [ t1, t2 ]
 
 ancLit :: Term -> Term -> Literal 'ABase
-ancLit t1 t2 = Literal LitABase Positive ancPred (t1 ::: t2 ::: Nil)
+ancLit t1 t2 = Literal LitABase Positive ancPred $ fromJust $ V.fromList [ t1, t2 ]
 
-parPred :: Predicate ('Succ ('Succ 'Zero)) 'ABase
-parPred = Predicate PredABase "par" (SSucc (SSucc SZero)) Logical
+parPred :: Predicate 2 'ABase
+parPred = Predicate PredABase "par" (SNat @2) Logical
 
-ancPred :: Predicate ('Succ ('Succ 'Zero)) 'ABase
-ancPred = Predicate PredABase "anc" (SSucc (SSucc SZero)) Logical
+ancPred :: Predicate 2 'ABase
+ancPred = Predicate PredABase "anc" (SNat @2) Logical
