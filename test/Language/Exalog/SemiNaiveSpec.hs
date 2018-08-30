@@ -37,16 +37,23 @@ instance Arbitrary PredicateSym where
 instance Arbitrary Sym where
   arbitrary = Sym . fromString <$> arbitrary
 
+instance (KnownNat n, SingI n) => Arbitrary (T.Tuples n) where
+  arbitrary = do
+    len <- arbitrary
+    T.fromList <$> replicateM len (V.replicateM arbitrary :: Gen (V.Vector n Sym))
+
+instance SingI n => Arbitrary (Predicate n 'ABase) where
+  arbitrary = Predicate PredABase <$> arbitrary <*> pure (sing :: SNat n) <*> pure Logical
+
 instance Arbitrary (R.Relation 'ABase) where
   arbitrary = do
     n <- oneof $ return <$> [1..10]
-    len <- arbitrary
     withSomeSing n $
       \(snat :: SNat n) ->
         withKnownNat snat $
           R.Relation
-            <$> (Predicate PredABase <$> arbitrary <*> pure snat <*> pure Logical)
-            <*> (T.fromList <$> replicateM len (V.replicateM arbitrary :: Gen (V.Vector n Sym)))
+            <$> (arbitrary :: Gen (Predicate n 'ABase))
+            <*> (arbitrary :: Gen (T.Tuples n))
 
 spec :: Spec
 spec =
