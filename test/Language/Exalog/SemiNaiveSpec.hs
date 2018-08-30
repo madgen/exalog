@@ -56,7 +56,7 @@ instance Arbitrary (R.Relation 'ABase) where
 
 spec :: Spec
 spec =
-  describe "SemiNaive evaluation" $ do
+  describe "SemiNaive evaluation" $
     describe "Ancestor" $ do
 
       finalEDB <- runIO $ semiNaive AncEDB.initEDB LAnc.program
@@ -68,7 +68,6 @@ spec =
         finalEDB `shouldBe` AncEDB.finalEDB
 
       prop "linear & non-linear versions produce the same result" $
-        \edb -> unsafePerformIO $ do
-          sol1 <- semiNaive edb LAnc.program
-          sol2 <- semiNaive edb NLAnc.program
-          return $ sol1 == sol2
+        \edb -> unsafePerformIO $ liftM2 (==)
+          (semiNaive edb LAnc.program)
+          (semiNaive edb NLAnc.program)
