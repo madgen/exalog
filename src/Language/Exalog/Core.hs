@@ -16,6 +16,7 @@
 module Language.Exalog.Core
   ( module Language.Exalog.Annotation
   , Predicate(..), PredicateBox(..)
+  , PredicateSym
   , Var(..), Sym(..)
   , Term(..)
   , Unifier
