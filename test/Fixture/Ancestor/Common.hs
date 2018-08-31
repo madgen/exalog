@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Fixture.Ancestor.Common
   ( parPred, parLit
@@ -21,7 +20,7 @@ ancLit :: Term -> Term -> Literal 'ABase
 ancLit t1 t2 = Literal LitABase Positive ancPred $ fromJust $ V.fromList [ t1, t2 ]
 
 parPred :: Predicate 2 'ABase
-parPred = Predicate PredABase "par" (SNat @2) Logical
+parPred = Predicate PredABase "par" SNat Logical
 
 ancPred :: Predicate 2 'ABase
-ancPred = Predicate PredABase "anc" (SNat @2) Logical
+ancPred = Predicate PredABase "anc" SNat Logical
