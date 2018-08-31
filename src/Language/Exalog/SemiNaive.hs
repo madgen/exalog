@@ -24,7 +24,7 @@ import qualified Language.Exalog.Relation as R
 import           Language.Exalog.Stratification (stratify)
 import qualified Language.Exalog.Tuples as T
 
-semiNaive :: forall a. (Eq (PredicateAnn a), Show (PredicateAnn a))
+semiNaive :: forall a. Eq (PredicateAnn a)
           => R.Solution a -> Program a -> IO (R.Solution a)
 semiNaive edb pr = do
   initEDB <- initEDBM
@@ -102,11 +102,11 @@ semiNaive edb pr = do
   step :: R.Solution ('ADelta a) -> IO (R.Solution ('ADelta a))
   step = runDelta . updateFromDelta . shiftPrevs . elimDecor PrevX2
 
-runClauses :: (Eq (PredicateAnn a), Show (PredicateAnn a))
+runClauses :: Eq (PredicateAnn a)
            => [ Clause a ] -> R.Solution a -> IO [ R.Relation a ]
 runClauses clss edb = mapM (execClause edb) clss
 
-execClause :: forall a. (Eq (PredicateAnn a), Show (PredicateAnn a))
+execClause :: forall a. Eq (PredicateAnn a)
            => R.Solution a -> Clause a -> IO (R.Relation a)
 execClause edb Clause{..} = deriveHead <$> foldrM walkBody [] body
   where
@@ -128,7 +128,7 @@ execClause edb Clause{..} = deriveHead <$> foldrM walkBody [] body
           guard (isJust extendedUnifier)
           return $ fromJust extendedUnifier
 
-execLiteral :: (Eq (PredicateAnn a), Show (PredicateAnn a))
+execLiteral :: Eq (PredicateAnn a)
             => R.Solution a -> Literal a -> IO [ Unifier ]
 execLiteral edb Literal{predicate = p@Predicate{nature = nature}, ..}
   | Extralogical action <- nature = either panic id <$> action terms
