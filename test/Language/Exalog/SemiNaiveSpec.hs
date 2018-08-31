@@ -35,7 +35,9 @@ instance Arbitrary PredicateSym where
   arbitrary = fromString <$> arbitrary
 
 instance Arbitrary Sym where
-  arbitrary = Sym . fromString <$> arbitrary
+  arbitrary = oneof $ return . Sym <$>
+    [ "mistral", "emir", "nilufer", "laurent", "gulseren", "orhan"
+    , "jean-pierre", "simone", "nazli", "hulusi" ]
 
 instance (KnownNat n, SingI n) => Arbitrary (T.Tuples n) where
   arbitrary = do
