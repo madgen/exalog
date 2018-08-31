@@ -8,7 +8,6 @@ module Language.Exalog.Stratification
 
 import Protolude hiding (head)
 
-import qualified Data.ByteString as BS
 import qualified Data.Graph.Inductive.Graph as G
 import           Data.Graph.Inductive.Query.DFS (condensation, topsort)
 import           Data.List (lookup)
@@ -20,7 +19,7 @@ import           Language.Exalog.Dependency
 -- |Returns a stratified program in the form of a list to be executed in
 -- order.
 stratify :: Eq (PredicateAnn a) =>
-         Program ('ADependency a) -> Either BS.ByteString [ Program a ]
+         Program ('ADependency a) -> Either Text [ Program a ]
 stratify p@Program{annotation = ann} = sequence $ do
   comp <- sccs
   let polarities = sccPolarities comp
