@@ -19,6 +19,7 @@ import Test.Hspec
 import Test.Hspec.QuickCheck
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Gen
+import Test.QuickCheck.Modifiers
 
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -26,7 +27,7 @@ import qualified Fixture.Ancestor.LinearAncestor as LAnc
 import qualified Fixture.Ancestor.NonLinearAncestor as NLAnc
 import qualified Fixture.Ancestor.EDB as AncEDB
 
-import           Language.Exalog.Core
+import           Language.Exalog.Core hiding (Positive)
 import qualified Language.Exalog.Tuples as T
 import qualified Language.Exalog.Relation as R
 import           Language.Exalog.SemiNaive
@@ -41,7 +42,7 @@ instance Arbitrary Sym where
 
 instance (KnownNat n, SingI n) => Arbitrary (T.Tuples n) where
   arbitrary = do
-    len <- arbitrary
+    Positive len <- arbitrary :: Gen (Positive Int)
     T.fromList <$> replicateM len (V.replicateM arbitrary :: Gen (V.Vector n Sym))
 
 instance SingI n => Arbitrary (Predicate n 'ABase) where
