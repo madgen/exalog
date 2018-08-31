@@ -22,10 +22,10 @@ import Fixture.Util
 |-}
 program :: Program 'ABase
 program = Program ProgABase
-  [ Clause ClABase (ancLit (tvar "X") (tvar "Z")) $ NE.fromList
-      [ ancLit (tvar "X") (tvar "Y"), ancLit (tvar "Y") (tvar "Z") ]
-  , Clause ClABase (ancLit (tvar "X") (tvar "Y")) $ NE.fromList
-      [ parLit (tvar "X") (tvar "Y") ]
+  [ Clause ClABase (anc (tvar "X") (tvar "Z")) $ NE.fromList
+      [ anc (tvar "X") (tvar "Y"), anc (tvar "Y") (tvar "Z") ]
+  , Clause ClABase (anc (tvar "X") (tvar "Y")) $ NE.fromList
+      [ par (tvar "X") (tvar "Y") ]
   ]
 
 {-| Linear ancestor program deltafied:
@@ -35,12 +35,12 @@ program = Program ProgABase
 |-}
 deltaProgram :: Program ('ADelta 'ABase)
 deltaProgram = Program (decorA ProgABase)
-  [ Clause (decorA ClABase) (mkDeltaLiteral Delta $ ancLit (tvar "X") (tvar "Z"))
+  [ Clause (decorA ClABase) (mkDeltaLiteral Delta $ anc (tvar "X") (tvar "Z"))
       $ NE.fromList
-        [ mkDeltaLiteral Delta  $ ancLit (tvar "X") (tvar "Y")
-        , mkDeltaLiteral PrevX2 $ ancLit (tvar "Y") (tvar "Z") ]
-  , Clause (decorA ClABase) (mkDeltaLiteral Delta $ ancLit (tvar "X") (tvar "Z"))
+        [ mkDeltaLiteral Delta  $ anc (tvar "X") (tvar "Y")
+        , mkDeltaLiteral PrevX2 $ anc (tvar "Y") (tvar "Z") ]
+  , Clause (decorA ClABase) (mkDeltaLiteral Delta $ anc (tvar "X") (tvar "Z"))
       $ NE.fromList
-        [ mkDeltaLiteral Prev   $ ancLit (tvar "X") (tvar "Y")
-        , mkDeltaLiteral Delta  $ ancLit (tvar "Y") (tvar "Z") ]
+        [ mkDeltaLiteral Prev   $ anc (tvar "X") (tvar "Y")
+        , mkDeltaLiteral Delta  $ anc (tvar "Y") (tvar "Z") ]
   ]

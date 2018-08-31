@@ -22,10 +22,10 @@ import Fixture.Util
 |-}
 program :: Program 'ABase
 program = Program ProgABase
-  [ Clause ClABase (ancLit (tvar "X") (tvar "Z")) $ NE.fromList
-      [ parLit (tvar "X") (tvar "Y"), ancLit (tvar "Y") (tvar "Z") ]
-  , Clause ClABase (ancLit (tvar "X") (tvar "Y")) $ NE.fromList
-      [ parLit (tvar "X") (tvar "Y") ]
+  [ Clause ClABase (anc (tvar "X") (tvar "Z")) $ NE.fromList
+      [ par (tvar "X") (tvar "Y"), anc (tvar "Y") (tvar "Z") ]
+  , Clause ClABase (anc (tvar "X") (tvar "Y")) $ NE.fromList
+      [ par (tvar "X") (tvar "Y") ]
   ]
 
 {-| Linear ancestor program deltafied:
@@ -34,8 +34,8 @@ program = Program ProgABase
 |-}
 deltaProgram :: Program ('ADelta 'ABase)
 deltaProgram = Program (decorA ProgABase)
-  [ Clause (decorA ClABase) (mkDeltaLiteral Delta $ ancLit (tvar "X") (tvar "Z"))
+  [ Clause (decorA ClABase) (mkDeltaLiteral Delta $ anc (tvar "X") (tvar "Z"))
       $ NE.fromList
-        [ mkDeltaLiteral Normal $ parLit (tvar "X") (tvar "Y")
-        , mkDeltaLiteral Delta $ ancLit (tvar "Y") (tvar "Z") ]
+        [ mkDeltaLiteral Normal $ par (tvar "X") (tvar "Y")
+        , mkDeltaLiteral Delta $ anc (tvar "Y") (tvar "Z") ]
   ]
