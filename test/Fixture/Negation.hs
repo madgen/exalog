@@ -3,7 +3,8 @@
 module Fixture.Negation
   ( program
   , initEDB
-  , tcRelFinal
+  , tcTuples
+  , tcPred
   ) where
 
 import Protolude hiding (not)
@@ -60,6 +61,7 @@ rTuples = fromJust . V.fromList <$>
   , [ "x"     , "z" ]
   , [ "z"     , "x" ]
   , [ "y"     , "w" ]
+  , [ "x"     , "x" ]
   ]
 
 rRel :: Relation 'ABase
@@ -68,15 +70,15 @@ rRel = Relation rPred . T.fromList $ fmap Sym <$> rTuples
 initEDB :: Solution 'ABase
 initEDB = [ rRel ]
 
-tcTuples :: [ V.Vector 2 Text ]
-tcTuples = fromJust . V.fromList <$>
+tcTuples :: T.Tuples 2
+tcTuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>
   [ [ "y"     , "x" ]
   , [ "y"     , "z" ]
   , [ "z"     , "y" ]
   , [ "w"     , "z" ]
   , [ "x"     , "w" ]
   , [ "w"     , "x" ]
+  , [ "y"     , "y" ]
+  , [ "w"     , "w" ]
+  , [ "z"     , "z" ]
   ]
-
-tcRelFinal :: Relation 'ABase
-tcRelFinal = Relation tcPred . T.fromList $ fmap Sym <$> rTuples
