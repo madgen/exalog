@@ -33,8 +33,8 @@ r t t' = lit rPred $ fromJust $ V.fromList [ t, t' ]
 - r("c","1") :- c("a","b").
 - r(X  ,"2") :- c("a",X).
 - r("c","3") :- c("q","b").
-- r("e","4") :- r(X,Y), c(X,"b").
-- r("f","5") :- c(X,"b"), r(X,Y).
+- r("e","4") :- r(X,Y), c("a",X).
+- r("f","5") :- c("a",X), r(X,Y).
 -}
 program :: Program 'ABase
 program = Program ProgABase
@@ -43,9 +43,9 @@ program = Program ProgABase
   , Clause ClABase (r (tsym "c")  (tsym "3")) $ NE.fromList [ c (tsym "q") (tsym "b") ]
   , Clause ClABase (r (tsym "e")  (tsym "4")) $ NE.fromList
     [ r (tvar "X") (tvar "Y")
-    , c (tvar "X") (tsym "b") ]
+    , c (tsym "a") (tvar "X") ]
   , Clause ClABase (r (tsym "f")  (tsym "5")) $ NE.fromList
-    [ c (tvar "X") (tsym "b")
+    [ c (tsym "a") (tvar "X")
     , r (tvar "X") (tvar "Y") ]
   ]
 
