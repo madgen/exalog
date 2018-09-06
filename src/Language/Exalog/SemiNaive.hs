@@ -15,6 +15,7 @@ import Protolude hiding (head, pred)
 
 import           Data.Function (id)
 import           Data.List (lookup)
+import qualified Data.List.NonEmpty as NE
 import           Data.Maybe (mapMaybe, catMaybes)
 import qualified Data.Vector.Sized as V
 
@@ -34,6 +35,8 @@ semiNaive edb pr = do
       else f betterSol
   return $ cleanDeltaSolution sol
   where
+  revPr = reverseClauses pr
+
   -- A simple clause is one without references to IDB predicates in its body.
   simpleClss = flip filter (clauses pr) $ \Clause{body = body} ->
     not . any ((`elem` intentionals) . predicateBox) $ body
@@ -41,7 +44,7 @@ semiNaive edb pr = do
   initEDBM :: IO (R.Solution ('ADelta a))
   initEDBM = do
     rels <- runClauses simpleClss edb
-    let deltaSol = mkDeltaSolution pr . foldr R.add edb $ rels
+    let deltaSol = mkDeltaSolution revPr . foldr R.add edb $ rels
     return $ (`R.atEach` deltaSol) $ \case
       (p, ts)
         | Prev   <- decor p -> R.findTuples deltaSol (updateDecor Delta p)
@@ -49,10 +52,10 @@ semiNaive edb pr = do
         | otherwise -> ts
 
   intentionals :: [ PredicateBox a ]
-  intentionals = findIntentionals pr
+  intentionals = findIntentionals revPr
 
   deltaPr :: Program ('ADelta a)
-  deltaPr = mkDeltaProgram pr
+  deltaPr = mkDeltaProgram revPr
 
   -- Adds the current deltas to the normal version of the relation.
   -- Basicall S_{i+1} = S_i \cup delta S_i
@@ -107,7 +110,7 @@ runClauses clss edb = mapM (execClause edb) clss
 
 execClause :: forall a. (Eq (PredicateAnn a), Show (PredicateAnn a), Show (ClauseAnn a), Show (LiteralAnn a))
            => R.Solution a -> Clause a -> IO (R.Relation a)
-execClause edb Clause{..} = deriveHead <$> foldrM walkBody [[]] body
+execClause edb cl@Clause{..} = traceShow cl . deriveHead <$> foldrM walkBody [[]] body
   where
   deriveHead :: [ Unifier ] -> R.Relation a
   deriveHead unifiers
@@ -125,13 +128,11 @@ execLiteral :: Eq (PredicateAnn a)
             => R.Solution a -> Literal a -> IO [ Unifier ]
 execLiteral edb Literal{predicate = p@Predicate{nature = nature}, ..}
   | Extralogical action <- nature = either panic id <$> action terms
-  | otherwise =
-    case polarity of
-      Positive ->
-        return $ mapMaybe (unify terms) . T.toList $ R.findTuples edb p
-      Negative ->
-        let tuples = R.findTuples edb p
-        in return $ if T.isEmpty tuples then [[]] else []
+  | otherwise = do
+    let unifiers = mapMaybe (unify terms) . T.toList $ R.findTuples edb p
+    return $ case polarity of
+      Positive -> unifiers
+      Negative -> if unifiers == [] then [[]] else []
 
 extends :: Unifier -> Unifier -> Maybe Unifier
 extends [] u' = Just u'
@@ -153,3 +154,9 @@ unify v w = catMaybes . V.toList <$> V.zipWithM attempt v w
   attempt (TSym sym) sym'
     | sym == sym' = return Nothing
     | otherwise   = Nothing
+
+reverseClauses :: Program a -> Program a
+reverseClauses pr = pr { clauses = map reverseClause . clauses $ pr}
+  where
+  reverseClause :: Clause a -> Clause a
+  reverseClause cl = cl { body = NE.reverse . body $ cl }
