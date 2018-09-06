@@ -132,7 +132,7 @@ execLiteral edb Literal{predicate = p@Predicate{nature = nature}, ..}
         return $ mapMaybe (unify terms) . T.toList $ R.findTuples edb p
       Negative ->
         let tuples = R.findTuples edb p
-        in return $ if T.isEmpty tuples then _ else []
+        in return $ if T.isEmpty tuples then [[]] else []
 
 extends :: Unifier -> Unifier -> Maybe Unifier
 extends [] u' = Just u'
