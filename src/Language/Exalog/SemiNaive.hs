@@ -14,14 +14,13 @@ module Language.Exalog.SemiNaive where
 import Protolude hiding (head, pred)
 
 import           Data.Function (id)
-import           Data.List (concatMap, lookup)
-import           Data.Maybe (mapMaybe, catMaybes, fromJust)
+import           Data.List (lookup)
+import           Data.Maybe (mapMaybe, catMaybes)
 import qualified Data.Vector.Sized as V
 
 import           Language.Exalog.Core
 import           Language.Exalog.Delta
 import qualified Language.Exalog.Relation as R
-import           Language.Exalog.Stratification (stratify)
 import qualified Language.Exalog.Tuples as T
 
 semiNaive :: forall a. (Eq (PredicateAnn a), Show (PredicateAnn a), Show (ClauseAnn a), Show (LiteralAnn a))
@@ -108,7 +107,7 @@ runClauses clss edb = mapM (execClause edb) clss
 
 execClause :: forall a. (Eq (PredicateAnn a), Show (PredicateAnn a), Show (ClauseAnn a), Show (LiteralAnn a))
            => R.Solution a -> Clause a -> IO (R.Relation a)
-execClause edb cl@Clause{..} = deriveHead <$> foldrM walkBody [[]] body
+execClause edb Clause{..} = deriveHead <$> foldrM walkBody [[]] body
   where
   deriveHead :: [ Unifier ] -> R.Relation a
   deriveHead unifiers
