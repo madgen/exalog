@@ -118,15 +118,9 @@ execClause edb Clause{..} = deriveHead <$> foldrM walkBody [] body
   walkBody :: Literal a -> [ Unifier ] -> IO [ Unifier ]
   walkBody lit unifiers = do
     unifierExtensions <- execLiteral edb lit
-    return $ do
-      extension <- unifierExtensions
-      if null unifiers
-        then return extension
-        else do
-          unifier <- unifiers
-          let extendedUnifier = extension `extends` unifier
-          guard (isJust extendedUnifier)
-          return $ fromJust extendedUnifier
+    return $ if null unifiers
+      then unifierExtensions
+      else catMaybes [ u `extends` u' | u <- unifierExtensions, u' <- unifiers ]
 
 execLiteral :: Eq (PredicateAnn a)
             => R.Solution a -> Literal a -> IO [ Unifier ]
@@ -135,7 +129,7 @@ execLiteral edb Literal{predicate = p@Predicate{nature = nature}, ..}
   | otherwise =
     case polarity of
       Positive ->
-        return $ mapMaybe (unify terms) (T.toList $ R.findTuples edb p)
+        return $ mapMaybe (unify terms) . T.toList $ R.findTuples edb p
       Negative ->
         let tuples = R.findTuples edb p
         in return $ if T.isEmpty tuples then _ else []
