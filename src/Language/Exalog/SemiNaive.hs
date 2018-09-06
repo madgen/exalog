@@ -24,7 +24,7 @@ import qualified Language.Exalog.Relation as R
 import           Language.Exalog.Stratification (stratify)
 import qualified Language.Exalog.Tuples as T
 
-semiNaive :: forall a. Eq (PredicateAnn a)
+semiNaive :: forall a. (Eq (PredicateAnn a), Show (PredicateAnn a), Show (ClauseAnn a), Show (LiteralAnn a))
           => R.Solution a -> Program a -> IO (R.Solution a)
 semiNaive edb pr = do
   initEDB <- initEDBM
@@ -102,25 +102,25 @@ semiNaive edb pr = do
   step :: R.Solution ('ADelta a) -> IO (R.Solution ('ADelta a))
   step = runDelta . updateFromDelta . shiftPrevs . elimDecor PrevX2
 
-runClauses :: Eq (PredicateAnn a)
+runClauses :: (Eq (PredicateAnn a), Show (PredicateAnn a), Show (ClauseAnn a), Show (LiteralAnn a))
            => [ Clause a ] -> R.Solution a -> IO [ R.Relation a ]
 runClauses clss edb = mapM (execClause edb) clss
 
-execClause :: forall a. Eq (PredicateAnn a)
+execClause :: forall a. (Eq (PredicateAnn a), Show (PredicateAnn a), Show (ClauseAnn a), Show (LiteralAnn a))
            => R.Solution a -> Clause a -> IO (R.Relation a)
-execClause edb Clause{..} = deriveHead <$> foldrM walkBody [] body
+execClause edb cl@Clause{..} = deriveHead <$> foldrM walkBody [[]] body
   where
   deriveHead :: [ Unifier ] -> R.Relation a
   deriveHead unifiers
     | Literal{predicate = pred, terms = terms} <- head =
-      R.Relation pred (T.fromList $ mapMaybe (substitute terms) unifiers)
+      case sequence . map (substitute terms) $ unifiers of
+        Just tuples -> R.Relation pred (T.fromList tuples)
+        Nothing -> panic "Range-restriction is violated."
 
   walkBody :: Literal a -> [ Unifier ] -> IO [ Unifier ]
   walkBody lit unifiers = do
-    unifierExtensions <- execLiteral edb lit
-    return $ if null unifiers
-      then unifierExtensions
-      else catMaybes [ u `extends` u' | u <- unifierExtensions, u' <- unifiers ]
+    extensions <- execLiteral edb lit
+    return $ catMaybes [ e `extends` u | e <- extensions, u <- unifiers ]
 
 execLiteral :: Eq (PredicateAnn a)
             => R.Solution a -> Literal a -> IO [ Unifier ]
