@@ -26,6 +26,7 @@ import System.IO.Unsafe (unsafePerformIO)
 import qualified Fixture.Ancestor.LinearAncestor as LAnc
 import qualified Fixture.Ancestor.NonLinearAncestor as NLAnc
 import qualified Fixture.Ancestor.EDB as AncEDB
+import qualified Fixture.Constant as Const
 
 import           Language.Exalog.Core hiding (Positive)
 import qualified Language.Exalog.Tuples as T
@@ -60,7 +61,7 @@ instance Arbitrary (R.Relation 'ABase) where
 
 spec :: Spec
 spec =
-  describe "SemiNaive evaluation" $
+  describe "SemiNaive evaluation" $ do
     describe "Ancestor" $ do
 
       finalEDB <- runIO $ semiNaive AncEDB.initEDB LAnc.program
@@ -75,3 +76,7 @@ spec =
         \edb -> unsafePerformIO $ liftM2 (==)
           (semiNaive edb LAnc.program)
           (semiNaive edb NLAnc.program)
+
+    finalEDB <- runIO $ semiNaive Const.initEDB Const.program
+    it "evaluates constants correctly" $
+      R.findTuples finalEDB Const.rPred `shouldBe` Const.rTuples
