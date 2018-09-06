@@ -132,7 +132,13 @@ execLiteral :: Eq (PredicateAnn a)
             => R.Solution a -> Literal a -> IO [ Unifier ]
 execLiteral edb Literal{predicate = p@Predicate{nature = nature}, ..}
   | Extralogical action <- nature = either panic id <$> action terms
-  | otherwise = return $ mapMaybe (unify terms) (T.toList $ R.findTuples edb p)
+  | otherwise =
+    case polarity of
+      Positive ->
+        return $ mapMaybe (unify terms) (T.toList $ R.findTuples edb p)
+      Negative ->
+        let tuples = R.findTuples edb p
+        in return $ if T.isEmpty tuples then _ else []
 
 extends :: Unifier -> Unifier -> Maybe Unifier
 extends [] u' = Just u'
