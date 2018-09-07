@@ -16,7 +16,7 @@ import Protolude
 import           Data.Bifunctor (bimap)
 import qualified Data.Graph.Inductive.Graph as G
 import qualified Data.Graph.Inductive.PatriciaTree as P
-import           Data.List (lookup)
+import           Data.List (lookup, nub)
 import qualified Data.List.NonEmpty as NE
 
 import           Language.Exalog.Core
@@ -70,7 +70,7 @@ dependencyGr :: Program ('ADependency a) -> DependencyGr a
 dependencyGr Program{annotation = ProgADependency gr _} = gr
 
 mkDependencyGr :: forall a. Eq (PredicateAnn a) => Program a -> DependencyGr a
-mkDependencyGr pr@Program{..} = G.mkGraph nodes edges
+mkDependencyGr pr@Program{..} = G.mkGraph nodes (nub edges)
   where
   nodeDict :: [ (PredicateBox a, G.Node) ]
   nodeDict = zip (predicates pr) [1..]
