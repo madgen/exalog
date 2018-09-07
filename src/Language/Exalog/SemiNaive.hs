@@ -38,7 +38,7 @@ semiNaive edb pr = do
   revPr = reverseClauses pr
 
   -- A simple clause is one without references to IDB predicates in its body.
-  simpleClss = flip filter (clauses pr) $ \Clause{body = body} ->
+  simpleClss = flip filter (clauses revPr) $ \Clause{body = body} ->
     not . any ((`elem` intentionals) . predicateBox) $ body
 
   initEDBM :: IO (R.Solution ('ADelta a))
