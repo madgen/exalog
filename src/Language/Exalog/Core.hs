@@ -40,6 +40,7 @@ module Language.Exalog.Core
 import Protolude hiding (head)
 
 import           Data.Kind (Type)
+import           Data.List (nub)
 import qualified Data.List.NonEmpty as NE
 import           Data.Maybe (mapMaybe)
 import qualified Data.Set as S
@@ -248,24 +249,32 @@ instance {-# OVERLAPPABLE #-}
     Predicate (decorA annotation) fxSym arity nature
 
 -- |Overaloded helper methods
-class Formula (ast :: AnnType -> Type) where
-  variables  :: ast a -> [ Var ]
-  predicates :: ast a -> [ PredicateBox a ]
+class Formula ast where
+  type Annotation ast :: AnnType
+  variables  :: ast -> [ Var ]
+  predicates :: ast -> [ PredicateBox (Annotation ast)]
 
-instance Formula Literal where
+instance Formula (Literal a) where
+  type Annotation (Literal a) = a
+
   variables Literal{terms = terms} = flip mapMaybe (V.toList terms) $ \case
     TVar var -> Just var
     TSym _   -> Nothing
 
   predicates Literal{predicate = predicate} = [ PredicateBox predicate ]
 
-instance Formula Clause where
+instance Eq (PredicateAnn a) => Formula (Clause a) where
+  type Annotation (Clause a) = a
+
   variables Clause{..} =
     variables head ++ concatMap variables body
 
   predicates Clause{head = head, body = body} =
-    concatMap predicates $ head : NE.toList body
+    nub $ concatMap predicates $ head : NE.toList body
 
-instance Formula Program where
+instance Eq (PredicateAnn a) => Formula (Program a) where
+  type Annotation (Program a) = a
+
   variables = panic "Obtaining variables of a program is meaningless."
-  predicates (Program _ clss) = concatMap predicates clss
+
+  predicates (Program _ clss) = nub $ concatMap predicates clss

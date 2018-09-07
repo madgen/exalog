@@ -59,7 +59,7 @@ instance DecorableAST (Literal a) 'ADependency where
             , ..}
 
 instance {-# OVERLAPPING #-}
-         Eq (PredicateBox a)
+         Eq (PredicateAnn a)
       => DecorableAST (Program a) 'ADependency where
   decorate pr@Program{..} =
     Program { annotation = ProgADependency (mkDependencyGr pr) annotation
@@ -69,7 +69,7 @@ instance {-# OVERLAPPING #-}
 dependencyGr :: Program ('ADependency a) -> DependencyGr a
 dependencyGr Program{annotation = ProgADependency gr _} = gr
 
-mkDependencyGr :: forall a. Eq (PredicateBox a) => Program a -> DependencyGr a
+mkDependencyGr :: forall a. Eq (PredicateAnn a) => Program a -> DependencyGr a
 mkDependencyGr pr@Program{..} = G.mkGraph nodes edges
   where
   nodeDict :: [ (PredicateBox a, G.Node) ]
