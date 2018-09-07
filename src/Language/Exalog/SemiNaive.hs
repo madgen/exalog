@@ -24,7 +24,7 @@ import           Language.Exalog.Delta
 import qualified Language.Exalog.Relation as R
 import qualified Language.Exalog.Tuples as T
 
-semiNaive :: forall a. (Eq (PredicateAnn a), Show (PredicateAnn a), Show (ClauseAnn a), Show (LiteralAnn a))
+semiNaive :: forall a. (Eq (PredicateAnn a), Show (PredicateAnn a), Show (ClauseAnn a), Show (LiteralAnn a), Show (ProgramAnn a))
           => R.Solution a -> Program a -> IO (R.Solution a)
 semiNaive edb pr = do
   initEDB <- initEDBM
@@ -110,19 +110,21 @@ runClauses clss edb = mapM (execClause edb) clss
 
 execClause :: forall a. (Eq (PredicateAnn a), Show (PredicateAnn a), Show (ClauseAnn a), Show (LiteralAnn a))
            => R.Solution a -> Clause a -> IO (R.Relation a)
-execClause edb cl@Clause{..} = traceShow cl . deriveHead <$> foldrM walkBody [[]] body
+execClause edb cl@Clause{..} = deriveHead <$> foldrM walkBody [[]] body
   where
   deriveHead :: [ Unifier ] -> R.Relation a
   deriveHead unifiers
     | Literal{predicate = pred, terms = terms} <- head =
-      case sequence . map (substitute terms) $ unifiers of
-        Just tuples -> R.Relation pred (T.fromList tuples)
-        Nothing -> panic "Range-restriction is violated."
+      let preTuples = map (`substitute` terms) $ unifiers
+      in R.Relation pred . T.fromList $ flip map preTuples $ \preTuple ->
+        case extractTuples preTuple of
+          Just tuple -> tuple
+          Nothing -> panic "Range-restriction is violated."
 
   walkBody :: Literal a -> [ Unifier ] -> IO [ Unifier ]
-  walkBody lit unifiers = do
-    extensions <- execLiteral edb lit
-    return $ catMaybes [ e `extends` u | e <- extensions, u <- unifiers ]
+  walkBody lit unifiers = fmap (catMaybes . concat) $ sequence $ do
+    unifier <- unifiers
+    return $ fmap (`extends` unifier) <$> execLiteral edb (substitute' unifier lit)
 
 execLiteral :: Eq (PredicateAnn a)
             => R.Solution a -> Literal a -> IO [ Unifier ]
@@ -141,10 +143,22 @@ extends (binding@(v,s) : u) u' =
     Just s' -> if s == s' then extends u u' else Nothing
     Nothing -> (binding:) <$> extends u u'
 
-substitute :: V.Vector n Term -> Unifier -> Maybe (V.Vector n Sym)
-substitute v unifier = (`traverse` v) $ \case
-  TSym s -> Just s
-  TVar v -> v `lookup` unifier
+extractTuples :: V.Vector n Term -> Maybe (V.Vector n Sym)
+extractTuples = sequence . fmap (\case
+  TSym sym -> Just sym
+  TVar{}   -> Nothing)
+
+substitute' :: Unifier -> Literal a -> Literal a
+substitute' unifier Literal{..} = Literal {terms = substitute unifier terms, ..}
+
+substitute :: Unifier -> V.Vector n Term -> V.Vector n Term
+substitute unifier = fmap $ \t ->
+  case t of
+    TVar v ->
+      case v `lookup` unifier of
+        Just s -> TSym s
+        Nothing -> t
+    TSym{} -> t
 
 unify :: V.Vector n Term -> V.Vector n Sym -> Maybe Unifier
 unify v w = catMaybes . V.toList <$> V.zipWithM attempt v w
