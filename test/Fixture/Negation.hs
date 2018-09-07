@@ -81,4 +81,6 @@ tcTuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>
   , [ "y"     , "y" ]
   , [ "w"     , "w" ]
   , [ "z"     , "z" ]
+  , [ "w"     , "y" ]
+  , [ "z"     , "w" ]
   ]
