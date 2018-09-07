@@ -3,8 +3,7 @@
 module Fixture.Negation
   ( program
   , initEDB
-  , tcTuples
-  , tcPred
+  , finalEDB
   ) where
 
 import Protolude hiding (not)
@@ -36,7 +35,8 @@ tc t t' = lit tcPred $ fromJust $ V.fromList [ t, t' ]
 v :: Term -> Literal 'ABase
 v t = lit vPred $ fromJust $ V.fromList [ t ]
 
-{-
+{- Compute complement of transitive closure of a graph
+-
 - v(x)   :- r(x,y)
 - v(y)   :- r(x,y).
 - t(x,y) :- r(x,y).
@@ -55,8 +55,8 @@ program = Program ProgABase
       [ v (tvar "X"), v (tvar "Y"), not $ t (tvar "X") (tvar "Y") ]
   ]
 
-rTuples :: [ V.Vector 2 Text ]
-rTuples = fromJust . V.fromList <$>
+rTuples :: T.Tuples 2
+rTuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>
   [ [ "x"     , "y" ]
   , [ "x"     , "z" ]
   , [ "z"     , "x" ]
@@ -65,22 +65,40 @@ rTuples = fromJust . V.fromList <$>
   ]
 
 rRel :: Relation 'ABase
-rRel = Relation rPred . T.fromList $ fmap Sym <$> rTuples
+rRel = Relation rPred rTuples
 
 initEDB :: Solution 'ABase
 initEDB = [ rRel ]
+
+vTuples :: T.Tuples 1
+vTuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>
+  [ [ "x" ], [ "y" ], [ "z" ], [ "w" ] ]
+
+tTuples :: T.Tuples 2
+tTuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>
+  [ [ "x"     , "x" ]
+  , [ "x"     , "y" ]
+  , [ "y"     , "w" ]
+  , [ "x"     , "w" ]
+  , [ "x"     , "z" ]
+  , [ "z"     , "x" ]
+  , [ "z"     , "y" ]
+  , [ "z"     , "w" ]
+  , [ "z"     , "z" ]
+  ]
 
 tcTuples :: T.Tuples 2
 tcTuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>
   [ [ "y"     , "x" ]
   , [ "y"     , "z" ]
-  , [ "z"     , "y" ]
   , [ "w"     , "z" ]
-  , [ "x"     , "w" ]
   , [ "w"     , "x" ]
   , [ "y"     , "y" ]
   , [ "w"     , "w" ]
-  , [ "z"     , "z" ]
   , [ "w"     , "y" ]
-  , [ "z"     , "w" ]
   ]
+
+finalEDB :: Solution 'ABase
+finalEDB = initEDB ++ [ Relation vPred vTuples
+                      , Relation tPred tTuples
+                      , Relation tcPred tcTuples ]
