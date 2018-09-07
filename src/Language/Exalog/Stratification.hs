@@ -23,11 +23,12 @@ stratify :: Eq (PredicateAnn a) =>
 stratify p@Program{annotation = ann} = sequence $ do
   comp <- sccs
   let polarities = sccPolarities comp
-  return $ if Negative `elem` polarities
-    then Left "There is cyclic negation."
-    else
-      let clauses = concatMap (search . peel $ p) . findPreds depGrDict $ comp
-      in Right $ Program (peelA ann) clauses
+  if Negative `elem` polarities
+    then return $ Left "There is cyclic negation."
+    else do
+      let cls = concatMap (search . peel $ p) . findPreds depGrDict $ comp
+      guard (not . null $ cls)
+      return $ Right $ Program (peelA ann) cls
   where
   depGr = dependencyGr p
   depGrDict = G.labNodes depGr
