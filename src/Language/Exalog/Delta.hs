@@ -21,7 +21,7 @@ module Language.Exalog.Delta
   , cleanDeltaSolution
   ) where
 
-import Protolude
+import Protolude hiding (head)
 
 import           Control.Comonad (Comonad(..))
 
@@ -53,14 +53,14 @@ deriving instance Ord (ClauseAnn a)    => Ord (ClauseAnn ('ADelta a))
 deriving instance Ord (ProgramAnn a)   => Ord (ProgramAnn ('ADelta a))
 
 updateDecor :: Decor -> Predicate n ('ADelta a) -> Predicate n ('ADelta a)
-updateDecor decor p@Predicate{annotation = PredADelta _ prevAnn} =
-  p {annotation = PredADelta decor prevAnn}
+updateDecor dec p@Predicate{annotation = PredADelta _ prevAnn} =
+  p {annotation = PredADelta dec prevAnn}
 
 elimDecor :: Decor -> R.Solution ('ADelta a) -> R.Solution ('ADelta a)
 elimDecor d sol = (`R.filter` sol) $ \(R.Relation p _) -> decor p /= d
 
 decor :: Predicate n ('ADelta a) -> Decor
-decor Predicate{annotation = PredADelta decor _} = decor
+decor Predicate{annotation = PredADelta dec _} = dec
 
 instance DecorableAnn LiteralAnn 'ADelta where
   decorA = LitADelta
