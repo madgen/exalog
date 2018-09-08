@@ -15,6 +15,6 @@ solve :: Eq (PredicateAnn a) => Program a -> R.Solution a -> IO (R.Solution a)
 solve pr edb =
   case eprs of
     Left msg -> panic msg
-    Right prs -> foldrM (flip semiNaive) edb (reverse prs)
+    Right prs -> foldrM semiNaive edb (reverse prs)
   where
   eprs = stratify . decorate $ pr

@@ -25,8 +25,8 @@ import qualified Language.Exalog.Relation as R
 import qualified Language.Exalog.Tuples as T
 
 semiNaive :: forall a. Eq (PredicateAnn a)
-          => R.Solution a -> Program a -> IO (R.Solution a)
-semiNaive edb pr = do
+          => Program a -> R.Solution a -> IO (R.Solution a)
+semiNaive pr edb = do
   initEDB <- initEDBM
   sol <- (`fix` initEDB) $ \f sol -> do
     betterSol <- step sol

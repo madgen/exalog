@@ -67,19 +67,19 @@ spec =
   describe "SemiNaive evaluation" $ do
     describe "Ancestor" $ do
 
-      finalEDB <- runIO $ semiNaive AncEDB.initEDB LAnc.program
+      finalEDB <- runIO $ semiNaive LAnc.program AncEDB.initEDB
       it "evaluates linear ancestor correctly" $
         finalEDB `shouldBe` AncEDB.finalEDB
 
-      finalEDB <- runIO $ semiNaive AncEDB.initEDB NLAnc.program
+      finalEDB <- runIO $ semiNaive NLAnc.program AncEDB.initEDB
       it "evaluates non-linear ancestor correctly" $
         finalEDB `shouldBe` AncEDB.finalEDB
 
       prop "linear & non-linear versions produce the same result" $
         \edb -> unsafePerformIO $ liftM2 (==)
-          (semiNaive edb LAnc.program)
-          (semiNaive edb NLAnc.program)
+          (semiNaive LAnc.program edb)
+          (semiNaive NLAnc.program edb)
 
-    finalEDB <- runIO $ semiNaive Const.initEDB Const.program
+    finalEDB <- runIO $ semiNaive Const.program Const.initEDB
     it "evaluates constants correctly" $
       R.findTuples finalEDB Const.rPred `shouldBe` Const.rTuples
