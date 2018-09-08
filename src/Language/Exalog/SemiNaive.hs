@@ -116,11 +116,10 @@ execClause edb Clause{..} = deriveHead <$> foldrM walkBody [ U.empty ] body
   deriveHead :: [ U.Unifier ] -> R.Relation a
   deriveHead unifiers
     | Literal{predicate = pred, terms = terms} <- head =
-      let preTuples = map (`U.substitute` terms) $ unifiers
+      let preTuples = map (`U.substitute` terms) unifiers
       in R.Relation pred . T.fromList $ flip map preTuples $ \preTuple ->
-        case extractTuples preTuple of
-          Just tuple -> tuple
-          Nothing -> panic "Range-restriction is violated."
+        fromMaybe (panic "Range-restriction is violated.")
+                  (extractTuples preTuple)
 
   walkBody :: Literal a -> [ U.Unifier ] -> IO [ U.Unifier ]
   walkBody lit unifiers = fmap (catMaybes . concat) $ sequence $ do
@@ -136,10 +135,10 @@ execLiteral edb Literal{predicate = p@Predicate{nature = nature}, ..}
     let unifiers = mapMaybe (U.unify terms) . T.toList $ R.findTuples edb p
     return $ case polarity of
       Positive -> unifiers
-      Negative -> if unifiers == [] then [ U.empty ] else []
+      Negative -> [ U.empty | null unifiers ]
 
 extractTuples :: V.Vector n Term -> Maybe (V.Vector n Sym)
-extractTuples = sequence . fmap (\case
+extractTuples = traverse (\case
   TSym sym -> Just sym
   TVar{}   -> Nothing)
 
