@@ -23,6 +23,7 @@ import           Language.Exalog.Core
 import           Language.Exalog.Delta
 import qualified Language.Exalog.Relation as R
 import qualified Language.Exalog.Tuples as T
+import qualified Language.Exalog.Unification as U
 
 semiNaive :: forall a. Eq (PredicateAnn a)
           => Program a -> R.Solution a -> IO (R.Solution a)
@@ -110,64 +111,37 @@ runClauses clss edb = mapM (execClause edb) clss
 
 execClause :: forall a. Eq (PredicateAnn a)
            => R.Solution a -> Clause a -> IO (R.Relation a)
-execClause edb Clause{..} = deriveHead <$> foldrM walkBody [[]] body
+execClause edb Clause{..} = deriveHead <$> foldrM walkBody [ U.empty ] body
   where
-  deriveHead :: [ Unifier ] -> R.Relation a
+  deriveHead :: [ U.Unifier ] -> R.Relation a
   deriveHead unifiers
     | Literal{predicate = pred, terms = terms} <- head =
-      let preTuples = map (`substitute` terms) $ unifiers
+      let preTuples = map (`U.substitute` terms) $ unifiers
       in R.Relation pred . T.fromList $ flip map preTuples $ \preTuple ->
         case extractTuples preTuple of
           Just tuple -> tuple
           Nothing -> panic "Range-restriction is violated."
 
-  walkBody :: Literal a -> [ Unifier ] -> IO [ Unifier ]
+  walkBody :: Literal a -> [ U.Unifier ] -> IO [ U.Unifier ]
   walkBody lit unifiers = fmap (catMaybes . concat) $ sequence $ do
     unifier <- unifiers
-    return $ fmap (`extends` unifier) <$> execLiteral edb (substitute' unifier lit)
+    return $ fmap (`U.extend` unifier)
+         <$> execLiteral edb (unifier `U.substitute` lit)
 
 execLiteral :: Eq (PredicateAnn a)
-            => R.Solution a -> Literal a -> IO [ Unifier ]
+            => R.Solution a -> Literal a -> IO [ U.Unifier ]
 execLiteral edb Literal{predicate = p@Predicate{nature = nature}, ..}
-  | Extralogical action <- nature = either panic id <$> action terms
+  | Extralogical action <- nature = either panic _ <$> action terms
   | otherwise = do
-    let unifiers = mapMaybe (unify terms) . T.toList $ R.findTuples edb p
+    let unifiers = mapMaybe (U.unify terms) . T.toList $ R.findTuples edb p
     return $ case polarity of
       Positive -> unifiers
-      Negative -> if unifiers == [] then [[]] else []
-
-extends :: Unifier -> Unifier -> Maybe Unifier
-extends [] u' = Just u'
-extends (binding@(v,s) : u) u' =
-  case v `lookup` u' of
-    Just s' -> if s == s' then extends u u' else Nothing
-    Nothing -> (binding:) <$> extends u u'
+      Negative -> if unifiers == [] then [ U.empty ] else []
 
 extractTuples :: V.Vector n Term -> Maybe (V.Vector n Sym)
 extractTuples = sequence . fmap (\case
   TSym sym -> Just sym
   TVar{}   -> Nothing)
-
-substitute' :: Unifier -> Literal a -> Literal a
-substitute' unifier Literal{..} = Literal {terms = substitute unifier terms, ..}
-
-substitute :: Unifier -> V.Vector n Term -> V.Vector n Term
-substitute unifier = fmap $ \t ->
-  case t of
-    TVar v ->
-      case v `lookup` unifier of
-        Just s -> TSym s
-        Nothing -> t
-    TSym{} -> t
-
-unify :: V.Vector n Term -> V.Vector n Sym -> Maybe Unifier
-unify v w = catMaybes . V.toList <$> V.zipWithM attempt v w
-  where
-  attempt :: Term -> Sym -> Maybe (Maybe (Var, Sym))
-  attempt (TVar var) sym  = return $ Just (var,sym)
-  attempt (TSym sym) sym'
-    | sym == sym' = return Nothing
-    | otherwise   = Nothing
 
 reverseClauses :: Program a -> Program a
 reverseClauses pr = pr { clauses = map reverseClause . clauses $ pr}

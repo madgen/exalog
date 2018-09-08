@@ -19,7 +19,6 @@ module Language.Exalog.Core
   , PredicateSym
   , Var(..), Sym(..)
   , Term(..)
-  , Unifier
   , Literal(..), Head, Body
   , Nature(..), NatureBox(..)
   , Polarity(..)
@@ -54,12 +53,10 @@ import qualified GHC.Show as Show
 
 import           Language.Exalog.Annotation
 
-type Unifier = [ (Var, Sym) ]
-
 -- |Type indicating the nature of Datalog predicate
 data Nature (n :: Nat) =
     Logical
-  | Extralogical (V.Vector n Term -> IO (Either Text [ Unifier ]))
+  | Extralogical (V.Vector n Term -> IO (Either Text [ V.Vector n Sym ]))
 
 data NatureBox = forall n. NatureBox (Nature n)
 
