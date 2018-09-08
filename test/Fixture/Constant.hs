@@ -60,7 +60,7 @@ cRel :: Relation 'ABase
 cRel = Relation cPred . T.fromList $ fmap Sym <$> cTuples
 
 initEDB :: Solution 'ABase
-initEDB = [ cRel ]
+initEDB = fromList [ cRel ]
 
 rTuples :: T.Tuples 2
 rTuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>

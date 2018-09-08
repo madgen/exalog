@@ -48,7 +48,7 @@ ancestorRel :: Relation 'ABase
 ancestorRel = Relation ancPred . T.fromList $ fmap Sym <$> ancestorTuples
 
 initEDB :: Solution 'ABase
-initEDB = [ parentRel ]
+initEDB = fromList [ parentRel ]
 
 finalEDB :: Solution 'ABase
 finalEDB = fromList

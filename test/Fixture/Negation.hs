@@ -68,7 +68,7 @@ rRel :: Relation 'ABase
 rRel = Relation rPred rTuples
 
 initEDB :: Solution 'ABase
-initEDB = [ rRel ]
+initEDB = fromList [ rRel ]
 
 vTuples :: T.Tuples 1
 vTuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>
@@ -99,6 +99,7 @@ tcTuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>
   ]
 
 finalEDB :: Solution 'ABase
-finalEDB = initEDB ++ [ Relation vPred vTuples
-                      , Relation tPred tTuples
-                      , Relation tcPred tcTuples ]
+finalEDB = initEDB `merge` fromList
+  [ Relation vPred vTuples
+  , Relation tPred tTuples
+  , Relation tcPred tcTuples ]

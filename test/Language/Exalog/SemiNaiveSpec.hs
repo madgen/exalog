@@ -59,6 +59,9 @@ instance Arbitrary (R.Relation 'ABase) where
             <$> (arbitrary :: Gen (Predicate n 'ABase))
             <*> (arbitrary :: Gen (T.Tuples n))
 
+instance Arbitrary (R.Solution 'ABase) where
+  arbitrary = R.fromList <$> arbitrary
+
 spec :: Spec
 spec =
   describe "SemiNaive evaluation" $ do

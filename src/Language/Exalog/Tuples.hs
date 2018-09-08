@@ -1,3 +1,5 @@
+{-# LANGUAGE StandaloneDeriving #-}
+
 module Language.Exalog.Tuples
   ( Tuples
   , isEmpty
@@ -14,6 +16,8 @@ import qualified Data.Vector.Sized as V
 import Language.Exalog.Core
 
 newtype Tuples n = Tuples (S.Set (V.Vector n Sym)) deriving (Show)
+
+deriving instance Ord (Tuples n)
 
 instance Eq (Tuples n) where
   Tuples ts == Tuples ts' = ts == ts'
