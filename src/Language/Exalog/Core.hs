@@ -20,6 +20,7 @@ module Language.Exalog.Core
   , Var(..), Sym(..)
   , Term(..)
   , Literal(..), Head, Body
+  , ForeignFunc
   , Nature(..), NatureBox(..)
   , Polarity(..)
   , Clause(..)
@@ -53,10 +54,13 @@ import qualified GHC.Show as Show
 
 import           Language.Exalog.Annotation
 
+type ForeignFunc n = V.Vector n Term -> IO (Either Text [ V.Vector n Sym ])
+
 -- |Type indicating the nature of Datalog predicate
 data Nature (n :: Nat) =
     Logical
-  | Extralogical (V.Vector n Term -> IO (Either Text [ V.Vector n Sym ]))
+  | Extralogical (ForeignFunc n)
+--  | Extralogical (V.Vector n Term -> IO (Either Text [ V.Vector n Sym ]))
 
 data NatureBox = forall n. NatureBox (Nature n)
 
