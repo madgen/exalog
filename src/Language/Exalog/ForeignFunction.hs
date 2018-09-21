@@ -80,7 +80,7 @@ data BaseTy = TText Text | TInt Int | TChar Char
 -}
 liftFunction :: (Applicable f, RetTy f ~ r, Returnable r, KnownNat (Arity f))
              => f -> ForeignFunc (NRets r + Arity f)
-liftFunction f v = return . return $ q (toBaseVector $ f @@ v) v
+liftFunction f v = return . return $ genTuples (toBaseVector $ f @@ v) v
 
 {- | A variant of 'liftFunction' for functions that have side effects and
 - may produce errors.
@@ -91,20 +91,29 @@ liftFunctionME f v = do
   eResss <- fmap toBaseVector <$> f @@ v
   return $ do
     resss <- eResss
-    return $ q resss v
+    return $ genTuples resss v
 
-q :: forall na nr
-   . KnownNat na
-  => [ V.Vector nr BaseTy ]
-  -> V.Vector (na + nr) Term
-  -> [ V.Vector (na + nr) Sym ]
-q resss v =
-  [ (fromTerm <$> args) V.++ (toSym <$> ress)
-  | ress <- resss
-  , V.all (uncurry consistent) $ V.zip ress rets ]
+genTuples :: forall na nr
+           . KnownNat na
+          => [ V.Vector nr BaseTy ]
+          -> V.Vector (na + nr) Term
+          -> [ V.Vector (na + nr) Sym ]
+genTuples resss v =
+  [ symArgs V.++ (toSym <$> ress)
+  | ress <- filterFakeResults rets resss ]
   where
+  symArgs = fromTerm <$> args
   (args, rets) = V.splitAt @na v
 
+-- Eliminate tuples with results that contradict with what is bound in the
+-- subgoal for that result.
+filterFakeResults :: V.Vector nr Term
+                  -> [ V.Vector nr BaseTy ]
+                  -> [ V.Vector nr BaseTy ]
+filterFakeResults terms =
+  filter (\ress -> all (uncurry consistent) $ V.zip ress terms)
+
+-- Check if a particular result is consistent with the given term
 consistent :: BaseTy -> Term -> Bool
 consistent a = \case
   TSym (Sym text) ->
