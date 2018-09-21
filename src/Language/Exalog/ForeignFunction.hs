@@ -62,7 +62,7 @@ liftPredicateME p v =
 -- Lift functions that do not return Bool
 --------------------------------------------------------------------------------
 
-data BaseTy = TString [ Char ] | TInt Int | TChar Char
+data BaseTy = TText Text | TInt Int | TChar Char
 
 {- | Lifts Haskell functions to 'ForeignFunc' to back extralogical predicates.
 -
@@ -109,9 +109,9 @@ consistent :: BaseTy -> Term -> Bool
 consistent a = \case
   TSym (Sym text) ->
     case a of
-      TInt i -> i == read (unpack text)
+      TInt i  -> i == read (unpack text)
       TChar c -> c == read (unpack text)
-      TString str -> str == read (unpack text)
+      TText t -> t == read (unpack text)
   TVar{}  -> True
 
 --------------------------------------------------------------------------------
@@ -119,8 +119,9 @@ consistent a = \case
 --------------------------------------------------------------------------------
 
 type family NRets a :: Nat where
-  NRets Int = 1
+  NRets Int  = 1
   NRets Char = 1
+  NRets Text = 1
   NRets [ a ] = NRets a
   NRets (a,b) = NRets a + NRets b
 
@@ -133,10 +134,10 @@ instance Returnable Int where
 instance Returnable Char where
   toBaseVector c = [ V.singleton (TChar c) ]
 
-instance {-# OVERLAPPING #-} Returnable a => Returnable [ Char ] where
-  toBaseVector str = [ V.singleton (TString str) ]
+instance Returnable Text where
+  toBaseVector t = [ V.singleton (TText t) ]
 
-instance {-# OVERLAPPABLE #-} Returnable a => Returnable [ a ] where
+instance Returnable a => Returnable [ a ] where
   toBaseVector xs = join . map toBaseVector $ xs
 
 instance (Returnable a, Returnable b) => Returnable (a,b) where
@@ -198,7 +199,7 @@ instance ( Ground r ~ 'True
       (read arg5)
 
 toSym :: BaseTy -> Sym
-toSym (TString str) = Sym . pack $ str
+toSym (TText text) = Sym text
 toSym (TInt i) = Sym . pack . show $ i
 toSym (TChar c) = Sym . pack . show $ c
 
