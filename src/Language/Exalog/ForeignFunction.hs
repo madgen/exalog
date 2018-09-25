@@ -4,12 +4,14 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Language.Exalog.ForeignFunction
   ( liftPredicate
@@ -165,24 +167,26 @@ type family Arity f :: Nat where
   Arity (a -> r) = If (Ground r) 1 (Arity r + 1)
   Arity r = 1
 
-class Applicable f where
+type Applicable f = Applicable' f (Arity f)
+
+class ari ~ Arity f => Applicable' f (ari :: Nat) where
   (@@) :: Arity f <= n => f -> V.Vector n Term -> RetTy f
 
 instance ( Ground r ~ 'True
          , Read a
-         ) => Applicable (a -> r) where
+         ) => Applicable' (a -> r) 1 where
   f @@ v | [ arg ] <- termToStr <$> (take 1 . V.toList) v = f (read arg)
 
 instance ( Ground r ~ 'True
          , Read a, Read b
-         ) => Applicable (a -> b -> r) where
+         ) => Applicable' (a -> b -> r) 2 where
   f @@ v | [ arg1, arg2 ] <- termToStr <$> (take 2 . V.toList) v =
     f (read arg1)
       (read arg2)
 
 instance ( Ground r ~ 'True
          , Read a, Read b, Read c
-         ) => Applicable (a -> b -> c -> r) where
+         ) => Applicable' (a -> b -> c -> r) 3 where
   f @@ v | [ arg1, arg2, arg3 ] <- termToStr <$> (take 3 . V.toList) v =
     f (read arg1)
       (read arg2)
@@ -190,7 +194,7 @@ instance ( Ground r ~ 'True
 
 instance ( Ground r ~ 'True
          , Read a, Read b, Read c, Read d
-         ) => Applicable (a -> b -> c -> d -> r) where
+         ) => Applicable' (a -> b -> c -> d -> r) 4 where
   f @@ v | [ arg1, arg2, arg3, arg4 ] <- termToStr <$> (take 4 . V.toList) v =
     f (read arg1)
       (read arg2)
@@ -199,7 +203,7 @@ instance ( Ground r ~ 'True
 
 instance ( Ground r ~ 'True
          , Read a, Read b, Read c, Read d, Read e
-         ) => Applicable (a -> b -> c -> d -> e -> r) where
+         ) => Applicable' (a -> b -> c -> d -> e -> r) 5 where
   f @@ v | [ arg1, arg2, arg3, arg4, arg5 ] <- termToStr <$> (take 5 . V.toList) v =
     f (read arg1)
       (read arg2)
