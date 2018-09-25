@@ -38,13 +38,13 @@ r t t' = lit rPred $ fromJust $ V.fromList [ t, t' ]
 -}
 program :: Program 'ABase
 program = Program ProgABase
-  [ Clause ClABase (r (tsym "c")  (tsym "1")) $ NE.fromList [ c (tvar "a") (tvar "b") ]
-  , Clause ClABase (r (tvar "X")  (tsym "2")) $ NE.fromList [ c (tsym "a") (tvar "X") ]
-  , Clause ClABase (r (tsym "c")  (tsym "3")) $ NE.fromList [ c (tsym "q") (tsym "b") ]
-  , Clause ClABase (r (tsym "e")  (tsym "4")) $ NE.fromList
+  [ Clause ClABase (r (tsym "c") (tsym "1")) $ NE.fromList [ c (tsym "a") (tsym "b") ]
+  , Clause ClABase (r (tvar "X") (tsym "2")) $ NE.fromList [ c (tsym "a") (tvar "X") ]
+  , Clause ClABase (r (tsym "c") (tsym "3")) $ NE.fromList [ c (tsym "q") (tsym "b") ]
+  , Clause ClABase (r (tsym "e") (tsym "4")) $ NE.fromList
     [ r (tvar "X") (tvar "Y")
     , c (tsym "a") (tvar "X") ]
-  , Clause ClABase (r (tsym "f")  (tsym "5")) $ NE.fromList
+  , Clause ClABase (r (tsym "f") (tsym "5")) $ NE.fromList
     [ c (tsym "a") (tvar "X")
     , r (tvar "X") (tvar "Y") ]
   ]
