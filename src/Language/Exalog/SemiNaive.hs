@@ -130,12 +130,21 @@ execClause edb Clause{..} = deriveHead <$> foldrM walkBody [ U.empty ] body
 execLiteral :: Eq (PredicateAnn a)
             => R.Solution a -> Literal a -> IO [ U.Unifier ]
 execLiteral edb Literal{predicate = p@Predicate{nature = nature}, ..}
-  | Extralogical action <- nature = either panic _ <$> action terms
-  | otherwise = do
-    let unifiers = mapMaybe (U.unify terms) . T.toList $ R.findTuples edb p
-    return $ case polarity of
-      Positive -> unifiers
-      Negative -> [ U.empty | null unifiers ]
+  | Extralogical foreignAction <- nature = do
+    eTuples <- foreignAction terms
+    case eTuples of
+      Right tuples -> return $ handleTuples terms tuples
+      Left msg -> panic $ "Fatal foreign function error: " <> msg
+  | otherwise = return . handleTuples terms . T.toList $ R.findTuples edb p
+  where
+  handleTuples :: V.Vector n Term -> [ V.Vector n Sym ] -> [ U.Unifier ]
+  handleTuples terms tuples =
+    case polarity of
+      Positive -> tuplesToUnifiers terms tuples
+      Negative -> [ U.empty | null (tuplesToUnifiers terms tuples) ]
+
+  tuplesToUnifiers :: V.Vector n Term -> [ V.Vector n Sym ] -> [ U.Unifier ]
+  tuplesToUnifiers terms = mapMaybe (U.unify terms)
 
 extractTuples :: V.Vector n Term -> Maybe (V.Vector n Sym)
 extractTuples = traverse (\case
