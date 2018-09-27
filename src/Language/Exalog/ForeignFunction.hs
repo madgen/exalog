@@ -26,7 +26,7 @@ import           Data.Type.Bool (If)
 import           Data.Text (unpack, pack)
 import qualified Data.Vector.Sized as V
 
-import Text.Read (read)
+import Text.Read (readMaybe)
 
 import GHC.TypeLits as TL (type (+), type (<=))
 
@@ -120,9 +120,9 @@ consistent :: BaseTy -> Term -> Bool
 consistent a = \case
   TSym (Sym text) ->
     case a of
-      TInt i  -> i == read (unpack text)
-      TChar c -> c == read (unpack text)
-      TText t -> t == read (unpack text)
+      TInt i  -> i == interpret text
+      TChar c -> c == interpret text
+      TText t -> t == interpret text
   TVar{}  -> True
 
 --------------------------------------------------------------------------------
@@ -155,10 +155,35 @@ instance (Returnable a, Returnable b) => Returnable (a,b) where
   toBaseVector (a, b) = zipWith (V.++) (toBaseVector a) (toBaseVector b)
 
 type family Ground a where
-  Ground Bool   = 'True
+  Ground Text   = 'True
   Ground Char   = 'True
+  Ground Bool   = 'True
   Ground Int    = 'True
   Ground _      = 'False
+
+class Argumentable a where
+  interpret :: Text -> a
+
+instance Argumentable Text where
+  interpret x = x
+
+instance Argumentable Char where
+  interpret text
+    | Just c <- readMaybe . unpack $ text = c
+    | otherwise =
+      panic $ "Fatal error: '" <> text <> "' couldn't be interpeted as a Char."
+
+instance Argumentable Bool where
+  interpret text
+    | Just b <- readMaybe . unpack $ text = b
+    | otherwise =
+      panic $ "Fatal error: '" <> text <> "' couldn't be interpeted as a Bool."
+
+instance Argumentable Int where
+  interpret text
+    | Just i <- readMaybe . unpack $ text = i
+    | otherwise =
+      panic $ "Fatal error: '" <> text <> "' couldn't be interpeted as a Int."
 
 type family RetTy f where
   RetTy (a -> r) = If (Ground r) r (RetTy r)
@@ -173,53 +198,53 @@ class ari ~ Arity f => Applicable' f (ari :: Nat) where
   (@@) :: Arity f <= n => f -> V.Vector n Term -> RetTy f
 
 instance ( Ground r ~ 'True
-         , Read a
+         , Argumentable a
          ) => Applicable' (a -> r) 1 where
-  f @@ v | [ arg ] <- termToStr <$> (take 1 . V.toList) v = f (read arg)
+  f @@ v | [ arg ] <- termToText <$> (take 1 . V.toList) v = f (interpret arg)
 
 instance ( Ground r ~ 'True
-         , Read a, Read b
+         , Argumentable a, Argumentable b
          ) => Applicable' (a -> b -> r) 2 where
-  f @@ v | [ arg1, arg2 ] <- termToStr <$> (take 2 . V.toList) v =
-    f (read arg1)
-      (read arg2)
+  f @@ v | [ arg1, arg2 ] <- termToText <$> (take 2 . V.toList) v =
+    f (interpret arg1)
+      (interpret arg2)
 
 instance ( Ground r ~ 'True
-         , Read a, Read b, Read c
+         , Argumentable a, Argumentable b, Argumentable c
          ) => Applicable' (a -> b -> c -> r) 3 where
-  f @@ v | [ arg1, arg2, arg3 ] <- termToStr <$> (take 3 . V.toList) v =
-    f (read arg1)
-      (read arg2)
-      (read arg3)
+  f @@ v | [ arg1, arg2, arg3 ] <- termToText <$> (take 3 . V.toList) v =
+    f (interpret arg1)
+      (interpret arg2)
+      (interpret arg3)
 
 instance ( Ground r ~ 'True
-         , Read a, Read b, Read c, Read d
+         , Argumentable a, Argumentable b, Argumentable c, Argumentable d
          ) => Applicable' (a -> b -> c -> d -> r) 4 where
-  f @@ v | [ arg1, arg2, arg3, arg4 ] <- termToStr <$> (take 4 . V.toList) v =
-    f (read arg1)
-      (read arg2)
-      (read arg3)
-      (read arg4)
+  f @@ v | [ arg1, arg2, arg3, arg4 ] <- termToText <$> (take 4 . V.toList) v =
+    f (interpret arg1)
+      (interpret arg2)
+      (interpret arg3)
+      (interpret arg4)
 
 instance ( Ground r ~ 'True
-         , Read a, Read b, Read c, Read d, Read e
+         , Argumentable a, Argumentable b, Argumentable c, Argumentable d, Argumentable e
          ) => Applicable' (a -> b -> c -> d -> e -> r) 5 where
-  f @@ v | [ arg1, arg2, arg3, arg4, arg5 ] <- termToStr <$> (take 5 . V.toList) v =
-    f (read arg1)
-      (read arg2)
-      (read arg3)
-      (read arg4)
-      (read arg5)
+  f @@ v | [ arg1, arg2, arg3, arg4, arg5 ] <- termToText <$> (take 5 . V.toList) v =
+    f (interpret arg1)
+      (interpret arg2)
+      (interpret arg3)
+      (interpret arg4)
+      (interpret arg5)
 
 toSym :: BaseTy -> Sym
 toSym (TText text) = Sym text
 toSym (TInt i) = Sym . pack . show $ i
 toSym (TChar c) = Sym . pack . show $ c
 
-termToStr :: Term -> [ Char ]
-termToStr (TSym (Sym text)) = unpack text
-termToStr TVar{} = panic
-  "Mode error: Foreign function argument is not sufficiently bound."
+termToText :: Term -> Text
+termToText (TSym (Sym text)) = text
+termToText TVar{} = panic
+  "Fatal error: Foreign function argument is not sufficiently bound."
 
 fromTerm :: Term -> Sym
 fromTerm = \case

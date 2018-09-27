@@ -60,7 +60,6 @@ type ForeignFunc n = V.Vector n Term -> IO (Either Text [ V.Vector n Sym ])
 data Nature (n :: Nat) =
     Logical
   | Extralogical (ForeignFunc n)
---  | Extralogical (V.Vector n Term -> IO (Either Text [ V.Vector n Sym ]))
 
 data NatureBox = forall n. NatureBox (Nature n)
 

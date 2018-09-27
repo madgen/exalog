@@ -88,6 +88,10 @@ spec =
 
     describe "Foreign function" $ do
 
-      finalEDB <- runIO $ semiNaive Foreign.program Foreign.initEDB
-      it "interprets (\\x -> x < 100) correctly" $
+      finalEDB <- runIO $ semiNaive Foreign.programLeq100 Foreign.initLeq100EDB
+      it "interprets 'x < 100' correctly" $
         R.findTuples finalEDB Foreign.leq100Pred `shouldBe` Foreign.leq100Tuples
+
+      finalEDB <- runIO $ semiNaive Foreign.programPrefixOf Foreign.initPrefixOfEDB
+      it "interprets 'isPrefixOf' correctly" $
+        R.findTuples finalEDB Foreign.prefixOfPred `shouldBe` Foreign.prefixOfTuples
