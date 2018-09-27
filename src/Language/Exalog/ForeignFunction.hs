@@ -80,7 +80,7 @@ liftPredicateME p v =
 -}
 liftFunction :: (Applicable f, RetTy f ~ r, Returnable r, KnownNat (Arity f))
              => f -> ForeignFunc (NRets r + Arity f)
-liftFunction f v = return . return $ genTuples (toBaseVector $ f @@ v) v
+liftFunction f v = return . return $ genTuples (toReturnVs $ f @@ v) v
 
 {- | A variant of 'liftFunction' for functions that have side effects and
 - may produce errors.
@@ -88,7 +88,7 @@ liftFunction f v = return . return $ genTuples (toBaseVector $ f @@ v) v
 liftFunctionME :: (Applicable f, RetTy f ~ IO (Either Text r), Returnable r, KnownNat (Arity f))
                => f -> ForeignFunc (NRets r + Arity f)
 liftFunctionME f v = do
-  eResss <- fmap toBaseVector <$> f @@ v
+  eResss <- fmap toReturnVs <$> f @@ v
   return $ do
     resss <- eResss
     return $ genTuples resss v
@@ -128,29 +128,46 @@ type family NRets a :: Nat where
   NRets Int   = 1
   NRets Float = 1
   NRets Bool  = 1
-  NRets [ a ] = NRets a
   NRets (a,b) = NRets a + NRets b
+  NRets (a,b,c) = NRets a + NRets b + NRets c
+  NRets (a,b,c,d) = NRets a + NRets b + NRets c + NRets d
+  NRets [ a ] = NRets a
+
+class Returnable' r where
+  toReturnV :: r -> V.Vector (NRets r) Sym
+
+instance Returnable' Text where
+  toReturnV t = V.singleton (SymText t)
+
+instance Returnable' Int where
+  toReturnV i = V.singleton (SymInt i)
+
+instance Returnable' Float where
+  toReturnV f = V.singleton (SymFloat f)
+
+instance Returnable' Bool where
+  toReturnV b = V.singleton (SymBool b)
+
+instance (Returnable' a, Returnable' b) => Returnable' (a,b) where
+  toReturnV (a,b) = toReturnV a V.++ toReturnV b
+
+instance (Returnable' a, Returnable' b, Returnable' c)
+      => Returnable' (a,b,c) where
+  toReturnV (a,b,c) = toReturnV a V.++ toReturnV b V.++ toReturnV c
+
+instance (Returnable' a, Returnable' b, Returnable' c, Returnable' d)
+      => Returnable' (a,b,c,d) where
+  toReturnV (a,b,c,d) =
+    toReturnV a V.++ toReturnV b V.++ toReturnV c V.++ toReturnV d
 
 class Returnable r where
-  toBaseVector :: r -> [ V.Vector (NRets r) Sym ]
+  toReturnVs :: r -> [ V.Vector (NRets r) Sym ]
 
-instance Returnable Text where
-  toBaseVector t = [ V.singleton (SymText t) ]
+instance Returnable' a => Returnable a where
+  toReturnVs x = [ toReturnV x ]
 
-instance Returnable Int where
-  toBaseVector i = [ V.singleton (SymInt i) ]
-
-instance Returnable Float where
-  toBaseVector f = [ V.singleton (SymFloat f) ]
-
-instance Returnable Bool where
-  toBaseVector b = [ V.singleton (SymBool b) ]
-
-instance Returnable a => Returnable [ a ] where
-  toBaseVector xs = join . map toBaseVector $ xs
-
-instance (Returnable a, Returnable b) => Returnable (a,b) where
-  toBaseVector (a, b) = zipWith (V.++) (toBaseVector a) (toBaseVector b)
+instance Returnable' a => Returnable [ a ] where
+  toReturnVs xs = map toReturnV xs
 
 type family Ground a where
   Ground Text   = 'True
