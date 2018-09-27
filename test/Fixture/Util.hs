@@ -3,6 +3,7 @@
 module Fixture.Util
   ( tvar
   , tsym
+  , symbol
   , lit
   , not
   ) where
@@ -24,5 +25,20 @@ lit = Literal LitABase Positive
 tvar :: Text -> Term
 tvar = TVar . Var
 
-tsym :: Text -> Term
-tsym = TSym . Sym
+class Termable a where
+  symbol :: a -> Sym
+  tsym   :: a -> Term
+  tsym = TSym . symbol
+  {-# MINIMAL symbol #-}
+
+instance Termable Text where
+  symbol = SymText
+
+instance Termable Int where
+  symbol = SymInt
+
+instance Termable Float where
+  symbol = SymFloat
+
+instance Termable Bool where
+  symbol = SymBool

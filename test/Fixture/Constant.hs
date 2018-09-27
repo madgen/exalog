@@ -38,14 +38,14 @@ r t t' = lit rPred $ fromJust $ V.fromList [ t, t' ]
 -}
 program :: Program 'ABase
 program = Program ProgABase
-  [ Clause ClABase (r (tsym "c") (tsym "1")) $ NE.fromList [ c (tsym "a") (tsym "b") ]
-  , Clause ClABase (r (tvar "X") (tsym "2")) $ NE.fromList [ c (tsym "a") (tvar "X") ]
-  , Clause ClABase (r (tsym "c") (tsym "3")) $ NE.fromList [ c (tsym "q") (tsym "b") ]
-  , Clause ClABase (r (tsym "e") (tsym "4")) $ NE.fromList
+  [ Clause ClABase (r (tsym ("c" :: Text)) (tsym ("1" :: Text))) $ NE.fromList [ c (tsym ("a" :: Text)) (tsym ("b" :: Text)) ]
+  , Clause ClABase (r (tvar "X") (tsym ("2" :: Text))) $ NE.fromList [ c (tsym ("a" :: Text)) (tvar "X") ]
+  , Clause ClABase (r (tsym ("c" :: Text)) (tsym ("3" :: Text))) $ NE.fromList [ c (tsym ("q" :: Text)) (tsym ("b" :: Text)) ]
+  , Clause ClABase (r (tsym ("e" :: Text)) (tsym ("4" :: Text))) $ NE.fromList
     [ r (tvar "X") (tvar "Y")
-    , c (tsym "a") (tvar "X") ]
-  , Clause ClABase (r (tsym "f") (tsym "5")) $ NE.fromList
-    [ c (tsym "a") (tvar "X")
+    , c (tsym ("a" :: Text)) (tvar "X") ]
+  , Clause ClABase (r (tsym ("f" :: Text)) (tsym ("5" :: Text))) $ NE.fromList
+    [ c (tsym ("a" :: Text)) (tvar "X")
     , r (tvar "X") (tvar "Y") ]
   ]
 
@@ -57,17 +57,17 @@ cTuples = fromJust . V.fromList <$>
   ]
 
 cRel :: Relation 'ABase
-cRel = Relation cPred . T.fromList $ fmap Sym <$> cTuples
+cRel = Relation cPred . T.fromList $ fmap symbol <$> cTuples
 
 initEDB :: Solution 'ABase
 initEDB = fromList [ cRel ]
 
 rTuples :: T.Tuples 2
-rTuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>
-  [ [ "c", "1" ]
+rTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+  ([ [ "c", "1" ]
   , [ "b", "2" ]
   , [ "c", "2" ]
   , [ "d", "2" ]
   , [ "e", "4" ]
   , [ "f", "5" ]
-  ]
+  ] :: [ [ Text ] ])

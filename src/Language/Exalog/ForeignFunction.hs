@@ -64,8 +64,6 @@ liftPredicateME p v =
 -- Lift functions that do not return Bool
 --------------------------------------------------------------------------------
 
-data BaseTy = TText Text | TInt Int | TChar Char
-
 {- | Lifts Haskell functions to 'ForeignFunc' to back extralogical predicates.
 -
 - For example, if an extralogical predicate @p@ is backed by a Haskell
@@ -97,11 +95,11 @@ liftFunctionME f v = do
 
 genTuples :: forall na nr
            . KnownNat na
-          => [ V.Vector nr BaseTy ]
+          => [ V.Vector nr Sym ]
           -> V.Vector (na + nr) Term
           -> [ V.Vector (na + nr) Sym ]
 genTuples resss v =
-  [ symArgs V.++ (toSym <$> ress)
+  [ symArgs V.++ ress
   | ress <- filterFakeResults rets resss ]
   where
   symArgs = fromTerm <$> args
@@ -110,19 +108,15 @@ genTuples resss v =
 -- Eliminate tuples with results that contradict with what is bound in the
 -- subgoal for that result.
 filterFakeResults :: V.Vector nr Term
-                  -> [ V.Vector nr BaseTy ]
-                  -> [ V.Vector nr BaseTy ]
+                  -> [ V.Vector nr Sym ]
+                  -> [ V.Vector nr Sym ]
 filterFakeResults terms =
   filter (\ress -> all (uncurry consistent) $ V.zip ress terms)
 
 -- Check if a particular result is consistent with the given term
-consistent :: BaseTy -> Term -> Bool
-consistent a = \case
-  TSym (Sym text) ->
-    case a of
-      TInt i  -> i == interpret text
-      TChar c -> c == interpret text
-      TText t -> t == interpret text
+consistent :: Sym -> Term -> Bool
+consistent sym = \case
+  TSym sym' -> sym == sym'
   TVar{}  -> True
 
 --------------------------------------------------------------------------------
@@ -130,23 +124,27 @@ consistent a = \case
 --------------------------------------------------------------------------------
 
 type family NRets a :: Nat where
-  NRets Int  = 1
-  NRets Char = 1
-  NRets Text = 1
+  NRets Text  = 1
+  NRets Int   = 1
+  NRets Float = 1
+  NRets Bool  = 1
   NRets [ a ] = NRets a
   NRets (a,b) = NRets a + NRets b
 
 class Returnable r where
-  toBaseVector :: r -> [ V.Vector (NRets r) BaseTy ]
-
-instance Returnable Int where
-  toBaseVector i = [ V.singleton (TInt i) ]
-
-instance Returnable Char where
-  toBaseVector c = [ V.singleton (TChar c) ]
+  toBaseVector :: r -> [ V.Vector (NRets r) Sym ]
 
 instance Returnable Text where
-  toBaseVector t = [ V.singleton (TText t) ]
+  toBaseVector t = [ V.singleton (SymText t) ]
+
+instance Returnable Int where
+  toBaseVector i = [ V.singleton (SymInt i) ]
+
+instance Returnable Float where
+  toBaseVector f = [ V.singleton (SymFloat f) ]
+
+instance Returnable Bool where
+  toBaseVector b = [ V.singleton (SymBool b) ]
 
 instance Returnable a => Returnable [ a ] where
   toBaseVector xs = join . map toBaseVector $ xs
@@ -156,34 +154,33 @@ instance (Returnable a, Returnable b) => Returnable (a,b) where
 
 type family Ground a where
   Ground Text   = 'True
-  Ground Char   = 'True
-  Ground Bool   = 'True
   Ground Int    = 'True
+  Ground Float  = 'True
+  Ground Bool   = 'True
   Ground _      = 'False
 
 class Argumentable a where
-  interpret :: Text -> a
+  interpret :: Sym -> a
 
 instance Argumentable Text where
-  interpret x = x
-
-instance Argumentable Char where
-  interpret text
-    | Just c <- readMaybe . unpack $ text = c
-    | otherwise =
-      panic $ "Fatal error: '" <> text <> "' couldn't be interpeted as a Char."
-
-instance Argumentable Bool where
-  interpret text
-    | Just b <- readMaybe . unpack $ text = b
-    | otherwise =
-      panic $ "Fatal error: '" <> text <> "' couldn't be interpeted as a Bool."
+  interpret (SymText t) = t
+  interpret _ =
+    panic "Fatal error: Foreign function was expecting arugment of type Text."
 
 instance Argumentable Int where
-  interpret text
-    | Just i <- readMaybe . unpack $ text = i
-    | otherwise =
-      panic $ "Fatal error: '" <> text <> "' couldn't be interpeted as a Int."
+  interpret (SymInt i) = i
+  interpret _ =
+    panic "Fatal error: Foreign function was expecting arugment of type Int."
+
+instance Argumentable Float where
+  interpret (SymFloat f) = f
+  interpret _ =
+    panic "Fatal error: Foreign function was expecting arugment of type Char."
+
+instance Argumentable Bool where
+  interpret (SymBool b) = b
+  interpret _ =
+    panic "Fatal error: Foreign function was expecting arugment of type Bool."
 
 type family RetTy f where
   RetTy (a -> r) = If (Ground r) r (RetTy r)
@@ -200,19 +197,19 @@ class ari ~ Arity f => Applicable' f (ari :: Nat) where
 instance ( Ground r ~ 'True
          , Argumentable a
          ) => Applicable' (a -> r) 1 where
-  f @@ v | [ arg ] <- termToText <$> (take 1 . V.toList) v = f (interpret arg)
+  f @@ v | [ arg ] <- take 1 . V.toList $ v = f (interpret . fromTerm $ arg)
 
 instance ( Ground r ~ 'True
          , Argumentable a, Argumentable b
          ) => Applicable' (a -> b -> r) 2 where
-  f @@ v | [ arg1, arg2 ] <- termToText <$> (take 2 . V.toList) v =
+  f @@ v | [ arg1, arg2 ] <- fromTerm <$> (take 2 . V.toList) v =
     f (interpret arg1)
       (interpret arg2)
 
 instance ( Ground r ~ 'True
          , Argumentable a, Argumentable b, Argumentable c
          ) => Applicable' (a -> b -> c -> r) 3 where
-  f @@ v | [ arg1, arg2, arg3 ] <- termToText <$> (take 3 . V.toList) v =
+  f @@ v | [ arg1, arg2, arg3 ] <- fromTerm <$> (take 3 . V.toList) v =
     f (interpret arg1)
       (interpret arg2)
       (interpret arg3)
@@ -220,7 +217,7 @@ instance ( Ground r ~ 'True
 instance ( Ground r ~ 'True
          , Argumentable a, Argumentable b, Argumentable c, Argumentable d
          ) => Applicable' (a -> b -> c -> d -> r) 4 where
-  f @@ v | [ arg1, arg2, arg3, arg4 ] <- termToText <$> (take 4 . V.toList) v =
+  f @@ v | [ arg1, arg2, arg3, arg4 ] <- fromTerm <$> (take 4 . V.toList) v =
     f (interpret arg1)
       (interpret arg2)
       (interpret arg3)
@@ -229,22 +226,12 @@ instance ( Ground r ~ 'True
 instance ( Ground r ~ 'True
          , Argumentable a, Argumentable b, Argumentable c, Argumentable d, Argumentable e
          ) => Applicable' (a -> b -> c -> d -> e -> r) 5 where
-  f @@ v | [ arg1, arg2, arg3, arg4, arg5 ] <- termToText <$> (take 5 . V.toList) v =
+  f @@ v | [ arg1, arg2, arg3, arg4, arg5 ] <- fromTerm <$> (take 5 . V.toList) v =
     f (interpret arg1)
       (interpret arg2)
       (interpret arg3)
       (interpret arg4)
       (interpret arg5)
-
-toSym :: BaseTy -> Sym
-toSym (TText text) = Sym text
-toSym (TInt i) = Sym . pack . show $ i
-toSym (TChar c) = Sym . pack . show $ c
-
-termToText :: Term -> Text
-termToText (TSym (Sym text)) = text
-termToText TVar{} = panic
-  "Fatal error: Foreign function argument is not sufficiently bound."
 
 fromTerm :: Term -> Sym
 fromTerm = \case

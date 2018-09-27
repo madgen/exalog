@@ -28,6 +28,7 @@ import qualified Fixture.Ancestor.NonLinearAncestor as NLAnc
 import qualified Fixture.Ancestor.EDB as AncEDB
 import qualified Fixture.Constant as Const
 import qualified Fixture.Foreign as Foreign
+import           Fixture.Util
 
 import           Language.Exalog.Core hiding (Positive)
 import           Language.Exalog.ForeignFunction
@@ -39,9 +40,9 @@ instance Arbitrary PredicateSym where
   arbitrary = fromString <$> arbitrary
 
 instance Arbitrary Sym where
-  arbitrary = oneof $ return . Sym <$>
-    [ "mistral", "emir", "nilufer", "laurent", "gulseren", "orhan"
-    , "jean-pierre", "simone", "nazli", "hulusi" ]
+  arbitrary = oneof $ return . symbol <$>
+    ([ "mistral", "emir", "nilufer", "laurent", "gulseren", "orhan"
+    , "jean-pierre", "simone", "nazli", "hulusi" ] :: [ Text ])
 
 instance (KnownNat n, SingI n) => Arbitrary (T.Tuples n) where
   arbitrary = do

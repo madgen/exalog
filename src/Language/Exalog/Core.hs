@@ -105,7 +105,12 @@ instance Eq (PredicateAnn ann) => Eq (PredicateBox ann) where
 data Polarity = Positive | Negative deriving (Eq, Ord, Show)
 
 newtype Var = Var Text deriving (Eq, Ord, Show)
-newtype Sym = Sym Text deriving (Eq, Ord, Show)
+data Sym =
+    SymText  Text
+  | SymInt   Int
+  | SymFloat Float
+  | SymBool  Bool
+  deriving (Eq, Ord, Show)
 
 -- |A term is a variable or a symbol
 data Term = TVar Var | TSym Sym deriving (Eq, Ord, Show)

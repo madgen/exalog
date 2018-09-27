@@ -12,6 +12,7 @@ import           Language.Exalog.Relation
 import           Language.Exalog.Core
 
 import Fixture.Ancestor.Common
+import Fixture.Util
 
 parentTuples :: [ V.Vector 2 Text ]
 parentTuples = fromJust . V.fromList <$>
@@ -27,7 +28,7 @@ parentTuples = fromJust . V.fromList <$>
   ]
 
 parentRel :: Relation 'ABase
-parentRel = Relation parPred . T.fromList $ fmap Sym <$> parentTuples
+parentRel = Relation parPred . T.fromList $ fmap symbol <$> parentTuples
 
 ancestorTuples :: [ V.Vector 2 Text ]
 ancestorTuples =
@@ -45,7 +46,7 @@ ancestorTuples =
   ]
 
 ancestorRel :: Relation 'ABase
-ancestorRel = Relation ancPred . T.fromList $ fmap Sym <$> ancestorTuples
+ancestorRel = Relation ancPred . T.fromList $ fmap symbol <$> ancestorTuples
 
 initEDB :: Solution 'ABase
 initEDB = fromList [ parentRel ]

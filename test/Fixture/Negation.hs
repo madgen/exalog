@@ -56,13 +56,13 @@ program = Program ProgABase
   ]
 
 rTuples :: T.Tuples 2
-rTuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>
-  [ [ "x"     , "y" ]
+rTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+  ([ [ "x"     , "y" ]
   , [ "x"     , "z" ]
   , [ "z"     , "x" ]
   , [ "y"     , "w" ]
   , [ "x"     , "x" ]
-  ]
+  ] :: [ [ Text ] ])
 
 rRel :: Relation 'ABase
 rRel = Relation rPred rTuples
@@ -71,12 +71,12 @@ initEDB :: Solution 'ABase
 initEDB = fromList [ rRel ]
 
 vTuples :: T.Tuples 1
-vTuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>
-  [ [ "x" ], [ "y" ], [ "z" ], [ "w" ] ]
+vTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+  ([ [ "x" ], [ "y" ], [ "z" ], [ "w" ] ] :: [ [ Text ] ])
 
 tTuples :: T.Tuples 2
-tTuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>
-  [ [ "x"     , "x" ]
+tTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+  ([ [ "x"     , "x" ]
   , [ "x"     , "y" ]
   , [ "y"     , "w" ]
   , [ "x"     , "w" ]
@@ -85,18 +85,18 @@ tTuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>
   , [ "z"     , "y" ]
   , [ "z"     , "w" ]
   , [ "z"     , "z" ]
-  ]
+  ] :: [ [ Text ] ])
 
 tcTuples :: T.Tuples 2
-tcTuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>
-  [ [ "y"     , "x" ]
+tcTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+  ([ [ "y"     , "x" ]
   , [ "y"     , "z" ]
   , [ "w"     , "z" ]
   , [ "w"     , "x" ]
   , [ "y"     , "y" ]
   , [ "w"     , "w" ]
   , [ "w"     , "y" ]
-  ]
+  ] :: [ [ Text ] ])
 
 finalEDB :: Solution 'ABase
 finalEDB = initEDB `merge` fromList

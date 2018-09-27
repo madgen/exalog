@@ -71,22 +71,22 @@ programLeq100 :: Program 'ABase
 programLeq100 = Program ProgABase
   [ Clause ClABase (leq100 (tvar "X")) $ NE.fromList
     [ src (tvar "X")
-    , leq (tvar "X") (tsym "100") ]
+    , leq (tvar "X") (tsym (100 :: Int)) ]
   ]
 
-srcTuples :: [ V.Vector 1 Text ]
+srcTuples :: [ V.Vector 1 Int ]
 srcTuples = fromJust . V.fromList <$>
-  [ [ "10" ], [ "99" ], [ "100" ], [ "3000" ] ]
+  [ [ 10 ], [ 99 ], [ 100 ], [ 3000 ] ]
 
 srcRel :: Relation 'ABase
-srcRel = Relation srcPred . T.fromList $ fmap Sym <$> srcTuples
+srcRel = Relation srcPred . T.fromList $ fmap symbol <$> srcTuples
 
 initLeq100EDB :: Solution 'ABase
 initLeq100EDB = fromList [ srcRel ]
 
 leq100Tuples :: T.Tuples 1
-leq100Tuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>
-  [ [ "10" ], [ "99" ] ]
+leq100Tuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+  ([ [ 10 ], [ 99 ] ] :: [ [ Int ] ])
 
 {-
 - src2("").
@@ -106,19 +106,20 @@ programPrefixOf = Program ProgABase
 
 src2Tuples :: [ V.Vector 1 Text ]
 src2Tuples = fromJust . V.fromList <$>
-  [ [ "" ], [ "Mis" ], [ "Andrew" ], [ "Mistral" ], [ "Mistral Contrastin" ] ]
+  ([ [ "" ], [ "Mis" ], [ "Andrew" ], [ "Mistral" ], [ "Mistral Contrastin" ] ]
+  :: [ [ Text ] ])
 
 src2Rel :: Relation 'ABase
-src2Rel = Relation src2Pred . T.fromList $ fmap Sym <$> src2Tuples
+src2Rel = Relation src2Pred . T.fromList $ fmap symbol <$> src2Tuples
 
 initPrefixOfEDB :: Solution 'ABase
 initPrefixOfEDB = fromList [ src2Rel ]
 
 prefixOfTuples :: T.Tuples 2
-prefixOfTuples = T.fromList $ fmap Sym . fromJust . V.fromList <$>
-  [ [ "", "" ], [ "", "Mis" ], [ "", "Andrew" ], [ "", "Mistral" ], [ "", "Mistral Contrastin" ]
+prefixOfTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+  ([ [ "", "" ], [ "", "Mis" ], [ "", "Andrew" ], [ "", "Mistral" ], [ "", "Mistral Contrastin" ]
   , [ "Mis", "Mis" ], [ "Mis", "Mistral" ], [ "Mis", "Mistral Contrastin" ]
   , [ "Andrew", "Andrew" ]
   , [ "Mistral", "Mistral" ], [ "Mistral", "Mistral Contrastin" ]
   , [ "Mistral Contrastin", "Mistral Contrastin" ]
-  ]
+  ] :: [ [ Text ] ])
