@@ -98,5 +98,5 @@ spec =
         R.findTuples finalEDB Foreign.prefixOfPred `shouldBe` Foreign.prefixOfTuples
 
       finalEDB <- runIO $ semiNaive Foreign.programCartesian23 Foreign.initCartesian23EDB
-      it "interprets 'isPrefixOf' correctly" $
+      it "interprets 'cartesian23' correctly" $
         R.findTuples finalEDB Foreign.cartesian23Pred `shouldBe` Foreign.cartesian23Tuples
