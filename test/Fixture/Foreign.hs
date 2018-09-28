@@ -6,11 +6,18 @@ module Fixture.Foreign
   , initLeq100EDB
   , leq100Pred
   , leq100Tuples
+
   -- PrefixOf
   , programPrefixOf
   , initPrefixOfEDB
   , prefixOfPred
   , prefixOfTuples
+
+  -- Cartesian
+  , programCartesian23
+  , initCartesian23EDB
+  , cartesian23Pred
+  , cartesian23Tuples
   ) where
 
 import Protolude hiding (isPrefixOf)
@@ -28,37 +35,27 @@ import qualified Language.Exalog.Tuples as T
 
 import Fixture.Util
 
-srcPred, src2Pred :: Predicate 1 'ABase
-srcPred =  Predicate PredABase "src" SNat Logical
-src2Pred = Predicate PredABase "src2" SNat Logical
+--------------------------------------------------------------------------------
+-- leq100 Fixture
+--------------------------------------------------------------------------------
 
-leqPred, isPrefixOfPred :: Predicate 2 'ABase
+srcPred :: Predicate 1 'ABase
+srcPred =  Predicate PredABase "src" SNat Logical
+
+leqPred :: Predicate 2 'ABase
 leqPred = Predicate PredABase "<" SNat (Extralogical $ liftPredicate ((<) :: Int -> Int -> Bool))
-isPrefixOfPred = Predicate PredABase "isPrefixOf" SNat (Extralogical $ liftPredicate (Text.isPrefixOf :: Text -> Text -> Bool))
 
 leq100Pred :: Predicate 1 'ABase
 leq100Pred = Predicate PredABase "leq100" SNat Logical
 
-prefixOfPred :: Predicate 2 'ABase
-prefixOfPred = Predicate PredABase "prefixOf" SNat Logical
-
 src :: Term -> Literal 'ABase
 src t = lit srcPred $ fromJust $ V.fromList [ t ]
-
-src2 :: Term -> Literal 'ABase
-src2 t = lit src2Pred $ fromJust $ V.fromList [ t ]
 
 leq :: Term -> Term -> Literal 'ABase
 leq t t' = lit leqPred $ fromJust $ V.fromList [ t, t' ]
 
-isPrefixOf :: Term -> Term -> Literal 'ABase
-isPrefixOf t t' = lit isPrefixOfPred $ fromJust $ V.fromList [ t, t' ]
-
 leq100 :: Term -> Literal 'ABase
 leq100 t = lit leq100Pred $ fromJust $ V.fromList [ t ]
-
-prefixOf :: Term -> Term -> Literal 'ABase
-prefixOf t t' = lit prefixOfPred $ fromJust $ V.fromList [ t, t' ]
 
 {-
 - src("10").
@@ -87,6 +84,28 @@ initLeq100EDB = fromList [ srcRel ]
 leq100Tuples :: T.Tuples 1
 leq100Tuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
   ([ [ 10 ], [ 99 ] ] :: [ [ Int ] ])
+
+--------------------------------------------------------------------------------
+-- prefixOf Fixture
+--------------------------------------------------------------------------------
+
+src2Pred :: Predicate 1 'ABase
+src2Pred = Predicate PredABase "src2" SNat Logical
+
+isPrefixOfPred :: Predicate 2 'ABase
+isPrefixOfPred = Predicate PredABase "isPrefixOf" SNat (Extralogical $ liftPredicate (Text.isPrefixOf :: Text -> Text -> Bool))
+
+prefixOfPred :: Predicate 2 'ABase
+prefixOfPred = Predicate PredABase "prefixOf" SNat Logical
+
+src2 :: Term -> Literal 'ABase
+src2 t = lit src2Pred $ fromJust $ V.fromList [ t ]
+
+isPrefixOf :: Term -> Term -> Literal 'ABase
+isPrefixOf t t' = lit isPrefixOfPred $ fromJust $ V.fromList [ t, t' ]
+
+prefixOf :: Term -> Term -> Literal 'ABase
+prefixOf t t' = lit prefixOfPred $ fromJust $ V.fromList [ t, t' ]
 
 {-
 - src2("").
@@ -123,3 +142,38 @@ prefixOfTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
   , [ "Mistral", "Mistral" ], [ "Mistral", "Mistral Contrastin" ]
   , [ "Mistral Contrastin", "Mistral Contrastin" ]
   ] :: [ [ Text ] ])
+
+--------------------------------------------------------------------------------
+-- cartesian Fixture
+--------------------------------------------------------------------------------
+
+cart :: Int -> Int -> [ (Int, Int) ]
+cart n m = [ (i,j) | i <- [1..n], j <- [1..m] ]
+
+cartesianPred :: Predicate 4 'ABase
+cartesianPred = Predicate PredABase "cartesian" SNat (Extralogical $ liftFunction cart)
+
+cartesian23Pred :: Predicate 2 'ABase
+cartesian23Pred = Predicate PredABase "cartesian23" SNat Logical
+
+cartesian :: Term -> Term -> Term -> Term -> Literal 'ABase
+cartesian t t' t'' t''' = lit cartesianPred $ fromJust $ V.fromList [ t, t', t'', t''' ]
+
+cartesian23 :: Term -> Term -> Literal 'ABase
+cartesian23 t t' = lit cartesian23Pred $ fromJust $ V.fromList [ t, t' ]
+
+{-
+- cartesian23(X,Y) :- cartesian(2,3,X,Y).
+-}
+programCartesian23 :: Program 'ABase
+programCartesian23 = Program ProgABase
+  [ Clause ClABase (cartesian23 (tvar "X") (tvar "Y")) $ NE.fromList
+    [ cartesian (tsym (2 :: Int)) (tsym (3 :: Int)) (tvar "X") (tvar "Y") ]
+  ]
+
+initCartesian23EDB :: Solution 'ABase
+initCartesian23EDB = fromList [ ]
+
+cartesian23Tuples :: T.Tuples 2
+cartesian23Tuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+  ([ [ 1, 1 ] , [ 1, 2 ], [ 1, 3] , [ 2, 1 ] , [ 2, 2 ], [ 2, 3 ] ] :: [ [ Int ] ])
