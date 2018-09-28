@@ -133,48 +133,68 @@ type family NRets a :: Nat where
   NRets (a,b,c,d) = NRets a + NRets b + NRets c + NRets d
   NRets [ a ] = NRets a
 
-class Returnable' r where
+class ReturnableBase r where
   toReturnV :: r -> V.Vector (NRets r) Sym
 
-instance Returnable' Text where
+instance ReturnableBase Text where
   toReturnV t = V.singleton (SymText t)
 
-instance Returnable' Int where
+instance ReturnableBase Int where
   toReturnV i = V.singleton (SymInt i)
 
-instance Returnable' Float where
+instance ReturnableBase Float where
   toReturnV f = V.singleton (SymFloat f)
 
-instance Returnable' Bool where
+instance ReturnableBase Bool where
   toReturnV b = V.singleton (SymBool b)
 
-instance (Returnable' a, Returnable' b) => Returnable' (a,b) where
+instance (ReturnableBase a, ReturnableBase b) => ReturnableBase (a,b) where
   toReturnV (a,b) = toReturnV a V.++ toReturnV b
 
-instance (Returnable' a, Returnable' b, Returnable' c)
-      => Returnable' (a,b,c) where
+instance (ReturnableBase a, ReturnableBase b, ReturnableBase c)
+      => ReturnableBase (a,b,c) where
   toReturnV (a,b,c) = toReturnV a V.++ toReturnV b V.++ toReturnV c
 
-instance (Returnable' a, Returnable' b, Returnable' c, Returnable' d)
-      => Returnable' (a,b,c,d) where
+instance (ReturnableBase a, ReturnableBase b, ReturnableBase c, ReturnableBase d)
+      => ReturnableBase (a,b,c,d) where
   toReturnV (a,b,c,d) =
     toReturnV a V.++ toReturnV b V.++ toReturnV c V.++ toReturnV d
+
+type family ReturnableB' r :: Bool where
+  ReturnableB' Text      = 'True
+  ReturnableB' Int       = 'True
+  ReturnableB' Float     = 'True
+  ReturnableB' Bool      = 'True
+  ReturnableB' (a,b)     = 'True
+  ReturnableB' (a,b,c)   = 'True
+  ReturnableB' (a,b,c,d) = 'True
+  ReturnableB' _         = 'False
+
+type family ReturnableB a :: Bool where
+  ReturnableB [ a ] = ReturnableB' a
+  ReturnableB a     = ReturnableB' a
+
+-- Flag to distinguish the general and specific case to later avoid
+-- overlapping instances
+type family ReturnFlag a :: Bool where
+  ReturnFlag [ a ] = 'True
+  ReturnFlag _     = 'False
 
 class Returnable r where
   toReturnVs :: r -> [ V.Vector (NRets r) Sym ]
 
-instance Returnable' a => Returnable a where
-  toReturnVs x = [ toReturnV x ]
+-- Instance defined in terms of Returnable' to avoid overlapping instances
+instance (ReturnFlag r ~ flag, Returnable' flag r) => Returnable r where
+  toReturnVs = toReturnVs' (Proxy :: Proxy flag)
 
-instance Returnable' a => Returnable [ a ] where
-  toReturnVs xs = map toReturnV xs
+class Returnable' (flag :: Bool) r where
+  toReturnVs' :: Proxy flag -> r -> [ V.Vector (NRets r) Sym ]
 
-type family Ground a where
-  Ground Text   = 'True
-  Ground Int    = 'True
-  Ground Float  = 'True
-  Ground Bool   = 'True
-  Ground _      = 'False
+instance ReturnableBase a => Returnable' 'False a where
+  toReturnVs' _ x = [ toReturnV x ]
+
+instance ReturnableBase a => Returnable' 'True [ a ] where
+  toReturnVs' _ xs = map toReturnV xs
 
 class Argumentable a where
   interpret :: Sym -> a
@@ -200,30 +220,29 @@ instance Argumentable Bool where
     panic "Fatal error: Foreign function was expecting arugment of type Bool."
 
 type family RetTy f where
-  RetTy (a -> r) = If (Ground r) r (RetTy r)
+  RetTy (a -> r) = If (ReturnableB r) r (RetTy r)
 
 type family Arity f :: Nat where
-  Arity (a -> r) = If (Ground r) 1 (Arity r + 1)
-  Arity r = 1
+  Arity (a -> r) = If (ReturnableB r) 1 (Arity r + 1)
 
 type Applicable f = Applicable' f (Arity f)
 
 class ari ~ Arity f => Applicable' f (ari :: Nat) where
   (@@) :: Arity f <= n => f -> V.Vector n Term -> RetTy f
 
-instance ( Ground r ~ 'True
+instance ( ReturnableB r ~ 'True
          , Argumentable a
          ) => Applicable' (a -> r) 1 where
   f @@ v | [ arg ] <- take 1 . V.toList $ v = f (interpret . fromTerm $ arg)
 
-instance ( Ground r ~ 'True
+instance ( ReturnableB r ~ 'True
          , Argumentable a, Argumentable b
          ) => Applicable' (a -> b -> r) 2 where
   f @@ v | [ arg1, arg2 ] <- fromTerm <$> (take 2 . V.toList) v =
     f (interpret arg1)
       (interpret arg2)
 
-instance ( Ground r ~ 'True
+instance ( ReturnableB r ~ 'True
          , Argumentable a, Argumentable b, Argumentable c
          ) => Applicable' (a -> b -> c -> r) 3 where
   f @@ v | [ arg1, arg2, arg3 ] <- fromTerm <$> (take 3 . V.toList) v =
@@ -231,7 +250,7 @@ instance ( Ground r ~ 'True
       (interpret arg2)
       (interpret arg3)
 
-instance ( Ground r ~ 'True
+instance ( ReturnableB r ~ 'True
          , Argumentable a, Argumentable b, Argumentable c, Argumentable d
          ) => Applicable' (a -> b -> c -> d -> r) 4 where
   f @@ v | [ arg1, arg2, arg3, arg4 ] <- fromTerm <$> (take 4 . V.toList) v =
@@ -240,7 +259,7 @@ instance ( Ground r ~ 'True
       (interpret arg3)
       (interpret arg4)
 
-instance ( Ground r ~ 'True
+instance ( ReturnableB r ~ 'True
          , Argumentable a, Argumentable b, Argumentable c, Argumentable d, Argumentable e
          ) => Applicable' (a -> b -> c -> d -> e -> r) 5 where
   f @@ v | [ arg1, arg2, arg3, arg4, arg5 ] <- fromTerm <$> (take 5 . V.toList) v =
