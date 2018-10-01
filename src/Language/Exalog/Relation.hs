@@ -11,6 +11,7 @@ module Language.Exalog.Relation
   , Relation(..)
   -- Helpers
   , fromList
+  , toList
   , findTuples
   , add
   , merge
@@ -21,7 +22,7 @@ module Language.Exalog.Relation
   , size
   ) where
 
-import Protolude hiding (empty, filter, pred)
+import Protolude hiding (empty, filter, pred, toList)
 
 import qualified Data.List as L
 import qualified Data.Set as S
@@ -59,6 +60,9 @@ isEmpty (Solution xs) = null xs
 
 fromList :: [ Relation a ] -> Solution a
 fromList = Solution
+
+toList :: Solution a -> [ Relation a ]
+toList (Solution rs) = rs
 
 add :: Eq (PredicateAnn a) => Relation a -> Solution a -> Solution a
 add rel (Solution rs) = Solution $ add' rel rs

@@ -17,7 +17,9 @@ import qualified Data.Vector.Sized as V
 
 import Text.PrettyPrint
 
-import Language.Exalog.Core
+import           Language.Exalog.Core
+import qualified Language.Exalog.Relation as R
+import qualified Language.Exalog.Tuples as T
 
 pp :: Pretty a => a -> Text
 pp = fromString . render . pretty
@@ -44,6 +46,10 @@ d1 <+?> d2
 cond :: Bool -> Doc -> Doc
 cond True doc = doc
 cond False _  = empty
+
+-- | Comma separate Docs
+csep :: [ Doc ] -> Doc
+csep = hsep . punctuate comma
 
 -- Core pretty instances
 
@@ -76,14 +82,14 @@ instance ( Pretty (PredicateAnn ann)
        cond (polarity == Negative) (text "not" <> space)
    <+> pretty predicate
    <> ("LA" <> colon) <?> pretty annotation
-   <> (parens . hsep . punctuate comma . prettyC $ terms)
+   <> (parens . csep . prettyC $ terms)
 
 instance ( Pretty (PredicateAnn ann)
          , Pretty (Ann Literal ann)
          , Pretty (Ann Clause ann)
          ) => Pretty (Clause ann) where
   pretty Clause{..} =
-    pretty head <+> ":-" <+> (hsep . punctuate comma . prettyC $ body) <> "."
+    pretty head <+> ":-" <+> (csep . prettyC $ body) <> "."
 
 instance ( Pretty (PredicateAnn ann)
          , Pretty (Ann Literal ann)
@@ -93,10 +99,26 @@ instance ( Pretty (PredicateAnn ann)
   pretty Program{..} = vcat . prettyC $ clauses
 
 -- Annotation instances
+
 instance Pretty (PredicateAnn 'ABase) where pretty _ = empty
 instance Pretty (LiteralAnn   'ABase) where pretty _ = empty
 instance Pretty (ClauseAnn    'ABase) where pretty _ = empty
 instance Pretty (ProgramAnn   'ABase) where pretty _ = empty
+
+-- Solution related data type instances
+
+instance Pretty (PredicateAnn ann) => Pretty (R.Relation ann) where
+  pretty (R.Relation predicate tuples) =
+    pretty predicate <+> parens (int . T.size $ tuples) <+> "= {"
+    $+$ (nest 2 . vcat . map csep . groupsOf 8 . prettyC $ tuples)
+    $+$ rbrace
+    where
+    groupsOf :: Int -> [ a ] -> [ [ a ] ]
+    groupsOf _ [] = []
+    groupsOf i xs = let (gr, rest) = splitAt i xs in gr : groupsOf i rest
+
+instance Pretty (PredicateAnn ann) => Pretty (R.Solution ann) where
+  pretty = vcat . prettyC . R.toList
 
 -- Common pretty instances
 
@@ -117,3 +139,6 @@ instance Pretty a => PrettyCollection (NE.NonEmpty a) where
 
 instance Pretty a => PrettyCollection (V.Vector n a) where
   prettyC = map pretty . V.toList
+
+instance PrettyCollection (T.Tuples n) where
+  prettyC = map (parens . csep . prettyC) . T.toList
