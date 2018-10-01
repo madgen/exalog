@@ -12,6 +12,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Language.Exalog.ForeignFunction
   ( liftPredicate
@@ -20,15 +21,12 @@ module Language.Exalog.ForeignFunction
   , liftFunctionME
   ) where
 
-import Protolude hiding (TypeError)
+import Protolude hiding (TypeError, sym)
 
 import           Data.Type.Bool (If)
-import           Data.Text (unpack, pack)
 import qualified Data.Vector.Sized as V
 
-import Text.Read (readMaybe)
-
-import GHC.TypeLits as TL (type (+), type (<=))
+import GHC.TypeLits as TL (type (+))
 
 import Language.Exalog.Core
 
@@ -78,20 +76,28 @@ liftPredicateME p v =
 - its value needs to be in the returned list of integers. Otherwise, it
 - returns an empty answer set.
 -}
-liftFunction :: (Applicable f, RetTy f ~ r, Returnable r, KnownNat (Arity f))
+liftFunction :: forall f r
+              . (Applicable f, RetTy f ~ r, Returnable r, KnownNat (Arity f))
              => f -> ForeignFunc (NRets r + Arity f)
-liftFunction f v = return . return $ genTuples (toReturnVs $ f @@ v) v
+liftFunction f v = return . return $ genTuples (toReturnVs $ f @@ args) v
+  where
+  args :: V.Vector (Arity f) Term
+  args = V.take' (Proxy :: Proxy (Arity f)) v
 
 {- | A variant of 'liftFunction' for functions that have side effects and
 - may produce errors.
 -}
-liftFunctionME :: (Applicable f, RetTy f ~ IO (Either Text r), Returnable r, KnownNat (Arity f))
+liftFunctionME :: forall f r
+                . (Applicable f, RetTy f ~ IO (Either Text r), Returnable r, KnownNat (Arity f))
                => f -> ForeignFunc (NRets r + Arity f)
 liftFunctionME f v = do
-  eResss <- fmap toReturnVs <$> f @@ v
+  eResss <- fmap toReturnVs <$> f @@ args
   return $ do
     resss <- eResss
     return $ genTuples resss v
+  where
+  args :: V.Vector (Arity f) Term
+  args = V.take' (Proxy :: Proxy (Arity f)) v
 
 genTuples :: forall na nr
            . KnownNat na
@@ -110,8 +116,8 @@ genTuples resss v =
 filterFakeResults :: V.Vector nr Term
                   -> [ V.Vector nr Sym ]
                   -> [ V.Vector nr Sym ]
-filterFakeResults terms =
-  filter (\ress -> all (uncurry consistent) $ V.zip ress terms)
+filterFakeResults ts =
+  filter (\ress -> all (uncurry consistent) $ V.zip ress ts)
 
 -- Check if a particular result is consistent with the given term
 consistent :: Sym -> Term -> Bool
@@ -194,7 +200,13 @@ instance ReturnableBase a => Returnable' 'False a where
   toReturnVs' _ x = [ toReturnV x ]
 
 instance ReturnableBase a => Returnable' 'True [ a ] where
-  toReturnVs' _ xs = map toReturnV xs
+  toReturnVs' _ = map toReturnV
+
+interpretAt :: forall i n a
+             . (KnownNat i, Argumentable a)
+            => V.Vector ((i + n) + 1) Term
+            -> a
+interpretAt v = interpret . fromTerm . V.index' v $ (Proxy :: Proxy i)
 
 class Argumentable a where
   interpret :: Sym -> a
@@ -228,46 +240,42 @@ type family Arity f :: Nat where
 type Applicable f = Applicable' f (Arity f)
 
 class ari ~ Arity f => Applicable' f (ari :: Nat) where
-  (@@) :: Arity f <= n => f -> V.Vector n Term -> RetTy f
+  (@@) :: f -> V.Vector ari Term -> RetTy f
 
 instance ( ReturnableB r ~ 'True
          , Argumentable a
          ) => Applicable' (a -> r) 1 where
-  f @@ v | [ arg ] <- take 1 . V.toList $ v = f (interpret . fromTerm $ arg)
+  f @@ v = f (interpretAt @0 v)
 
 instance ( ReturnableB r ~ 'True
          , Argumentable a, Argumentable b
          ) => Applicable' (a -> b -> r) 2 where
-  f @@ v | [ arg1, arg2 ] <- fromTerm <$> (take 2 . V.toList) v =
-    f (interpret arg1)
-      (interpret arg2)
+  f @@ v = f (interpretAt @0 v)
+             (interpretAt @1 v)
 
 instance ( ReturnableB r ~ 'True
          , Argumentable a, Argumentable b, Argumentable c
          ) => Applicable' (a -> b -> c -> r) 3 where
-  f @@ v | [ arg1, arg2, arg3 ] <- fromTerm <$> (take 3 . V.toList) v =
-    f (interpret arg1)
-      (interpret arg2)
-      (interpret arg3)
+  f @@ v = f (interpretAt @0 v)
+             (interpretAt @1 v)
+             (interpretAt @2 v)
 
 instance ( ReturnableB r ~ 'True
          , Argumentable a, Argumentable b, Argumentable c, Argumentable d
          ) => Applicable' (a -> b -> c -> d -> r) 4 where
-  f @@ v | [ arg1, arg2, arg3, arg4 ] <- fromTerm <$> (take 4 . V.toList) v =
-    f (interpret arg1)
-      (interpret arg2)
-      (interpret arg3)
-      (interpret arg4)
+  f @@ v = f (interpretAt @0 v)
+             (interpretAt @1 v)
+             (interpretAt @2 v)
+             (interpretAt @3 v)
 
 instance ( ReturnableB r ~ 'True
          , Argumentable a, Argumentable b, Argumentable c, Argumentable d, Argumentable e
          ) => Applicable' (a -> b -> c -> d -> e -> r) 5 where
-  f @@ v | [ arg1, arg2, arg3, arg4, arg5 ] <- fromTerm <$> (take 5 . V.toList) v =
-    f (interpret arg1)
-      (interpret arg2)
-      (interpret arg3)
-      (interpret arg4)
-      (interpret arg5)
+  f @@ v = f (interpretAt @0 v)
+             (interpretAt @1 v)
+             (interpretAt @2 v)
+             (interpretAt @3 v)
+             (interpretAt @4 v)
 
 fromTerm :: Term -> Sym
 fromTerm = \case
