@@ -52,4 +52,5 @@ tests:
     dependencies:
     - hspec >= 2.5 && < 2.6
     - QuickCheck >= 2.11 && < 2.12
+    - pretty >= 1.1 && < 1.2
     - exalog-engine
