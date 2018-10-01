@@ -15,26 +15,34 @@
 
 module Language.Exalog.Core
   ( module Language.Exalog.Annotation
-  , Predicate(..), PredicateBox(..)
+  -- * Core data types
+  -- ** Predicate
+  , Predicate(..)
   , PredicateSym
-  , Var(..), Sym(..)
-  , Term(..)
-  , Literal(..), Head, Body
+  , Nature(..)
   , ForeignFunc
-  , Nature(..), NatureBox(..)
+  -- ** Literal
+  , Literal(..)
+  , Term(..)
+  , Var(..), Sym(..)
   , Polarity(..)
+  -- ** Clause
   , Clause(..)
+  , Head, Body
+  -- ** Whole program
   , Program(..)
-  -- Convenience functions
-  , sameArity
+  -- * Existentially boxing data types
+  , PredicateBox(..)
   , predicateBox
-  , ($$)
-  , search
-  , findIntentionals
-  -- Helper type classes
+  -- * Helper type classes
   , DecorableAST(..)
   , PeelableAST(..)
   , Formula(..)
+  -- * Helper functions
+  , sameArity
+  , ($$)
+  , search
+  , findIntentionals
   ) where
 
 import Protolude hiding (head)
@@ -61,8 +69,6 @@ data Nature (n :: Nat) =
     Logical
   | Extralogical (ForeignFunc n)
 
-data NatureBox = forall n. NatureBox (Nature n)
-
 type PredicateSym = Text
 
 -- |A predicate is a predicate symbol and an arity
@@ -72,34 +78,6 @@ data Predicate (n :: Nat) a = Predicate
   , arity      :: SNat n
   , nature     :: Nature n
   }
-
-sameArity :: Predicate n ann -> Predicate m ann -> Decision (n :~: m)
-sameArity p p' = arity p %~ arity p'
-
-instance Eq (PredicateAnn ann) => Eq (Predicate n ann) where
-  p@Predicate{annotation = ann} == p'@Predicate{annotation = ann'} =
-    fxSym p == fxSym p' && ann == ann'
-
-instance Ord (PredicateAnn ann) => Ord (Predicate n ann) where
-  p@Predicate{annotation = ann} `compare` p'@Predicate{annotation = ann'} =
-    (ann, fxSym p) `compare` (ann', fxSym p')
-
-instance Show (PredicateAnn ann) => Show (Predicate n ann) where
-  show Predicate{..} =
-    "Predicate{annotation = " <> show annotation <> ", " <>
-    "fxSym = " <> show fxSym <> "," <>
-    "arity = " <> show arity <> "}"
-
-data PredicateBox a = forall n. PredicateBox (Predicate n a)
-
-infixr 0 $$
-($$) :: (forall n. Predicate n a -> b) -> PredicateBox a -> b
-f $$ (PredicateBox p) = f p
-
-instance Eq (PredicateAnn ann) => Eq (PredicateBox ann) where
-  PredicateBox p == PredicateBox p'
-    | Proved Refl <- sameArity p p' = p == p'
-    | otherwise = False
 
 -- |Polarity indicates whether a literal has negation in front of it
 data Polarity = Positive | Negative deriving (Eq, Ord, Show)
@@ -124,35 +102,6 @@ data Literal a = forall n . Literal
   , terms      :: V.Vector n Term
   }
 
-instance ( Eq (LiteralAnn a)
-         , Eq (PredicateAnn a)
-         ) => Eq (Literal a) where
-  l@Literal{annotation = ann, predicate = p, terms = ts} ==
-    l'@Literal{annotation = ann', predicate = p', terms = ts'}
-    | Proved Refl <- sameArity p p' =
-      ann == ann' &&
-      p == p' &&
-      polarity l == polarity l' &&
-      ts == ts'
-    | otherwise = False
-
-instance ( Ord (LiteralAnn a)
-         , Ord (PredicateAnn a)
-         ) => Ord (Literal a) where
-  Literal ann pol p@Predicate{arity = n} ts `compare`
-    Literal ann' pol' p'@Predicate{arity = n'} ts'
-    | Proved Refl <- sameArity p p' =
-        (ann, pol, p, ts) `compare` (ann', pol', p', ts')
-    | otherwise = fromSing $ sCompare n n'
-
-deriving instance
-  ( Show (LiteralAnn a)
-  , Show (PredicateAnn a)
-  ) => Show (Literal a)
-
-predicateBox :: Literal a -> PredicateBox a
-predicateBox Literal{predicate = p} = PredicateBox p
-
 type Head a = Literal a
 type Body a = NE.NonEmpty (Literal a)
 
@@ -163,41 +112,19 @@ data Clause a = Clause
   , body       :: Body a
   }
 
-deriving instance (Ord (ClauseAnn a), Ord (Literal a)) => Ord (Clause a)
-deriving instance (Eq (ClauseAnn a), Eq (Literal a)) => Eq (Clause a)
-deriving instance (Show (ClauseAnn a), Show (Literal a)) => Show (Clause a)
-
 -- |A set of clauses
 data Program a = Program
   { annotation :: ProgramAnn a
   , clauses    :: [ Clause a ]
   }
 
-instance (Ord (Clause a), Eq (ProgramAnn a)) => Eq (Program a) where
-  Program{annotation = ann, clauses = clss} ==
-    Program{annotation = ann', clauses = clss'} =
-    ann == ann' &&
-    S.fromList clss == S.fromList clss'
-deriving instance (Show (Clause a), Show (ProgramAnn a)) => Show (Program a)
-
--- |Find the intentional predicates of a program
-findIntentionals :: Program a -> [ PredicateBox a ]
-findIntentionals Program{clauses = clauses} =
-  flip map (map head clauses) $ \case
-    Literal{predicate = p} -> PredicateBox p
-
--- |Search for clauses that has the given head predicate
-search :: Eq (PredicateAnn a) => Program a -> PredicateBox a -> [ Clause a ]
-search pr predBox =
-  [ cl | cl@Clause{head = Literal{predicate = p}} <- clauses pr
-       , PredicateBox p == predBox ]
-
+-- Map data types to correct type families for annotations
 type instance Ann Program = ProgramAnn
 type instance Ann Clause  = ClauseAnn
 type instance Ann Literal = LiteralAnn
 type instance Ann (Predicate n) = PredicateAnn
 
--- |Peeling a program
+-- Helpers for stripping annotations from a tree
 type family Peeled (ast :: Type) = (ast' :: Type) where
   Peeled (Program (ann a))     = Program a
   Peeled (Clause (ann a))      = Clause a
@@ -224,7 +151,7 @@ instance {-# OVERLAPPABLE #-}
          => PeelableAST (Predicate n (ann a)) where
   peel Predicate{..} = Predicate (peelA annotation) fxSym arity nature
 
--- |Decorate the AST with a new annotation layer
+-- Helpers for decorating the tree with an annotation
 type family Decored (ast :: Type) (ann :: AnnType -> AnnType) = (ast' :: Type) | ast' -> ast ann where
   Decored (Program ann) f = Program (f ann)
   Decored (Clause ann) f = Clause (f ann)
@@ -253,7 +180,7 @@ instance {-# OVERLAPPABLE #-}
   decorate Predicate{..} =
     Predicate (decorA annotation) fxSym arity nature
 
--- |Overaloded helper methods
+-- Helpers relating to logical formulae
 class Formula ast where
   type Annotation ast :: AnnType
   variables  :: ast -> [ Var ]
@@ -283,3 +210,95 @@ instance Eq (PredicateAnn a) => Formula (Program a) where
   variables = panic "Obtaining variables of a program is meaningless."
 
   predicates (Program _ clss) = nub $ concatMap predicates clss
+
+-- Instances for standard type classes like Eq, Ord, Show
+
+-- Predicate
+instance Eq (PredicateAnn ann) => Eq (Predicate n ann) where
+  p@Predicate{annotation = ann} == p'@Predicate{annotation = ann'} =
+    fxSym p == fxSym p' && ann == ann'
+
+instance Ord (PredicateAnn ann) => Ord (Predicate n ann) where
+  p@Predicate{annotation = ann} `compare` p'@Predicate{annotation = ann'} =
+    (ann, fxSym p) `compare` (ann', fxSym p')
+
+instance Show (PredicateAnn ann) => Show (Predicate n ann) where
+  show Predicate{..} =
+    "Predicate{annotation = " <> show annotation <> ", " <>
+    "fxSym = " <> show fxSym <> "," <>
+    "arity = " <> show arity <> "}"
+
+
+-- Literal
+instance ( Eq (LiteralAnn a)
+         , Eq (PredicateAnn a)
+         ) => Eq (Literal a) where
+  l@Literal{annotation = ann, predicate = p, terms = ts} ==
+    l'@Literal{annotation = ann', predicate = p', terms = ts'}
+    | Proved Refl <- sameArity p p' =
+      ann == ann' &&
+      p == p' &&
+      polarity l == polarity l' &&
+      ts == ts'
+    | otherwise = False
+
+instance ( Ord (LiteralAnn a)
+         , Ord (PredicateAnn a)
+         ) => Ord (Literal a) where
+  Literal ann pol p@Predicate{arity = n} ts `compare`
+    Literal ann' pol' p'@Predicate{arity = n'} ts'
+    | Proved Refl <- sameArity p p' =
+        (ann, pol, p, ts) `compare` (ann', pol', p', ts')
+    | otherwise = fromSing $ sCompare n n'
+
+deriving instance
+  ( Show (LiteralAnn a)
+  , Show (PredicateAnn a)
+  ) => Show (Literal a)
+
+-- Clause
+deriving instance (Ord (ClauseAnn a), Ord (Literal a)) => Ord (Clause a)
+deriving instance (Eq (ClauseAnn a), Eq (Literal a)) => Eq (Clause a)
+deriving instance (Show (ClauseAnn a), Show (Literal a)) => Show (Clause a)
+
+-- Program
+instance (Ord (Clause a), Eq (ProgramAnn a)) => Eq (Program a) where
+  Program{annotation = ann, clauses = clss} ==
+    Program{annotation = ann', clauses = clss'} =
+    ann == ann' &&
+    S.fromList clss == S.fromList clss'
+
+deriving instance (Show (Clause a), Show (ProgramAnn a)) => Show (Program a)
+
+-- Relating to existentially boxing types wtih Nat
+data PredicateBox a = forall n. PredicateBox (Predicate n a)
+
+predicateBox :: Literal a -> PredicateBox a
+predicateBox Literal{predicate = p} = PredicateBox p
+
+infixr 0 $$
+($$) :: (forall n. Predicate n a -> b) -> PredicateBox a -> b
+f $$ (PredicateBox p) = f p
+
+instance Eq (PredicateAnn ann) => Eq (PredicateBox ann) where
+  PredicateBox p == PredicateBox p'
+    | Proved Refl <- sameArity p p' = p == p'
+    | otherwise = False
+
+-- Misc. helpers
+
+-- | Decide if two predicates have the same arity
+sameArity :: Predicate n ann -> Predicate m ann -> Decision (n :~: m)
+sameArity p p' = arity p %~ arity p'
+
+-- | Find the intentional predicates of a program
+findIntentionals :: Program a -> [ PredicateBox a ]
+findIntentionals Program{clauses = clauses} =
+  flip map (map head clauses) $ \case
+    Literal{predicate = p} -> PredicateBox p
+
+-- | Search for clauses that has the given head predicate
+search :: Eq (PredicateAnn a) => Program a -> PredicateBox a -> [ Clause a ]
+search pr predBox =
+  [ cl | cl@Clause{head = Literal{predicate = p}} <- clauses pr
+       , PredicateBox p == predBox ]
