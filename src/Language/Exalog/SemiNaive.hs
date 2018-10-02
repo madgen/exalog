@@ -42,8 +42,8 @@ semiNaive pr edb = do
 
   initEDBM :: IO (R.Solution ('ADelta a))
   initEDBM = do
-    rels <- runClauses simpleClss edb
-    let deltaSol = mkDeltaSolution revPr . foldr R.add edb $ rels
+    edb <- execClauses simpleClss edb
+    let deltaSol = mkDeltaSolution revPr $ edb
     return $ (`R.atEach` deltaSol) $ \case
       (p, ts)
         | Prev   <- decor p -> R.findTuples deltaSol (updateDecor Delta p)
@@ -83,13 +83,7 @@ semiNaive pr edb = do
       else
         p
 
-  runDelta :: R.Solution ('ADelta a) -> IO (R.Solution ('ADelta a))
-  runDelta edb = axeDeltaRedundancies
-               . foldr R.add edb
-             <$> runClauses (clauses deltaPr) edb
-
-  axeDeltaRedundancies :: R.Solution ('ADelta a)
-                       -> R.Solution ('ADelta a)
+  axeDeltaRedundancies :: R.Solution ('ADelta a) -> R.Solution ('ADelta a)
   axeDeltaRedundancies edb = (`R.atEach` edb) $ \(p, ts) ->
     case decor p of
       Delta -> ts `T.difference` R.findTuples edb (updateDecor Normal p)
@@ -101,11 +95,12 @@ semiNaive pr edb = do
     . R.filter (\(R.Relation p ts) -> decor p == Delta && (not . T.isEmpty) ts)
 
   step :: R.Solution ('ADelta a) -> IO (R.Solution ('ADelta a))
-  step = runDelta . updateFromDelta . shiftPrevs . elimDecor PrevX2
+  step = fmap axeDeltaRedundancies
+     <$> execClauses (clauses deltaPr) . updateFromDelta . shiftPrevs . elimDecor PrevX2
 
-runClauses :: Eq (PredicateAnn a)
-           => [ Clause a ] -> R.Solution a -> IO [ R.Relation a ]
-runClauses clss edb = mapM (execClause edb) clss
+execClauses :: Eq (PredicateAnn a)
+            => [ Clause a ] -> R.Solution a -> IO (R.Solution a)
+execClauses clss edb = foldr R.add edb <$> mapM (execClause edb) clss
 
 execClause :: forall a. Eq (PredicateAnn a)
            => R.Solution a -> Clause a -> IO (R.Relation a)
