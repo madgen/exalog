@@ -51,8 +51,8 @@ instance Termable Text where
 instance Termable Int where
   symbol = SymInt
 
-instance Termable Float where
-  symbol = SymFloat
+instance Termable Double where
+  symbol = SymDouble
 
 instance Termable Bool where
   symbol = SymBool

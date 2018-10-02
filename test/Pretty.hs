@@ -63,10 +63,10 @@ instance Pretty (Ann (Predicate n) ann) => Pretty (Predicate n ann) where
    <> ("PA" <> colon) <?> pretty annotation
 
 instance Pretty Sym where
-  pretty (SymText  t) = doubleQuotes $ pretty t
-  pretty (SymInt   i) = int i
-  pretty (SymFloat f) = float f
-  pretty (SymBool  b) = pretty b
+  pretty (SymText   t) = doubleQuotes $ pretty t
+  pretty (SymInt    i) = int i
+  pretty (SymDouble d) = double d
+  pretty (SymBool   b) = pretty b
 
 instance Pretty Var where
   pretty (Var v) = char '\'' <> pretty v

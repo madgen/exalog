@@ -130,10 +130,10 @@ consistent sym = \case
 --------------------------------------------------------------------------------
 
 type family NRets a :: Nat where
-  NRets Text  = 1
-  NRets Int   = 1
-  NRets Float = 1
-  NRets Bool  = 1
+  NRets Text   = 1
+  NRets Int    = 1
+  NRets Double = 1
+  NRets Bool   = 1
   NRets (a,b) = NRets a + NRets b
   NRets (a,b,c) = NRets a + NRets b + NRets c
   NRets (a,b,c,d) = NRets a + NRets b + NRets c + NRets d
@@ -148,8 +148,8 @@ instance ReturnableBase Text where
 instance ReturnableBase Int where
   toReturnV i = V.singleton (SymInt i)
 
-instance ReturnableBase Float where
-  toReturnV f = V.singleton (SymFloat f)
+instance ReturnableBase Double where
+  toReturnV f = V.singleton (SymDouble f)
 
 instance ReturnableBase Bool where
   toReturnV b = V.singleton (SymBool b)
@@ -167,14 +167,14 @@ instance (ReturnableBase a, ReturnableBase b, ReturnableBase c, ReturnableBase d
     toReturnV a V.++ toReturnV b V.++ toReturnV c V.++ toReturnV d
 
 type family ReturnableB' r :: Bool where
-  ReturnableB' Text      = 'True
-  ReturnableB' Int       = 'True
-  ReturnableB' Float     = 'True
-  ReturnableB' Bool      = 'True
-  ReturnableB' (a,b)     = 'True
-  ReturnableB' (a,b,c)   = 'True
-  ReturnableB' (a,b,c,d) = 'True
-  ReturnableB' _         = 'False
+  ReturnableB' Text       = 'True
+  ReturnableB' Int        = 'True
+  ReturnableB' Double     = 'True
+  ReturnableB' Bool       = 'True
+  ReturnableB' (a,b)      = 'True
+  ReturnableB' (a,b,c)    = 'True
+  ReturnableB' (a,b,c,d)  = 'True
+  ReturnableB' _          = 'False
 
 type family ReturnableB a :: Bool where
   ReturnableB [ a ] = ReturnableB' a
@@ -221,8 +221,8 @@ instance Argumentable Int where
   interpret _ =
     panic "Fatal error: Foreign function was expecting arugment of type Int."
 
-instance Argumentable Float where
-  interpret (SymFloat f) = f
+instance Argumentable Double where
+  interpret (SymDouble f) = f
   interpret _ =
     panic "Fatal error: Foreign function was expecting arugment of type Char."
 
