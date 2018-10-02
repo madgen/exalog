@@ -47,7 +47,7 @@ semiNaive pr edb = do
     return $ (`R.atEach` deltaSol) $ \case
       (p, ts)
         | Prev   <- decor p -> R.findTuples deltaSol (updateDecor Delta p)
-        | PrevX2 <- decor p -> R.findTuples deltaSol (updateDecor Delta p)
+        | PrevX2 <- decor p -> T.empty
         | otherwise -> ts
 
   intentionals :: [ PredicateBox a ]

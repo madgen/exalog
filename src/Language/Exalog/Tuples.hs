@@ -1,14 +1,20 @@
 {-# LANGUAGE StandaloneDeriving #-}
 
 module Language.Exalog.Tuples
-  ( Tuples
-  , isEmpty
+  ( -- * Types
+    Tuples
+    -- * Constructors
+  , empty
+    -- * Conversion
   , fromList, toList
+    -- * Predicates
+  , isEmpty
+    -- * Operations
   , difference
   , size
   ) where
 
-import Protolude hiding (toList)
+import Protolude hiding (toList, empty)
 
 import qualified Data.Set as S
 import qualified Data.Vector.Sized as V
@@ -27,6 +33,9 @@ instance Semigroup (Tuples n) where
 
 instance Monoid (Tuples n) where
   mempty = Tuples S.empty
+
+empty :: Tuples n
+empty = Tuples S.empty
 
 isEmpty :: Tuples n -> Bool
 isEmpty (Tuples ts) = S.null ts
