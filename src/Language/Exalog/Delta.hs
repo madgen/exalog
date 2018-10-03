@@ -121,25 +121,15 @@ mkDeltaPredicate deco Predicate{..} = Predicate
 
 mkDeltaSolution :: Eq (PredicateAnn a)
                 => Program a -> R.Solution a -> R.Solution ('ADelta a)
-mkDeltaSolution pr sol =
-  foldr R.add deltaRenamed empties
+mkDeltaSolution pr sol = intDeltas `R.merge` intPrevs `R.merge` extNormals
   where
   intentionals = findIntentionals pr
+  (intentionalSol, extensionalSol) =
+    R.partition (\(R.Relation p _) -> PredicateBox p `elem` intentionals) sol
 
-  -- List of things to initialise to empty tuples. Normal, Prev and PrevX2
-  -- versions of the predicates.
-  empties = join $ do
-    PredicateBox p <- intentionals
-    return $ (`R.Relation` mempty) <$>
-      [ mkDeltaPredicate Normal p
-      , mkDeltaPredicate Prev   p
-      , mkDeltaPredicate PrevX2 p
-      ]
-
-  deltaRenamed = (`R.rename` sol) $ \p ->
-    if PredicateBox p `elem` intentionals
-      then mkDeltaPredicate Delta  p
-      else mkDeltaPredicate Normal p
+  intDeltas  = R.rename (mkDeltaPredicate Delta ) intentionalSol
+  intPrevs   = R.rename (mkDeltaPredicate Prev  ) intentionalSol
+  extNormals = R.rename (mkDeltaPredicate Normal) extensionalSol
 
 cleanDeltaSolution :: R.Solution ('ADelta a) -> R.Solution a
 cleanDeltaSolution =

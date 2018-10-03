@@ -7,18 +7,24 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Language.Exalog.Relation
-  ( Solution
+  ( -- * Types
+    Solution
   , Relation(..)
-  -- Helpers
+    -- * Conversion
   , fromList
   , toList
+    -- * Search
   , findTuples
+  , filter
+  , partition
+    -- * Update
   , add
   , merge
   , rename
-  , filter
-  , isEmpty
   , atEach
+    -- * Predicates
+  , isEmpty
+    -- * Misc.
   , size
   ) where
 
@@ -73,6 +79,10 @@ add' rel@(Relation p ts) (rel'@(Relation p' ts') : sol)
   | Proved Refl <- sameArity p p'
   , p == p' = Relation p (ts <> ts') : sol
   | otherwise = rel' : add' rel sol
+
+partition :: (Relation a -> Bool) -> Solution a -> (Solution a, Solution a)
+partition p (Solution rs)
+  | (xs, ys) <- L.partition p rs = (Solution xs, Solution ys)
 
 filter :: (Relation a -> Bool) -> Solution a -> Solution a
 filter p (Solution rs) = Solution $ L.filter p rs
