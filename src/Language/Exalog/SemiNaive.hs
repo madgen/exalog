@@ -40,6 +40,8 @@ semiNaive pr edb = do
   simpleClss = flip filter (clauses revPr) $ \Clause{body = body} ->
     not . any ((`elem` intentionals) . predicateBox) $ body
 
+  -- Simple clauses can be executed without the need for fixpoint
+  -- computation.
   initEDBM :: IO (R.Solution ('ADelta a))
   initEDBM = mkDeltaSolution revPr <$> execClauses simpleClss edb
 
@@ -48,6 +50,11 @@ semiNaive pr edb = do
 
   deltaPr :: Program ('ADelta a)
   deltaPr = mkDeltaProgram revPr
+
+  areAllDeltaEmpty :: R.Solution ('ADelta a) -> Bool
+  areAllDeltaEmpty =
+      R.isEmpty
+    . R.filter (\(R.Relation p ts) -> decor p == Delta && (not . T.isEmpty) ts)
 
   -- Adds the current deltas to the normal version of the relation.
   -- Basicall S_{i+1} = S_i \cup delta S_i
@@ -62,9 +69,8 @@ semiNaive pr edb = do
         tsPrev = R.findTuples edb (mkDeltaPredicate Prev p)
     in R.add (R.Relation (mkDeltaPredicate Normal p) (ts <> tsPrev)) edb
 
-  -- Sets PrevX2 to Prev, Prev to Normal
-  shiftPrevs :: R.Solution ('ADelta a)
-             -> R.Solution ('ADelta a)
+  -- Sets Prev to PrevX2, Normal to Prev
+  shiftPrevs :: R.Solution ('ADelta a) -> R.Solution ('ADelta a)
   shiftPrevs edb = (`R.rename` edb) $ \p ->
     -- This is stupidly inefficient
     if PredicateBox (peel p) `elem` intentionals
@@ -81,11 +87,6 @@ semiNaive pr edb = do
     case decor p of
       Delta -> ts `T.difference` R.findTuples edb (updateDecor Normal p)
       _ -> ts
-
-  areAllDeltaEmpty :: R.Solution ('ADelta a) -> Bool
-  areAllDeltaEmpty =
-      R.isEmpty
-    . R.filter (\(R.Relation p ts) -> decor p == Delta && (not . T.isEmpty) ts)
 
   step :: R.Solution ('ADelta a) -> IO (R.Solution ('ADelta a))
   step = fmap axeDeltaRedundancies
