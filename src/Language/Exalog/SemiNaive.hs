@@ -13,6 +13,8 @@ module Language.Exalog.SemiNaive where
 
 import Protolude hiding (head, pred)
 
+import Control.Monad.Trans.State (StateT)
+
 import qualified Data.List.NonEmpty as NE
 import           Data.Maybe (mapMaybe, catMaybes)
 import qualified Data.Vector.Sized as V
@@ -23,16 +25,26 @@ import qualified Language.Exalog.Relation as R
 import qualified Language.Exalog.Tuples as T
 import qualified Language.Exalog.Unification as U
 
-semiNaive :: forall a. Eq (PredicateAnn a)
-          => Program a -> R.Solution a -> IO (R.Solution a)
-semiNaive pr edb = do
-  initEDB <- initEDBM
-  sol <- (`fix` initEDB) $ \f sol -> do
-    betterSol <- step sol
-    if areAllDeltaEmpty betterSol
-      then return betterSol
-      else f betterSol
-  return $ cleanDeltaSolution sol
+type SemiNaiveM ann = StateT (R.Solution ann) IO
+
+-- |Temporarily execute in a different state
+withDifferentState :: Monad m
+                   => (r -> s) -> (s -> r) -> StateT s m a -> StateT r m a
+withDifferentState inputMap outputMap (StateT f) =
+  StateT $ fmap (second outputMap) . f . inputMap
+
+semiNaive :: forall a. Eq (PredicateAnn a) => Program a -> SemiNaiveM a ()
+semiNaive pr = do
+  initEDBM
+  withDifferentState (mkDeltaSolution revPr) cleanDeltaSolution $ do
+    initEDB <- get
+    (`fix` initEDB) $ \f sol -> do
+      put sol
+      step
+      betterSol <- get
+      if areAllDeltaEmpty betterSol
+        then put betterSol
+        else f betterSol
   where
   revPr = reverseClauses pr
 
@@ -42,8 +54,8 @@ semiNaive pr edb = do
 
   -- Simple clauses can be executed without the need for fixpoint
   -- computation.
-  initEDBM :: IO (R.Solution ('ADelta a))
-  initEDBM = mkDeltaSolution revPr <$> execClauses simpleClss edb
+  initEDBM :: SemiNaiveM a ()
+  initEDBM = execClauses simpleClss
 
   intentionals :: [ PredicateBox a ]
   intentionals = findIntentionals revPr
@@ -88,17 +100,21 @@ semiNaive pr edb = do
       Delta -> ts `T.difference` R.findTuples edb (updateDecor Normal p)
       _ -> ts
 
-  step :: R.Solution ('ADelta a) -> IO (R.Solution ('ADelta a))
-  step = fmap axeDeltaRedundancies
-     <$> execClauses (clauses deltaPr) . updateFromDelta . shiftPrevs . elimDecor PrevX2
+  step :: SemiNaiveM ('ADelta a) ()
+  step = do
+    modify $ updateFromDelta . shiftPrevs . elimDecor PrevX2
+    execClauses (clauses deltaPr)
+    modify $ axeDeltaRedundancies
 
-execClauses :: Eq (PredicateAnn a)
-            => [ Clause a ] -> R.Solution a -> IO (R.Solution a)
-execClauses clss edb = foldr R.add edb <$> mapM (`execClause` edb) clss
+execClauses :: Eq (PredicateAnn a) => [ Clause a ] -> SemiNaiveM a ()
+execClauses clss = do
+  edb <- get
+  rels <- mapM execClause clss
+  put $ foldr R.add edb rels
 
 execClause :: forall a. Eq (PredicateAnn a)
-           => Clause a -> R.Solution a -> IO (R.Relation a)
-execClause Clause{..} edb = deriveHead <$> foldrM walkBody [ U.empty ] body
+           => Clause a -> SemiNaiveM a (R.Relation a)
+execClause Clause{..} = deriveHead <$> foldrM walkBody [ U.empty ] body
   where
   deriveHead :: [ U.Unifier ] -> R.Relation a
   deriveHead unifiers
@@ -108,21 +124,22 @@ execClause Clause{..} edb = deriveHead <$> foldrM walkBody [ U.empty ] body
         fromMaybe (panic "Range-restriction is violated.")
                   (extractTuples preTuple)
 
-  walkBody :: Literal a -> [ U.Unifier ] -> IO [ U.Unifier ]
+  walkBody :: Literal a -> [ U.Unifier ] -> SemiNaiveM a [ U.Unifier ]
   walkBody lit unifiers = fmap (catMaybes . concat) $ sequence $ do
     unifier <- unifiers
     return $ fmap (`U.extend` unifier)
-         <$> execLiteral (unifier `U.substitute` lit) edb
+         <$> execLiteral (unifier `U.substitute` lit)
 
-execLiteral :: Eq (PredicateAnn a)
-            => Literal a -> R.Solution a -> IO [ U.Unifier ]
-execLiteral Literal{predicate = p@Predicate{nature = nature}, ..} edb
+execLiteral :: Eq (PredicateAnn a) => Literal a -> SemiNaiveM a [ U.Unifier ]
+execLiteral Literal{predicate = p@Predicate{nature = nature}, ..}
   | Extralogical foreignAction <- nature = do
-    eTuples <- foreignAction terms
+    eTuples <- lift $ foreignAction terms
     case eTuples of
       Right tuples -> return $ handleTuples terms tuples
       Left msg -> panic $ "Fatal foreign function error: " <> msg
-  | otherwise = return . handleTuples terms . T.toList $ R.findTuples edb p
+  | otherwise = do
+    edb <- get
+    return . handleTuples terms . T.toList $ R.findTuples edb p
   where
   handleTuples :: V.Vector n Term -> [ V.Vector n Sym ] -> [ U.Unifier ]
   handleTuples terms tuples =

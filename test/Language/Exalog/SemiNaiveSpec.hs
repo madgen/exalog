@@ -30,39 +30,41 @@ import           Language.Exalog.Core hiding (Positive)
 import qualified Language.Exalog.Relation as R
 import           Language.Exalog.SemiNaive
 
+execSemiNaive pr edb = runIO . (`execStateT` edb) $ semiNaive pr
+
 spec :: Spec
 spec =
   describe "SemiNaive evaluation" $ do
     describe "Ancestor" $ do
 
-      finalEDB <- runIO $ semiNaive LAnc.program AncEDB.initEDB
+      finalEDB <- execSemiNaive LAnc.program AncEDB.initEDB
       it "evaluates linear ancestor correctly" $
         finalEDB `shouldBe` AncEDB.finalEDB
 
-      finalEDB <- runIO $ semiNaive NLAnc.program AncEDB.initEDB
+      finalEDB <- execSemiNaive NLAnc.program AncEDB.initEDB
       it "evaluates non-linear ancestor correctly" $
         finalEDB `shouldBe` AncEDB.finalEDB
 
       prop "linear & non-linear versions produce the same result" $
         \edb -> unsafePerformIO $ liftM2 (==)
-          (semiNaive LAnc.program edb)
-          (semiNaive NLAnc.program edb)
+          (execStateT (semiNaive LAnc.program) edb)
+          (execStateT (semiNaive NLAnc.program) edb)
 
-    finalEDB <- runIO $ semiNaive Const.program Const.initEDB
+    finalEDB <- execSemiNaive Const.program Const.initEDB
     it "evaluates constants correctly" $
       R.findTuples finalEDB Const.rPred `shouldBe` Const.rTuples
 
     describe "Foreign function" $ do
 
-      finalEDB <- runIO $ semiNaive Foreign.programLeq100 Foreign.initLeq100EDB
+      finalEDB <- execSemiNaive Foreign.programLeq100 Foreign.initLeq100EDB
       it "interprets 'x < 100' correctly" $
         R.findTuples finalEDB Foreign.leq100Pred `shouldBe` Foreign.leq100Tuples
 
-      finalEDB <- runIO $ semiNaive Foreign.programPrefixOf Foreign.initPrefixOfEDB
+      finalEDB <- execSemiNaive Foreign.programPrefixOf Foreign.initPrefixOfEDB
       it "interprets 'isPrefixOf' correctly" $
         R.findTuples finalEDB Foreign.prefixOfPred `shouldBe` Foreign.prefixOfTuples
 
-      finalEDB <- runIO $ semiNaive Foreign.programCartesian23 Foreign.initCartesian23EDB
+      finalEDB <- execSemiNaive Foreign.programCartesian23 Foreign.initCartesian23EDB
       it "interprets 'cartesian23' correctly" $
         R.findTuples finalEDB Foreign.cartesian23Pred `shouldBe` Foreign.cartesian23Tuples
 
