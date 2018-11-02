@@ -94,11 +94,11 @@ semiNaive pr edb = do
 
 execClauses :: Eq (PredicateAnn a)
             => [ Clause a ] -> R.Solution a -> IO (R.Solution a)
-execClauses clss edb = foldr R.add edb <$> mapM (execClause edb) clss
+execClauses clss edb = foldr R.add edb <$> mapM (`execClause` edb) clss
 
 execClause :: forall a. Eq (PredicateAnn a)
-           => R.Solution a -> Clause a -> IO (R.Relation a)
-execClause edb Clause{..} = deriveHead <$> foldrM walkBody [ U.empty ] body
+           => Clause a -> R.Solution a -> IO (R.Relation a)
+execClause Clause{..} edb = deriveHead <$> foldrM walkBody [ U.empty ] body
   where
   deriveHead :: [ U.Unifier ] -> R.Relation a
   deriveHead unifiers
@@ -112,11 +112,11 @@ execClause edb Clause{..} = deriveHead <$> foldrM walkBody [ U.empty ] body
   walkBody lit unifiers = fmap (catMaybes . concat) $ sequence $ do
     unifier <- unifiers
     return $ fmap (`U.extend` unifier)
-         <$> execLiteral edb (unifier `U.substitute` lit)
+         <$> execLiteral (unifier `U.substitute` lit) edb
 
 execLiteral :: Eq (PredicateAnn a)
-            => R.Solution a -> Literal a -> IO [ U.Unifier ]
-execLiteral edb Literal{predicate = p@Predicate{nature = nature}, ..}
+            => Literal a -> R.Solution a -> IO [ U.Unifier ]
+execLiteral Literal{predicate = p@Predicate{nature = nature}, ..} edb
   | Extralogical foreignAction <- nature = do
     eTuples <- foreignAction terms
     case eTuples of
