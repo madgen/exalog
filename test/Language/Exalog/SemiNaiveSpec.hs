@@ -52,21 +52,21 @@ spec =
 
     finalEDB <- execSemiNaive Const.program Const.initEDB
     it "evaluates constants correctly" $
-      R.findTuples finalEDB Const.rPred `shouldBe` Const.rTuples
+      R.findTuples Const.rPred finalEDB `shouldBe` Const.rTuples
 
     describe "Foreign function" $ do
 
       finalEDB <- execSemiNaive Foreign.programLeq100 Foreign.initLeq100EDB
       it "interprets 'x < 100' correctly" $
-        R.findTuples finalEDB Foreign.leq100Pred `shouldBe` Foreign.leq100Tuples
+        R.findTuples Foreign.leq100Pred finalEDB `shouldBe` Foreign.leq100Tuples
 
       finalEDB <- execSemiNaive Foreign.programPrefixOf Foreign.initPrefixOfEDB
       it "interprets 'isPrefixOf' correctly" $
-        R.findTuples finalEDB Foreign.prefixOfPred `shouldBe` Foreign.prefixOfTuples
+        R.findTuples Foreign.prefixOfPred finalEDB `shouldBe` Foreign.prefixOfTuples
 
       finalEDB <- execSemiNaive Foreign.programCartesian23 Foreign.initCartesian23EDB
       it "interprets 'cartesian23' correctly" $
-        R.findTuples finalEDB Foreign.cartesian23Pred `shouldBe` Foreign.cartesian23Tuples
+        R.findTuples Foreign.cartesian23Pred finalEDB `shouldBe` Foreign.cartesian23Tuples
 
 -- Arbitrary instances for solution
 instance Arbitrary Sym where

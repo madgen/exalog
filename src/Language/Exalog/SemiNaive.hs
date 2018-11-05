@@ -9,7 +9,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ExistentialQuantification #-}
 
-module Language.Exalog.SemiNaive where
+module Language.Exalog.SemiNaive (semiNaive, SemiNaiveM)where
 
 import Protolude hiding (head, pred)
 
@@ -77,8 +77,8 @@ semiNaive pr = do
                    -> R.Solution ('ADelta a)
                    -> R.Solution ('ADelta a)
   updateFromDelta' (PredicateBox p) edb =
-    let ts = R.findTuples edb (mkDeltaPredicate Delta p)
-        tsPrev = R.findTuples edb (mkDeltaPredicate Prev p)
+    let ts = R.findTuples (mkDeltaPredicate Delta p) edb
+        tsPrev = R.findTuples (mkDeltaPredicate Prev p) edb
     in R.add (R.Relation (mkDeltaPredicate Normal p) (ts <> tsPrev)) edb
 
   -- Sets Prev to PrevX2, Normal to Prev
@@ -97,7 +97,7 @@ semiNaive pr = do
   axeDeltaRedundancies :: R.Solution ('ADelta a) -> R.Solution ('ADelta a)
   axeDeltaRedundancies edb = (`R.atEach` edb) $ \(p, ts) ->
     case decor p of
-      Delta -> ts `T.difference` R.findTuples edb (updateDecor Normal p)
+      Delta -> ts `T.difference` R.findTuples (updateDecor Normal p) edb
       _ -> ts
 
   step :: SemiNaiveM ('ADelta a) ()
@@ -137,9 +137,8 @@ execLiteral Literal{predicate = p@Predicate{nature = nature}, ..}
     case eTuples of
       Right tuples -> return $ handleTuples terms tuples
       Left msg -> panic $ "Fatal foreign function error: " <> msg
-  | otherwise = do
-    edb <- get
-    return . handleTuples terms . T.toList $ R.findTuples edb p
+  | otherwise =
+    handleTuples terms . T.toList . R.findTuples p <$> get
   where
   handleTuples :: V.Vector n Term -> [ V.Vector n Sym ] -> [ U.Unifier ]
   handleTuples terms tuples =

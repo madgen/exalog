@@ -95,15 +95,15 @@ rename renamer (Solution rs) =
   Solution $ map (\(Relation p ts) -> Relation (renamer p) ts) rs
 
 findTuples :: forall a n. Eq (PredicateAnn a)
-           => Solution a -> Predicate n a -> T.Tuples n
-findTuples (Solution rs) = findTuples' rs
+           => Predicate n a -> Solution a -> T.Tuples n
+findTuples p (Solution rs) = findTuples' p rs
   where
-  findTuples' :: [ Relation a ] -> Predicate n a -> T.Tuples n
-  findTuples' [] _ = T.fromList []
-  findTuples' (Relation p ts : s) p'
-    | Proved Refl <- sameArity p p'
-    , p == p' = ts
-    | otherwise = findTuples' s p'
+  findTuples' :: Predicate n a -> [ Relation a ] -> T.Tuples n
+  findTuples' _ [] = T.fromList []
+  findTuples' p' (Relation p'' ts : s)
+    | Proved Refl <- sameArity p' p''
+    , p' == p'' = ts
+    | otherwise = findTuples' p' s
 
 atEach :: (forall n. (Predicate n a, T.Tuples n) -> T.Tuples n)
        -> Solution a
