@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -11,45 +13,15 @@ module Language.Exalog.Pretty
 import Protolude hiding ((<>), empty, head)
 
 import qualified Data.List.NonEmpty as NE
-import           Data.String (fromString)
 import           Data.Text (unpack)
 import qualified Data.Vector.Sized as V
 
 import Text.PrettyPrint
 
 import           Language.Exalog.Core
+import           Language.Exalog.Pretty.Helper
 import qualified Language.Exalog.Relation as R
 import qualified Language.Exalog.Tuples as T
-
-pp :: Pretty a => a -> Text
-pp = fromString . render . pretty
-
-class Pretty a where
-  pretty :: a -> Doc
-
-class PrettyCollection a where
-  prettyC :: a -> [ Doc ]
-
-infixl 7 <?>
-infix  7 <+?>
-
-(<?>) :: Doc -> Doc -> Doc
-d1 <?> d2
-  | isEmpty d1 || isEmpty d2 = empty
-  | otherwise = d1 <> d2
-
-(<+?>) :: Doc -> Doc -> Doc
-d1 <+?> d2
-  | isEmpty d1 || isEmpty d2 = empty
-  | otherwise = d1 <+> d2
-
-cond :: Bool -> Doc -> Doc
-cond True doc = doc
-cond False _  = empty
-
--- | Comma separate Docs
-csep :: [ Doc ] -> Doc
-csep = hsep . punctuate comma
 
 -- Core pretty instances
 
