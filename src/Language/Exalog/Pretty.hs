@@ -4,7 +4,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Pretty
+module Language.Exalog.Pretty
   ( pp
   ) where
 
