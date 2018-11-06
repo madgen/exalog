@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 
-module Util.List.Zipper
+module Language.Exalog.Util.List.Zipper
   ( Zipper
   , focus, left, right
   , leftMaybe, rightMaybe

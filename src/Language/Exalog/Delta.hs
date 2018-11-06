@@ -25,10 +25,9 @@ import Protolude hiding (head)
 
 import           Control.Comonad (Comonad(..))
 
-import qualified Util.List.Zipper as LZ
-
 import           Language.Exalog.Core
 import qualified Language.Exalog.Relation as R
+import qualified Language.Exalog.Util.List.Zipper as LZ
 
 data Decor = Normal | Delta | Prev | PrevX2 deriving (Eq, Ord, Show)
 
