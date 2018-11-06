@@ -103,9 +103,6 @@ instance Pretty Bool where
 
 -- Collections
 
-instance Pretty a => PrettyCollection [ a ] where
-  prettyC = map pretty
-
 instance Pretty a => PrettyCollection (NE.NonEmpty a) where
   prettyC = map pretty . NE.toList
 

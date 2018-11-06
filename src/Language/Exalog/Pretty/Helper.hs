@@ -46,3 +46,8 @@ cond False _  = empty
 -- | Comma separate Docs
 csep :: [ Doc ] -> Doc
 csep = hsep . punctuate comma
+
+-- Common instances
+
+instance {-# OVERLAPPABLE #-} Pretty a => PrettyCollection [ a ] where
+  prettyC = map pretty
