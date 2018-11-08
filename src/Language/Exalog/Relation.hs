@@ -54,6 +54,12 @@ instance Eq (Relation a) where
 
 newtype Solution a = Solution [ Relation a ]
 
+instance Eq (PredicateAnn a) => Semigroup (Solution a) where
+  Solution sol <> Solution sol' = Solution $ foldr add' sol' sol
+
+instance Eq (PredicateAnn a) => Monoid (Solution a) where
+  mempty = Solution []
+
 deriving instance Ord (PredicateAnn a) => Ord (Solution a)
 
 instance Ord (Relation a) => Eq (Solution a) where
@@ -64,8 +70,8 @@ deriving instance Show (PredicateAnn a) => Show (Solution a)
 isEmpty :: Solution a -> Bool
 isEmpty (Solution xs) = null xs
 
-fromList :: [ Relation a ] -> Solution a
-fromList = Solution
+fromList :: Eq (PredicateAnn a) => [ Relation a ] -> Solution a
+fromList = mconcat . map (Solution . return)
 
 toList :: Solution a -> [ Relation a ]
 toList (Solution rs) = rs
