@@ -30,7 +30,7 @@ import           Language.Exalog.Core hiding (Positive)
 import qualified Language.Exalog.Relation as R
 import           Language.Exalog.SemiNaive
 
-execSemiNaive pr edb = runIO . (`execStateT` edb) $ semiNaive pr
+execSemiNaive pr edb = runIO . (`runReaderT` edb) $ semiNaive pr
 
 spec :: Spec
 spec =
@@ -47,8 +47,8 @@ spec =
 
       prop "linear & non-linear versions produce the same result" $
         \edb -> unsafePerformIO $ liftM2 (==)
-          (execStateT (semiNaive LAnc.program) edb)
-          (execStateT (semiNaive NLAnc.program) edb)
+          (runReaderT (semiNaive LAnc.program) edb)
+          (runReaderT (semiNaive NLAnc.program) edb)
 
     finalEDB <- execSemiNaive Const.program Const.initEDB
     it "evaluates constants correctly" $

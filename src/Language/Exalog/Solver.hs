@@ -6,36 +6,45 @@ module Language.Exalog.Solver
   , addFact
   , addRule
   , compute
-  , facts
+  , evalSolverM
   ) where
 
 import Protolude
-
-import Control.Monad.Trans.State (StateT)
 
 import           Language.Exalog.Core
 import           Language.Exalog.Stratification (stratify)
 import           Language.Exalog.SemiNaive (semiNaive, SemiNaiveM)
 import qualified Language.Exalog.Relation as R
-import qualified Language.Exalog.Tuples as T
 
-type SolverM ann = StateT (Program ann) (SemiNaiveM ann)
+data SolverSt ann = SolverSt
+    { program :: Program ann
+    , initEDB :: R.Solution ann
+    }
+
+type SolverM ann = StateT (SolverSt ann) (SemiNaiveM ann)
 
 solve :: Eq (PredicateAnn a) => Program a -> R.Solution a -> IO (R.Solution a)
-solve pr = execStateT (execStateT compute pr)
+solve = evalSolverM compute
+
+evalSolverM :: Eq (PredicateAnn ann)
+            => SolverM ann a -> Program ann -> R.Solution ann -> IO a
+evalSolverM action pr = runReaderT (evalStateT action (SolverSt pr mempty))
 
 addFact :: Eq (PredicateAnn a) => R.Relation a -> SolverM a ()
-addFact rel = lift $ modify (R.add rel)
+addFact fact = modify $
+  \SolverSt{..} ->
+    SolverSt{initEDB = R.add fact initEDB, ..}
 
 addRule :: Clause a -> SolverM a ()
-addRule cl = modify $ \Program{..} -> Program{clauses = cl : clauses, ..}
+addRule cl = modify $
+  \SolverSt{program = Program{..}, ..} ->
+    SolverSt{program = Program{clauses = cl : clauses, ..}, ..}
 
-compute :: Eq (PredicateAnn a) => SolverM a ()
+compute :: Eq (PredicateAnn a) => SolverM a (R.Solution a)
 compute = do
-  eprs <- stratify . decorate <$> get
+  eprs <- stratify . decorate . program <$> get
   case eprs of
     Left msg -> panic msg
-    Right prs -> lift $ traverse_ semiNaive prs
-
-facts :: Eq (PredicateAnn a) => Predicate n a -> SolverM a (T.Tuples n)
-facts p = R.findTuples p <$> lift get
+    Right prs -> lift $ do
+      initEDB <- ask
+      foldlM (\edb -> local (const edb) . semiNaive) initEDB prs

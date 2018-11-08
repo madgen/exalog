@@ -13,7 +13,7 @@ module Language.Exalog.SemiNaive (semiNaive, SemiNaiveM)where
 
 import Protolude hiding (head, pred)
 
-import Control.Monad.Trans.State (StateT)
+import Control.Monad.Trans.Reader (ReaderT)
 
 import qualified Data.List.NonEmpty as NE
 import           Data.Maybe (mapMaybe, catMaybes)
@@ -25,26 +25,25 @@ import qualified Language.Exalog.Relation as R
 import qualified Language.Exalog.Tuples as T
 import qualified Language.Exalog.Unification as U
 
-type SemiNaiveM ann = StateT (R.Solution ann) IO
+type SemiNaiveM ann = ReaderT (R.Solution ann) IO
 
--- |Temporarily execute in a different state
-withDifferentState :: Monad m
-                   => (r -> s) -> (s -> r) -> StateT s m a -> StateT r m a
-withDifferentState inputMap outputMap (StateT f) =
-  StateT $ fmap (second outputMap) . f . inputMap
+withDifferentEnvironment :: Monad m
+                         => (r -> s) -> ReaderT s m a -> ReaderT r m a
+withDifferentEnvironment envMap (ReaderT f) =
+  ReaderT $ f . envMap
 
-semiNaive :: forall a. Eq (PredicateAnn a) => Program a -> SemiNaiveM a ()
+semiNaive :: forall a. Eq (PredicateAnn a)
+          => Program a -> SemiNaiveM a (R.Solution a)
 semiNaive pr = do
-  initEDBM
-  withDifferentState (mkDeltaSolution revPr) cleanDeltaSolution $ do
-    initEDB <- get
-    (`fix` initEDB) $ \f sol -> do
-      put sol
-      step
-      betterSol <- get
-      if areAllDeltaEmpty betterSol
-        then put betterSol
-        else f betterSol
+  initEDB <- initEDBM
+  local (const initEDB) $
+    withDifferentEnvironment (mkDeltaSolution revPr) $ do
+      initEDB <- ask
+      (`fix` initEDB) $ \f sol -> do
+        betterSol <- local (const sol) step
+        if areAllDeltaEmpty betterSol
+          then return . cleanDeltaSolution $ betterSol
+          else f betterSol
   where
   revPr = reverseClauses pr
 
@@ -54,8 +53,8 @@ semiNaive pr = do
 
   -- Simple clauses can be executed without the need for fixpoint
   -- computation.
-  initEDBM :: SemiNaiveM a ()
-  initEDBM = execClauses simpleClss
+  initEDBM :: SemiNaiveM a (R.Solution a)
+  initEDBM = evalClauses simpleClss
 
   intentionals :: [ PredicateBox a ]
   intentionals = findIntentionals revPr
@@ -100,21 +99,22 @@ semiNaive pr = do
       Delta -> ts `T.difference` R.findTuples (updateDecor Normal p) edb
       _ -> ts
 
-  step :: SemiNaiveM ('ADelta a) ()
+  step :: SemiNaiveM ('ADelta a) (R.Solution ('ADelta a))
   step = do
-    modify $ updateFromDelta . shiftPrevs . elimDecor PrevX2
-    execClauses (clauses deltaPr)
-    modify $ axeDeltaRedundancies
+    let evalClauses' = evalClauses (clauses deltaPr)
+    let maintenance = updateFromDelta . shiftPrevs . elimDecor PrevX2
+    axeDeltaRedundancies <$> local maintenance evalClauses'
 
-execClauses :: Eq (PredicateAnn a) => [ Clause a ] -> SemiNaiveM a ()
-execClauses clss = do
-  edb <- get
-  rels <- mapM execClause clss
-  put $ foldr R.add edb rels
+evalClauses :: Eq (PredicateAnn a)
+            => [ Clause a ] -> SemiNaiveM a (R.Solution a)
+evalClauses clss = do
+  rels <- mapM evalClause clss
+  edb <- ask
+  return $ foldr R.add edb rels
 
-execClause :: forall a. Eq (PredicateAnn a)
+evalClause :: forall a. Eq (PredicateAnn a)
            => Clause a -> SemiNaiveM a (R.Relation a)
-execClause Clause{..} = deriveHead <$> foldrM walkBody [ U.empty ] body
+evalClause Clause{..} = deriveHead <$> foldrM walkBody [ U.empty ] body
   where
   deriveHead :: [ U.Unifier ] -> R.Relation a
   deriveHead unifiers
@@ -138,7 +138,7 @@ execLiteral Literal{predicate = p@Predicate{nature = nature}, ..}
       Right tuples -> return $ handleTuples terms tuples
       Left msg -> panic $ "Fatal foreign function error: " <> msg
   | otherwise =
-    handleTuples terms . T.toList . R.findTuples p <$> get
+    handleTuples terms . T.toList . R.findTuples p <$> ask
   where
   handleTuples :: V.Vector n Term -> [ V.Vector n Sym ] -> [ U.Unifier ]
   handleTuples terms tuples =
