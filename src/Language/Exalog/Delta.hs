@@ -83,7 +83,12 @@ instance PeelableAnn PredicateAnn 'ADelta where
 -- in its body.
 mkDeltaProgram :: forall a. Eq (PredicateBox a)
                => Program a -> Program ('ADelta a)
-mkDeltaProgram pr@(Program ann cs) = Program (decorA ann) (concatMap mkCls cs)
+mkDeltaProgram pr@(Program ann cs qpds) =
+  Program
+    { annotation = decorA ann
+    , clauses = concatMap mkCls cs
+    , queryPreds = ((PredicateBox . mkDeltaPredicate Normal) $$) <$> qpds
+    }
   where
   intentionals = findIntentionals pr
 

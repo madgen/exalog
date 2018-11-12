@@ -54,6 +54,11 @@ program = Program ProgABase
   , Clause ClABase (tc (tvar "X") (tvar "Y")) $ NE.fromList
       [ v (tvar "X"), v (tvar "Y"), not $ t (tvar "X") (tvar "Y") ]
   ]
+  [ PredicateBox rPred
+  , PredicateBox tPred
+  , PredicateBox tcPred
+  , PredicateBox vPred
+  ]
 
 rTuples :: T.Tuples 2
 rTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>

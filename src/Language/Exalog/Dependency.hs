@@ -44,6 +44,8 @@ instance PeelableAST (Literal ('ADependency a)) where
     Literal { annotation = peelA annotation
             , predicate = peel predicate
             , ..}
+instance PeelableAST (PredicateBox ('ADependency a)) where
+  peel (PredicateBox p) = PredicateBox $ peel p
 
 instance DecorableAnn PredicateAnn 'ADependency where
   decorA = PredADependency

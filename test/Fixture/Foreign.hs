@@ -69,7 +69,7 @@ programLeq100 = Program ProgABase
   [ Clause ClABase (leq100 (tvar "X")) $ NE.fromList
     [ src (tvar "X")
     , leq (tvar "X") (tsym (100 :: Int)) ]
-  ]
+  ] []
 
 srcTuples :: [ V.Vector 1 Int ]
 srcTuples = fromJust . V.fromList <$>
@@ -121,7 +121,7 @@ programPrefixOf = Program ProgABase
     [ src2 (tvar "X")
     , src2 (tvar "Y")
     , isPrefixOf (tvar "X") (tvar "Y") ]
-  ]
+  ] []
 
 src2Tuples :: [ V.Vector 1 Text ]
 src2Tuples = fromJust . V.fromList <$>
@@ -169,7 +169,7 @@ programCartesian23 :: Program 'ABase
 programCartesian23 = Program ProgABase
   [ Clause ClABase (cartesian23 (tvar "X") (tvar "Y")) $ NE.fromList
     [ cartesian (tsym (2 :: Int)) (tsym (3 :: Int)) (tvar "X") (tvar "Y") ]
-  ]
+  ] []
 
 initCartesian23EDB :: Solution 'ABase
 initCartesian23EDB = fromList [ ]

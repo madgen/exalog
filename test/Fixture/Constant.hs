@@ -47,7 +47,7 @@ program = Program ProgABase
   , Clause ClABase (r (tsym ("f" :: Text)) (tsym ("5" :: Text))) $ NE.fromList
     [ c (tsym ("a" :: Text)) (tvar "X")
     , r (tvar "X") (tvar "Y") ]
-  ]
+  ] []
 
 cTuples :: [ V.Vector 2 Text ]
 cTuples = fromJust . V.fromList <$>

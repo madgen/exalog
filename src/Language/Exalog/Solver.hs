@@ -42,9 +42,13 @@ addRule cl = modify $
 
 compute :: Eq (PredicateAnn a) => SolverM a (R.Solution a)
 compute = do
-  eprs <- stratify . decorate . program <$> get
-  case eprs of
+  pr <- program <$> get
+  let eprs = stratify . decorate $ pr
+  edb <- case eprs of
     Left msg -> panic msg
     Right prs -> lift $ do
       initEDB <- ask
       foldlM (\edb -> local (const edb) . semiNaive) initEDB prs
+  -- Filter out non-queries solutions
+  return $
+    R.filter (\(R.Relation p _) -> PredicateBox p `elem` queryPreds pr) edb

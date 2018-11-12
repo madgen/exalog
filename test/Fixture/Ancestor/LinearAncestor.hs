@@ -26,7 +26,7 @@ program = Program ProgABase
       [ par (tvar "X") (tvar "Y"), anc (tvar "Y") (tvar "Z") ]
   , Clause ClABase (anc (tvar "X") (tvar "Y")) $ NE.fromList
       [ par (tvar "X") (tvar "Y") ]
-  ]
+  ] [ PredicateBox ancPred, PredicateBox parPred ]
 
 {-| Linear ancestor program deltafied:
 -
@@ -38,4 +38,7 @@ deltaProgram = Program (decorA ProgABase)
       $ NE.fromList
         [ mkDeltaLiteral Normal $ par (tvar "X") (tvar "Y")
         , mkDeltaLiteral Delta $ anc (tvar "Y") (tvar "Z") ]
+  ]
+  [ PredicateBox . mkDeltaPredicate Normal $ ancPred
+  , PredicateBox . mkDeltaPredicate Normal $ parPred
   ]

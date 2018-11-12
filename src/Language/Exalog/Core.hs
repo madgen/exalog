@@ -116,6 +116,7 @@ data Clause a = Clause
 data Program a = Program
   { annotation :: ProgramAnn a
   , clauses    :: [ Clause a ]
+  , queryPreds :: [ PredicateBox a ]
   }
 
 -- Map data types to correct type families for annotations
@@ -126,10 +127,11 @@ type instance Ann (Predicate n) = PredicateAnn
 
 -- Helpers for stripping annotations from a tree
 type family Peeled (ast :: Type) = (ast' :: Type) where
-  Peeled (Program (ann a))     = Program a
-  Peeled (Clause (ann a))      = Clause a
-  Peeled (Literal (ann a))     = Literal a
-  Peeled (Predicate n (ann a)) = Predicate n a
+  Peeled (Program (ann a))      = Program a
+  Peeled (Clause (ann a))       = Clause a
+  Peeled (Literal (ann a))      = Literal a
+  Peeled (Predicate n (ann a))  = Predicate n a
+  Peeled (PredicateBox (ann a)) = PredicateBox a
 
 class PeelableAST (ast :: Type) where
   peel :: ast -> Peeled ast
@@ -137,8 +139,10 @@ class PeelableAST (ast :: Type) where
 instance {-# OVERLAPPABLE #-}
          ( PeelableAnn (Ann Program) ann
          , PeelableAST (Clause (ann a))
+         , PeelableAST (PredicateBox (ann a))
          ) => PeelableAST (Program (ann a)) where
-  peel Program{..} = Program (peelA annotation) (fmap peel clauses)
+  peel Program{..} =
+    Program (peelA annotation) (fmap peel clauses) (map peel queryPreds)
 
 instance {-# OVERLAPPABLE #-}
          ( PeelableAnn (Ann Clause) ann
@@ -157,6 +161,7 @@ type family Decored (ast :: Type) (ann :: AnnType -> AnnType) = (ast' :: Type) |
   Decored (Clause ann) f = Clause (f ann)
   Decored (Literal ann) f = Literal (f ann)
   Decored (Predicate n ann) f = Predicate n (f ann)
+  Decored (PredicateBox ann) f = PredicateBox (f ann)
 
 class DecorableAST (ast :: Type) (ann :: AnnType -> AnnType) where
   decorate :: ast -> Decored ast ann
@@ -164,8 +169,10 @@ class DecorableAST (ast :: Type) (ann :: AnnType -> AnnType) where
 instance {-# OVERLAPPABLE #-}
          ( DecorableAnn (Ann Program) ann
          , DecorableAST (Clause a) ann
+         , DecorableAST (PredicateBox a) ann
          ) => DecorableAST (Program a) ann  where
-  decorate Program{..} = Program (decorA annotation) (fmap decorate clauses)
+  decorate Program{..} =
+    Program (decorA annotation) (fmap decorate clauses) (map decorate queryPreds)
 
 instance {-# OVERLAPPABLE #-}
          ( DecorableAnn (Ann Clause) ann
@@ -209,7 +216,7 @@ instance Eq (PredicateAnn a) => Formula (Program a) where
 
   variables = panic "Obtaining variables of a program is meaningless."
 
-  predicates (Program _ clss) = nub $ concatMap predicates clss
+  predicates (Program _ clss _) = nub $ concatMap predicates clss
 
 -- Instances for standard type classes like Eq, Ord, Show
 
@@ -228,6 +235,9 @@ instance Show (PredicateAnn ann) => Show (Predicate n ann) where
     "fxSym = " <> show fxSym <> "," <>
     "arity = " <> show arity <> "}"
 
+deriving instance
+  ( Show (PredicateAnn a)
+  ) => Show (PredicateBox a)
 
 -- Literal
 instance ( Eq (LiteralAnn a)
@@ -268,7 +278,11 @@ instance (Ord (Clause a), Eq (ProgramAnn a)) => Eq (Program a) where
     ann == ann' &&
     S.fromList clss == S.fromList clss'
 
-deriving instance (Show (Clause a), Show (ProgramAnn a)) => Show (Program a)
+deriving instance
+  ( Show (Clause a)
+  , Show (PredicateBox a)
+  , Show (ProgramAnn a)
+  ) => Show (Program a)
 
 -- Relating to existentially boxing types wtih Nat
 data PredicateBox a = forall n. PredicateBox (Predicate n a)
