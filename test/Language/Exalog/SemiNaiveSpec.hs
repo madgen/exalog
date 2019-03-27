@@ -24,6 +24,7 @@ import qualified Fixture.Ancestor.NonLinearAncestor as NLAnc
 import qualified Fixture.Ancestor.EDB as AncEDB
 import qualified Fixture.Constant as Const
 import qualified Fixture.Foreign as Foreign
+import qualified Fixture.RepeatedVars as Repeated
 import           Fixture.Util
 
 import           Language.Exalog.Core hiding (Positive)
@@ -53,6 +54,10 @@ spec =
     finalEDB <- execSemiNaive Const.program Const.initEDB
     it "evaluates constants correctly" $
       R.findTuples Const.rPred finalEDB `shouldBe` Const.rTuples
+
+    finalEDB <- execSemiNaive Repeated.program Repeated.initEDB
+    it "does not forget repeated variables" $
+      R.findTuples Repeated.pPred finalEDB `shouldBe` Repeated.pTuples
 
     describe "Foreign function" $ do
 
