@@ -33,12 +33,18 @@ extend' (binding@(v,s) : u) u' =
     Nothing -> (binding:) <$> extend' u u'
 
 unify :: V.Vector n Term -> V.Vector n Sym -> Maybe Unifier
-unify v w = Unifier . catMaybes . V.toList <$> V.zipWithM attempt v w
+unify v w = Unifier <$> foldr' attempt (Just []) (V.zip v w)
   where
-  attempt :: Term -> Sym -> Maybe (Maybe (Var, Sym))
-  attempt (TVar var) sym  = return $ Just (var,sym)
-  attempt (TSym sym) sym'
-    | sym == sym' = return Nothing
+  attempt :: (Term, Sym) -> Maybe [ (Var, Sym) ] -> Maybe [ (Var, Sym) ]
+  attempt _ Nothing = Nothing
+  attempt (TVar var, sym) mus@(Just unifierAcc) =
+    case var `lookup` unifierAcc of
+      Just sym'
+        | sym == sym' -> mus
+        | otherwise   -> Nothing
+      Nothing         -> ((var,sym) :) <$> mus
+  attempt (TSym sym, sym') mus@(Just unifierAcc)
+    | sym == sym' = mus
     | otherwise   = Nothing
 
 class Substitutable a where
