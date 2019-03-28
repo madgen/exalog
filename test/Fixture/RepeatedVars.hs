@@ -16,16 +16,17 @@ import qualified Data.Vector.Sized as V
 import           Data.Singletons.TypeLits
 
 import           Language.Exalog.Core
-import           Language.Exalog.Relation
 import qualified Language.Exalog.Tuples as T
+import           Language.Exalog.Relation
+import           Language.Exalog.SrcLoc (dummySpan)
 
 import Fixture.Util
 
 pPred :: Predicate 1 'ABase
-pPred = Predicate PredABase "p" SNat Logical
+pPred = Predicate (PredABase dummySpan) "p" SNat Logical
 
 qPred :: Predicate 2 'ABase
-qPred = Predicate PredABase "q" SNat Logical
+qPred = Predicate (PredABase dummySpan) "q" SNat Logical
 
 p :: Term -> Literal 'ABase
 p t = lit pPred $ fromJust $ V.fromList [ t ]
@@ -38,8 +39,8 @@ q t t' = lit qPred $ fromJust $ V.fromList [ t, t' ]
 - p(X) :- q(X,X).
 |-}
 program :: Program 'ABase
-program = Program ProgABase
-  [ Clause ClABase (p (tvar "X")) $ NE.fromList [ q (tvar "X") (tvar "X") ]
+program = Program (ProgABase dummySpan)
+  [ Clause (ClABase dummySpan) (p (tvar "X")) $ NE.fromList [ q (tvar "X") (tvar "X") ]
   ] [ PredicateBox pPred ]
 
 qTuples :: [ V.Vector 2 Int ]

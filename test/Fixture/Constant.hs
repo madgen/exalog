@@ -16,14 +16,15 @@ import qualified Data.Vector.Sized as V
 import           Data.Singletons.TypeLits
 
 import           Language.Exalog.Core
-import           Language.Exalog.Relation
 import qualified Language.Exalog.Tuples as T
+import           Language.Exalog.Relation
+import           Language.Exalog.SrcLoc
 
 import Fixture.Util
 
 cPred, rPred :: Predicate 2 'ABase
-cPred = Predicate PredABase "c" SNat Logical
-rPred = Predicate PredABase "r" SNat Logical
+cPred = Predicate (PredABase dummySpan) "c" SNat Logical
+rPred = Predicate (PredABase dummySpan) "r" SNat Logical
 
 c,r :: Term -> Term -> Literal 'ABase
 c t t' = lit cPred $ fromJust $ V.fromList [ t, t' ]
@@ -37,14 +38,14 @@ r t t' = lit rPred $ fromJust $ V.fromList [ t, t' ]
 - r("f","5") :- c("a",X), r(X,Y).
 -}
 program :: Program 'ABase
-program = Program ProgABase
-  [ Clause ClABase (r (tsym ("c" :: Text)) (tsym ("1" :: Text))) $ NE.fromList [ c (tsym ("a" :: Text)) (tsym ("b" :: Text)) ]
-  , Clause ClABase (r (tvar "X") (tsym ("2" :: Text))) $ NE.fromList [ c (tsym ("a" :: Text)) (tvar "X") ]
-  , Clause ClABase (r (tsym ("c" :: Text)) (tsym ("3" :: Text))) $ NE.fromList [ c (tsym ("q" :: Text)) (tsym ("b" :: Text)) ]
-  , Clause ClABase (r (tsym ("e" :: Text)) (tsym ("4" :: Text))) $ NE.fromList
+program = Program (ProgABase dummySpan)
+  [ Clause (ClABase dummySpan) (r (tsym ("c" :: Text)) (tsym ("1" :: Text))) $ NE.fromList [ c (tsym ("a" :: Text)) (tsym ("b" :: Text)) ]
+  , Clause (ClABase dummySpan) (r (tvar "X") (tsym ("2" :: Text))) $ NE.fromList [ c (tsym ("a" :: Text)) (tvar "X") ]
+  , Clause (ClABase dummySpan) (r (tsym ("c" :: Text)) (tsym ("3" :: Text))) $ NE.fromList [ c (tsym ("q" :: Text)) (tsym ("b" :: Text)) ]
+  , Clause (ClABase dummySpan) (r (tsym ("e" :: Text)) (tsym ("4" :: Text))) $ NE.fromList
     [ r (tvar "X") (tvar "Y")
     , c (tsym ("a" :: Text)) (tvar "X") ]
-  , Clause ClABase (r (tsym ("f" :: Text)) (tsym ("5" :: Text))) $ NE.fromList
+  , Clause (ClABase dummySpan) (r (tsym ("f" :: Text)) (tsym ("5" :: Text))) $ NE.fromList
     [ c (tsym ("a" :: Text)) (tvar "X")
     , r (tvar "X") (tvar "Y") ]
   ] []

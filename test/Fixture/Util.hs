@@ -25,15 +25,16 @@ import           Test.QuickCheck.Gen
 import qualified Test.QuickCheck.Modifiers as QM
 
 import           Language.Exalog.Core
-import qualified Language.Exalog.Tuples as T
 import qualified Language.Exalog.Relation as R
+import           Language.Exalog.SrcLoc (dummySpan)
+import qualified Language.Exalog.Tuples as T
 
 not :: Literal 'ABase -> Literal 'ABase
 not l@Literal{polarity = pol} =
   l { polarity = if pol == Positive then Negative else Positive }
 
 lit :: Predicate n 'ABase -> V.Vector n Term -> Literal 'ABase
-lit = Literal LitABase Positive
+lit = Literal (LitABase dummySpan) Positive
 
 -- |Smart constructor for terms
 tvar :: Text -> Term
@@ -64,7 +65,10 @@ instance Arbitrary PredicateSym where
   arbitrary = fromString <$> arbitrary
 
 instance SingI n => Arbitrary (Predicate n 'ABase) where
-  arbitrary = Predicate PredABase <$> arbitrary <*> pure (sing :: SNat n) <*> pure Logical
+  arbitrary = Predicate (PredABase dummySpan)
+          <$> arbitrary
+          <*> pure (sing :: SNat n)
+          <*> pure Logical
 
 -- For Relation
 instance Arbitrary Sym => Arbitrary (R.Relation 'ABase) where

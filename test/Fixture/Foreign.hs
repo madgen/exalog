@@ -30,8 +30,9 @@ import           Data.Singletons.TypeLits
 
 import           Language.Exalog.Core
 import           Language.Exalog.ForeignFunction
-import           Language.Exalog.Relation
 import qualified Language.Exalog.Tuples as T
+import           Language.Exalog.Relation
+import           Language.Exalog.SrcLoc
 
 import Fixture.Util
 
@@ -40,13 +41,13 @@ import Fixture.Util
 --------------------------------------------------------------------------------
 
 srcPred :: Predicate 1 'ABase
-srcPred =  Predicate PredABase "src" SNat Logical
+srcPred =  Predicate (PredABase dummySpan) "src" SNat Logical
 
 leqPred :: Predicate 2 'ABase
-leqPred = Predicate PredABase "<" SNat (Extralogical $ liftPredicate ((<) :: Int -> Int -> Bool))
+leqPred = Predicate (PredABase dummySpan) "<" SNat (Extralogical $ liftPredicate ((<) :: Int -> Int -> Bool))
 
 leq100Pred :: Predicate 1 'ABase
-leq100Pred = Predicate PredABase "leq100" SNat Logical
+leq100Pred = Predicate (PredABase dummySpan) "leq100" SNat Logical
 
 src :: Term -> Literal 'ABase
 src t = lit srcPred $ fromJust $ V.fromList [ t ]
@@ -65,8 +66,8 @@ leq100 t = lit leq100Pred $ fromJust $ V.fromList [ t ]
 - leq100(X) :- src(X), X < 100.
 -}
 programLeq100 :: Program 'ABase
-programLeq100 = Program ProgABase
-  [ Clause ClABase (leq100 (tvar "X")) $ NE.fromList
+programLeq100 = Program (ProgABase dummySpan)
+  [ Clause (ClABase dummySpan) (leq100 (tvar "X")) $ NE.fromList
     [ src (tvar "X")
     , leq (tvar "X") (tsym (100 :: Int)) ]
   ] []
@@ -90,13 +91,13 @@ leq100Tuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
 --------------------------------------------------------------------------------
 
 src2Pred :: Predicate 1 'ABase
-src2Pred = Predicate PredABase "src2" SNat Logical
+src2Pred = Predicate (PredABase dummySpan) "src2" SNat Logical
 
 isPrefixOfPred :: Predicate 2 'ABase
-isPrefixOfPred = Predicate PredABase "isPrefixOf" SNat (Extralogical $ liftPredicate (Text.isPrefixOf :: Text -> Text -> Bool))
+isPrefixOfPred = Predicate (PredABase dummySpan) "isPrefixOf" SNat (Extralogical $ liftPredicate (Text.isPrefixOf :: Text -> Text -> Bool))
 
 prefixOfPred :: Predicate 2 'ABase
-prefixOfPred = Predicate PredABase "prefixOf" SNat Logical
+prefixOfPred = Predicate (PredABase dummySpan) "prefixOf" SNat Logical
 
 src2 :: Term -> Literal 'ABase
 src2 t = lit src2Pred $ fromJust $ V.fromList [ t ]
@@ -116,8 +117,8 @@ prefixOf t t' = lit prefixOfPred $ fromJust $ V.fromList [ t, t' ]
 - prefixOf(X,Y) :- src(X), src(Y), isPrefixOf(X,Y).
 -}
 programPrefixOf :: Program 'ABase
-programPrefixOf = Program ProgABase
-  [ Clause ClABase (prefixOf (tvar "X") (tvar "Y")) $ NE.fromList
+programPrefixOf = Program (ProgABase dummySpan)
+  [ Clause (ClABase dummySpan) (prefixOf (tvar "X") (tvar "Y")) $ NE.fromList
     [ src2 (tvar "X")
     , src2 (tvar "Y")
     , isPrefixOf (tvar "X") (tvar "Y") ]
@@ -151,10 +152,11 @@ cart :: Int -> Int -> [ (Int, Int) ]
 cart n m = [ (i,j) | i <- [1..n], j <- [1..m] ]
 
 cartesianPred :: Predicate 4 'ABase
-cartesianPred = Predicate PredABase "cartesian" SNat (Extralogical $ liftFunction cart)
+cartesianPred =
+  Predicate (PredABase dummySpan) "cartesian" SNat (Extralogical $ liftFunction cart)
 
 cartesian23Pred :: Predicate 2 'ABase
-cartesian23Pred = Predicate PredABase "cartesian23" SNat Logical
+cartesian23Pred = Predicate (PredABase dummySpan) "cartesian23" SNat Logical
 
 cartesian :: Term -> Term -> Term -> Term -> Literal 'ABase
 cartesian t t' t'' t''' = lit cartesianPred $ fromJust $ V.fromList [ t, t', t'', t''' ]
@@ -166,8 +168,8 @@ cartesian23 t t' = lit cartesian23Pred $ fromJust $ V.fromList [ t, t' ]
 - cartesian23(X,Y) :- cartesian(2,3,X,Y).
 -}
 programCartesian23 :: Program 'ABase
-programCartesian23 = Program ProgABase
-  [ Clause ClABase (cartesian23 (tvar "X") (tvar "Y")) $ NE.fromList
+programCartesian23 = Program (ProgABase dummySpan)
+  [ Clause (ClABase dummySpan) (cartesian23 (tvar "X") (tvar "Y")) $ NE.fromList
     [ cartesian (tsym (2 :: Int)) (tsym (3 :: Int)) (tvar "X") (tvar "Y") ]
   ] []
 

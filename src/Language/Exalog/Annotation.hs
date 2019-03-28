@@ -16,19 +16,21 @@ module Language.Exalog.Annotation
 
 import Protolude
 
+import Language.Exalog.SrcLoc
+
 data AnnType = ABase | ADelta AnnType | ADependency AnnType
 
 data family PredicateAnn (a :: AnnType)
-data instance PredicateAnn 'ABase = PredABase deriving (Eq, Ord, Show)
+data instance PredicateAnn 'ABase = PredABase SrcSpan deriving (Eq, Ord, Show)
 
 data family LiteralAnn (a :: AnnType)
-data instance LiteralAnn   'ABase = LitABase deriving (Eq, Ord, Show)
+data instance LiteralAnn   'ABase = LitABase  SrcSpan deriving (Eq, Ord, Show)
 
 data family ClauseAnn  (a :: AnnType)
-data instance ClauseAnn    'ABase = ClABase deriving (Eq, Ord, Show)
+data instance ClauseAnn    'ABase = ClABase   SrcSpan deriving (Eq, Ord, Show)
 
 data family ProgramAnn (a :: AnnType)
-data instance ProgramAnn   'ABase = ProgABase deriving (Eq, Ord, Show)
+data instance ProgramAnn   'ABase = ProgABase SrcSpan deriving (Eq, Ord, Show)
 
 type family Ann (a :: AnnType -> Type) :: (AnnType -> Type)
 

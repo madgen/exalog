@@ -12,6 +12,7 @@ import qualified Data.Vector.Sized as V
 import           Data.Singletons.TypeLits
 
 import Language.Exalog.Core
+import Language.Exalog.SrcLoc
 
 import Fixture.Util
 
@@ -22,7 +23,7 @@ par :: Term -> Term -> Literal 'ABase
 par t t' = lit parPred $ fromJust $ V.fromList [ t, t' ]
 
 parPred :: Predicate 2 'ABase
-parPred = Predicate PredABase "par" SNat Logical
+parPred = Predicate (PredABase dummySpan) "par" SNat Logical
 
 ancPred :: Predicate 2 'ABase
-ancPred = Predicate PredABase "anc" SNat Logical
+ancPred = Predicate (PredABase dummySpan) "anc" SNat Logical
