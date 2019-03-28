@@ -9,7 +9,11 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ExistentialQuantification #-}
 
-module Language.Exalog.SemiNaive (semiNaive, SemiNaiveM)where
+module Language.Exalog.SemiNaive
+  ( semiNaive
+  , SemiNaiveM
+  , evalSemiNaiveMT
+  ) where
 
 import Protolude hiding (head, pred)
 
@@ -21,11 +25,16 @@ import qualified Data.Vector.Sized as V
 
 import           Language.Exalog.Core
 import           Language.Exalog.Delta
+import           Language.Exalog.Logger
 import qualified Language.Exalog.Relation as R
 import qualified Language.Exalog.Tuples as T
 import qualified Language.Exalog.Unification as U
 
-type SemiNaiveM ann = ReaderT (R.Solution ann) IO
+type SemiNaiveMT ann = ReaderT (R.Solution ann)
+type SemiNaiveM  ann = SemiNaiveMT ann (LoggerMT IO)
+
+evalSemiNaiveMT :: SemiNaiveMT ann m a -> R.Solution ann -> m a
+evalSemiNaiveMT = runReaderT
 
 withDifferentEnvironment :: Monad m
                          => (r -> s) -> ReaderT s m a -> ReaderT r m a
@@ -133,7 +142,7 @@ evalClause Clause{..} = deriveHead <$> foldrM walkBody [ U.empty ] body
 execLiteral :: Eq (PredicateAnn a) => Literal a -> SemiNaiveM a [ U.Unifier ]
 execLiteral Literal{predicate = p@Predicate{nature = nature}, ..}
   | Extralogical foreignAction <- nature = do
-    eTuples <- lift $ foreignAction terms
+    eTuples <- lift $ lift $ foreignAction terms
     case eTuples of
       Right tuples -> return $ handleTuples terms tuples
       Left msg -> panic $ "Fatal foreign function error: " <> msg

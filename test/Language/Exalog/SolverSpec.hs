@@ -6,11 +6,12 @@ import Test.Hspec
 
 import qualified Fixture.Negation as NegFix
 
-import           Language.Exalog.Solver
+import Language.Exalog.Logger
+import Language.Exalog.Solver
 
 spec :: Spec
 spec =
   describe "Solver " $ do
-    finalEDB <- runIO $ solve NegFix.program NegFix.initEDB
+    finalEDB <- runIO $ runLoggerT $ solve NegFix.program NegFix.initEDB
     it "evaluates complement of a subgraph correctly" $
-      finalEDB `shouldBe` NegFix.finalEDB
+      finalEDB `shouldBe` Just NegFix.finalEDB

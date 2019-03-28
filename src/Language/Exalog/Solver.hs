@@ -12,8 +12,12 @@ module Language.Exalog.Solver
 import Protolude
 
 import           Language.Exalog.Core
+import           Language.Exalog.Logger
 import           Language.Exalog.Stratification (stratify)
-import           Language.Exalog.SemiNaive (semiNaive, SemiNaiveM)
+import           Language.Exalog.SemiNaive ( semiNaive
+                                           , SemiNaiveM
+                                           , evalSemiNaiveMT
+                                           )
 import qualified Language.Exalog.Relation as R
 
 data SolverSt ann = SolverSt
@@ -23,12 +27,13 @@ data SolverSt ann = SolverSt
 
 type SolverM ann = StateT (SolverSt ann) (SemiNaiveM ann)
 
-solve :: Eq (PredicateAnn a) => Program a -> R.Solution a -> IO (R.Solution a)
+solve :: Eq (PredicateAnn a)
+      => Program a -> R.Solution a -> LoggerM (R.Solution a)
 solve = evalSolverM compute
 
 evalSolverM :: Eq (PredicateAnn ann)
-            => SolverM ann a -> Program ann -> R.Solution ann -> IO a
-evalSolverM action pr = runReaderT (evalStateT action (SolverSt pr mempty))
+            => SolverM ann a -> Program ann -> R.Solution ann -> LoggerM a
+evalSolverM action pr = evalSemiNaiveMT (evalStateT action (SolverSt pr mempty))
 
 addFact :: Eq (PredicateAnn a) => R.Relation a -> SolverM a ()
 addFact fact = modify $

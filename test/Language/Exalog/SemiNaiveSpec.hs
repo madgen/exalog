@@ -28,10 +28,12 @@ import qualified Fixture.RepeatedVars as Repeated
 import           Fixture.Util
 
 import           Language.Exalog.Core hiding (Positive)
+import           Language.Exalog.Logger
 import qualified Language.Exalog.Relation as R
 import           Language.Exalog.SemiNaive
 
-execSemiNaive pr edb = runIO . (`runReaderT` edb) $ semiNaive pr
+execSemiNaive pr edb =
+  runIO . runLoggerT . (`evalSemiNaiveMT` edb) $ semiNaive pr
 
 spec :: Spec
 spec =
@@ -40,38 +42,38 @@ spec =
 
       finalEDB <- execSemiNaive LAnc.program AncEDB.initEDB
       it "evaluates linear ancestor correctly" $
-        finalEDB `shouldBe` AncEDB.finalEDB
+        finalEDB `shouldBe` Just AncEDB.finalEDB
 
       finalEDB <- execSemiNaive NLAnc.program AncEDB.initEDB
       it "evaluates non-linear ancestor correctly" $
-        finalEDB `shouldBe` AncEDB.finalEDB
+        finalEDB `shouldBe` Just AncEDB.finalEDB
 
       prop "linear & non-linear versions produce the same result" $
         \edb -> unsafePerformIO $ liftM2 (==)
-          (runReaderT (semiNaive LAnc.program) edb)
-          (runReaderT (semiNaive NLAnc.program) edb)
+          (runLoggerT $ evalSemiNaiveMT (semiNaive LAnc.program) edb)
+          (runLoggerT $ evalSemiNaiveMT (semiNaive NLAnc.program) edb)
 
     finalEDB <- execSemiNaive Const.program Const.initEDB
     it "evaluates constants correctly" $
-      R.findTuples Const.rPred finalEDB `shouldBe` Const.rTuples
+      R.findTuples Const.rPred <$> finalEDB `shouldBe` Just Const.rTuples
 
     finalEDB <- execSemiNaive Repeated.program Repeated.initEDB
     it "does not forget repeated variables" $
-      R.findTuples Repeated.pPred finalEDB `shouldBe` Repeated.pTuples
+      R.findTuples Repeated.pPred <$> finalEDB `shouldBe` Just Repeated.pTuples
 
     describe "Foreign function" $ do
 
       finalEDB <- execSemiNaive Foreign.programLeq100 Foreign.initLeq100EDB
       it "interprets 'x < 100' correctly" $
-        R.findTuples Foreign.leq100Pred finalEDB `shouldBe` Foreign.leq100Tuples
+        R.findTuples Foreign.leq100Pred <$> finalEDB `shouldBe` Just Foreign.leq100Tuples
 
       finalEDB <- execSemiNaive Foreign.programPrefixOf Foreign.initPrefixOfEDB
       it "interprets 'isPrefixOf' correctly" $
-        R.findTuples Foreign.prefixOfPred finalEDB `shouldBe` Foreign.prefixOfTuples
+        R.findTuples Foreign.prefixOfPred <$> finalEDB `shouldBe` Just Foreign.prefixOfTuples
 
       finalEDB <- execSemiNaive Foreign.programCartesian23 Foreign.initCartesian23EDB
       it "interprets 'cartesian23' correctly" $
-        R.findTuples Foreign.cartesian23Pred finalEDB `shouldBe` Foreign.cartesian23Tuples
+        R.findTuples Foreign.cartesian23Pred <$> finalEDB `shouldBe` Just Foreign.cartesian23Tuples
 
 -- Arbitrary instances for solution
 instance Arbitrary Sym where
