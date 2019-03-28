@@ -27,6 +27,7 @@ import           Control.Comonad (Comonad(..))
 
 import           Language.Exalog.Core
 import qualified Language.Exalog.Relation as R
+import           Language.Exalog.SrcLoc
 import qualified Language.Exalog.Util.List.Zipper as LZ
 
 data Decor = Normal | Delta | Prev | PrevX2 deriving (Eq, Ord, Show)
@@ -50,6 +51,15 @@ deriving instance Ord (PredicateAnn a) => Ord (PredicateAnn ('ADelta a))
 deriving instance Ord (LiteralAnn a)   => Ord (LiteralAnn ('ADelta a))
 deriving instance Ord (ClauseAnn a)    => Ord (ClauseAnn ('ADelta a))
 deriving instance Ord (ProgramAnn a)   => Ord (ProgramAnn ('ADelta a))
+
+instance SpannableAnn (PredicateAnn a) => SpannableAnn (PredicateAnn ('ADelta a)) where
+  annSpan (PredADelta _ ann) = annSpan ann
+instance SpannableAnn (LiteralAnn a) => SpannableAnn (LiteralAnn ('ADelta a)) where
+  annSpan (LitADelta ann) = annSpan ann
+instance SpannableAnn (ClauseAnn a) => SpannableAnn (ClauseAnn ('ADelta a)) where
+  annSpan (ClADelta ann) = annSpan ann
+instance SpannableAnn (ProgramAnn a) => SpannableAnn (ProgramAnn ('ADelta a)) where
+  annSpan (ProgADelta ann) = annSpan ann
 
 updateDecor :: Decor -> Predicate n ('ADelta a) -> Predicate n ('ADelta a)
 updateDecor dec p@Predicate{annotation = PredADelta _ prevAnn} =

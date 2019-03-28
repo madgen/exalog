@@ -30,6 +30,15 @@ newtype instance ClauseAnn  ('ADependency a)   = ClADependency (ClauseAnn a)
 data    instance ProgramAnn ('ADependency a)   =
   ProgADependency (DependencyGr a) (ProgramAnn a)
 
+instance SpannableAnn (PredicateAnn a) => SpannableAnn (PredicateAnn ('ADependency a)) where
+  annSpan (PredADependency ann) = annSpan ann
+instance SpannableAnn (LiteralAnn a) => SpannableAnn (LiteralAnn ('ADependency a)) where
+  annSpan (LitADependency ann) = annSpan ann
+instance SpannableAnn (ClauseAnn a) => SpannableAnn (ClauseAnn ('ADependency a)) where
+  annSpan (ClADependency ann) = annSpan ann
+instance SpannableAnn (ProgramAnn a) => SpannableAnn (ProgramAnn ('ADependency a)) where
+  annSpan (ProgADependency _ ann) = annSpan ann
+
 instance PeelableAnn PredicateAnn 'ADependency where
   peelA (PredADependency a) = a
 instance PeelableAnn LiteralAnn 'ADependency where

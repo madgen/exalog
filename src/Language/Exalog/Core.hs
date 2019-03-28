@@ -1,17 +1,18 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE TypeFamilyDependencies #-}
-{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 module Language.Exalog.Core
   ( module Language.Exalog.Annotation
@@ -37,6 +38,7 @@ module Language.Exalog.Core
   -- * Helper type classes
   , DecorableAST(..)
   , PeelableAST(..)
+  , SpannableAST
   , Formula(..)
   -- * Helper functions
   , sameArity
@@ -61,6 +63,7 @@ import qualified Data.Vector.Sized as V
 import qualified GHC.Show as Show
 
 import           Language.Exalog.Annotation
+import           Language.Exalog.SrcLoc
 
 type ForeignFunc n = V.Vector n Term -> IO (Either Text [ V.Vector n Sym ])
 
@@ -265,6 +268,29 @@ deriving instance
   ( Show (LiteralAnn a)
   , Show (PredicateAnn a)
   ) => Show (Literal a)
+
+-- Instances for obtaining sapns of AST nodes
+instance {-# OVERLAPPING #-}
+    SpannableAnn (ProgramAnn ann) => Spannable (Program ann) where
+  span Program{..} = annSpan annotation
+instance {-# OVERLAPPING #-}
+    SpannableAnn (ClauseAnn ann) => Spannable (Clause ann) where
+  span Clause{..} = annSpan annotation
+instance {-# OVERLAPPING #-}
+    SpannableAnn (LiteralAnn ann) => Spannable (Literal ann) where
+  span Literal{..} = annSpan annotation
+instance {-# OVERLAPPING #-}
+    SpannableAnn (PredicateAnn ann) => Spannable (Predicate n ann) where
+  span Predicate{..} = annSpan annotation
+
+type SpannableAST ann =
+  ( Spannable (Program ann)
+  , Spannable (Clause  ann)
+  , Spannable (Literal ann)
+  , SpannableAnn (ProgramAnn ann)
+  , SpannableAnn (ClauseAnn  ann)
+  , SpannableAnn (LiteralAnn ann)
+  )
 
 -- Clause
 deriving instance (Ord (ClauseAnn a), Ord (Literal a)) => Ord (Clause a)
