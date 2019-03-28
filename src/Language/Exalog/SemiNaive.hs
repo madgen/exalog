@@ -11,8 +11,8 @@
 
 module Language.Exalog.SemiNaive
   ( semiNaive
-  , SemiNaiveM
-  , evalSemiNaiveMT
+  , SemiNaive
+  , evalSemiNaiveT
   ) where
 
 import Protolude hiding (head, pred)
@@ -30,11 +30,11 @@ import qualified Language.Exalog.Relation as R
 import qualified Language.Exalog.Tuples as T
 import qualified Language.Exalog.Unification as U
 
-type SemiNaiveMT ann = ReaderT (R.Solution ann)
-type SemiNaiveM  ann = SemiNaiveMT ann (LoggerT IO)
+type SemiNaiveT ann = ReaderT (R.Solution ann)
+type SemiNaive  ann = SemiNaiveT ann (LoggerT IO)
 
-evalSemiNaiveMT :: SemiNaiveMT ann m a -> R.Solution ann -> m a
-evalSemiNaiveMT = runReaderT
+evalSemiNaiveT :: SemiNaiveT ann m a -> R.Solution ann -> m a
+evalSemiNaiveT = runReaderT
 
 withDifferentEnvironment :: Monad m
                          => (r -> s) -> ReaderT s m a -> ReaderT r m a
@@ -42,7 +42,7 @@ withDifferentEnvironment envMap (ReaderT f) =
   ReaderT $ f . envMap
 
 semiNaive :: forall a. Eq (PredicateAnn a)
-          => Program a -> SemiNaiveM a (R.Solution a)
+          => Program a -> SemiNaive a (R.Solution a)
 semiNaive pr = do
   initEDB <- initEDBM
   local (const initEDB) $
@@ -62,7 +62,7 @@ semiNaive pr = do
 
   -- Simple clauses can be executed without the need for fixpoint
   -- computation.
-  initEDBM :: SemiNaiveM a (R.Solution a)
+  initEDBM :: SemiNaive a (R.Solution a)
   initEDBM = evalClauses simpleClss
 
   intentionals :: [ PredicateBox a ]
@@ -108,21 +108,21 @@ semiNaive pr = do
       Delta -> ts `T.difference` R.findTuples (updateDecor Normal p) edb
       _ -> ts
 
-  step :: SemiNaiveM ('ADelta a) (R.Solution ('ADelta a))
+  step :: SemiNaive ('ADelta a) (R.Solution ('ADelta a))
   step = do
     let evalClauses' = evalClauses (clauses deltaPr)
     let maintenance = updateFromDelta . shiftPrevs . elimDecor PrevX2
     axeDeltaRedundancies <$> local maintenance evalClauses'
 
 evalClauses :: Eq (PredicateAnn a)
-            => [ Clause a ] -> SemiNaiveM a (R.Solution a)
+            => [ Clause a ] -> SemiNaive a (R.Solution a)
 evalClauses clss = do
   rels <- mapM evalClause clss
   edb <- ask
   return $ foldr R.add edb rels
 
 evalClause :: forall a. Eq (PredicateAnn a)
-           => Clause a -> SemiNaiveM a (R.Relation a)
+           => Clause a -> SemiNaive a (R.Relation a)
 evalClause Clause{..} = deriveHead <$> foldrM walkBody [ U.empty ] body
   where
   deriveHead :: [ U.Unifier ] -> R.Relation a
@@ -133,13 +133,13 @@ evalClause Clause{..} = deriveHead <$> foldrM walkBody [ U.empty ] body
         fromMaybe (panic "Range-restriction is violated.")
                   (extractTuples preTuple)
 
-  walkBody :: Literal a -> [ U.Unifier ] -> SemiNaiveM a [ U.Unifier ]
+  walkBody :: Literal a -> [ U.Unifier ] -> SemiNaive a [ U.Unifier ]
   walkBody lit unifiers = fmap (catMaybes . concat) $ sequence $ do
     unifier <- unifiers
     return $ fmap (`U.extend` unifier)
          <$> execLiteral (unifier `U.substitute` lit)
 
-execLiteral :: Eq (PredicateAnn a) => Literal a -> SemiNaiveM a [ U.Unifier ]
+execLiteral :: Eq (PredicateAnn a) => Literal a -> SemiNaive a [ U.Unifier ]
 execLiteral Literal{predicate = p@Predicate{nature = nature}, ..}
   | Extralogical foreignAction <- nature = do
     eTuples <- liftIO $ foreignAction terms

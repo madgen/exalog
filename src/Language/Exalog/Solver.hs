@@ -6,7 +6,7 @@ module Language.Exalog.Solver
   , addFact
   , addRule
   , compute
-  , evalSolverM
+  , evalSolver
   ) where
 
 import Protolude
@@ -15,8 +15,8 @@ import           Language.Exalog.Core
 import           Language.Exalog.Logger
 import           Language.Exalog.Stratification (stratify)
 import           Language.Exalog.SemiNaive ( semiNaive
-                                           , SemiNaiveM
-                                           , evalSemiNaiveMT
+                                           , SemiNaive
+                                           , evalSemiNaiveT
                                            )
 import qualified Language.Exalog.Relation as R
 
@@ -25,27 +25,27 @@ data SolverSt ann = SolverSt
     , initEDB :: R.Solution ann
     }
 
-type SolverM ann = StateT (SolverSt ann) (SemiNaiveM ann)
+type Solver ann = StateT (SolverSt ann) (SemiNaive ann)
 
 solve :: Eq (PredicateAnn a)
       => Program a -> R.Solution a -> Logger (R.Solution a)
-solve = evalSolverM compute
+solve = evalSolver compute
 
-evalSolverM :: Eq (PredicateAnn ann)
-            => SolverM ann a -> Program ann -> R.Solution ann -> Logger a
-evalSolverM action pr = evalSemiNaiveMT (evalStateT action (SolverSt pr mempty))
+evalSolver :: Eq (PredicateAnn ann)
+           => Solver ann a -> Program ann -> R.Solution ann -> Logger a
+evalSolver action pr = evalSemiNaiveT (evalStateT action (SolverSt pr mempty))
 
-addFact :: Eq (PredicateAnn a) => R.Relation a -> SolverM a ()
+addFact :: Eq (PredicateAnn a) => R.Relation a -> Solver a ()
 addFact fact = modify $
   \SolverSt{..} ->
     SolverSt{initEDB = R.add fact initEDB, ..}
 
-addRule :: Clause a -> SolverM a ()
+addRule :: Clause a -> Solver a ()
 addRule cl = modify $
   \SolverSt{program = Program{..}, ..} ->
     SolverSt{program = Program{clauses = cl : clauses, ..}, ..}
 
-compute :: Eq (PredicateAnn a) => SolverM a (R.Solution a)
+compute :: Eq (PredicateAnn a) => Solver a (R.Solution a)
 compute = do
   pr <- program <$> get
   let eprs = stratify . decorate $ pr

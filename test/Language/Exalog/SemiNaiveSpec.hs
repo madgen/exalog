@@ -33,7 +33,7 @@ import qualified Language.Exalog.Relation as R
 import           Language.Exalog.SemiNaive
 
 execSemiNaive pr edb =
-  runIO . runLoggerT . (`evalSemiNaiveMT` edb) $ semiNaive pr
+  runIO . runLoggerT . (`evalSemiNaiveT` edb) $ semiNaive pr
 
 spec :: Spec
 spec =
@@ -50,8 +50,8 @@ spec =
 
       prop "linear & non-linear versions produce the same result" $
         \edb -> unsafePerformIO $ liftM2 (==)
-          (runLoggerT $ evalSemiNaiveMT (semiNaive LAnc.program) edb)
-          (runLoggerT $ evalSemiNaiveMT (semiNaive NLAnc.program) edb)
+          (runLoggerT $ evalSemiNaiveT (semiNaive LAnc.program) edb)
+          (runLoggerT $ evalSemiNaiveT (semiNaive NLAnc.program) edb)
 
     finalEDB <- execSemiNaive Const.program Const.initEDB
     it "evaluates constants correctly" $
