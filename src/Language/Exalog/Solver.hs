@@ -28,11 +28,11 @@ data SolverSt ann = SolverSt
 type SolverM ann = StateT (SolverSt ann) (SemiNaiveM ann)
 
 solve :: Eq (PredicateAnn a)
-      => Program a -> R.Solution a -> LoggerM (R.Solution a)
+      => Program a -> R.Solution a -> Logger (R.Solution a)
 solve = evalSolverM compute
 
 evalSolverM :: Eq (PredicateAnn ann)
-            => SolverM ann a -> Program ann -> R.Solution ann -> LoggerM a
+            => SolverM ann a -> Program ann -> R.Solution ann -> Logger a
 evalSolverM action pr = evalSemiNaiveMT (evalStateT action (SolverSt pr mempty))
 
 addFact :: Eq (PredicateAnn a) => R.Relation a -> SolverM a ()

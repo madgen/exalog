@@ -31,7 +31,7 @@ import qualified Language.Exalog.Tuples as T
 import qualified Language.Exalog.Unification as U
 
 type SemiNaiveMT ann = ReaderT (R.Solution ann)
-type SemiNaiveM  ann = SemiNaiveMT ann (LoggerMT IO)
+type SemiNaiveM  ann = SemiNaiveMT ann (LoggerT IO)
 
 evalSemiNaiveMT :: SemiNaiveMT ann m a -> R.Solution ann -> m a
 evalSemiNaiveMT = runReaderT
@@ -142,7 +142,7 @@ evalClause Clause{..} = deriveHead <$> foldrM walkBody [ U.empty ] body
 execLiteral :: Eq (PredicateAnn a) => Literal a -> SemiNaiveM a [ U.Unifier ]
 execLiteral Literal{predicate = p@Predicate{nature = nature}, ..}
   | Extralogical foreignAction <- nature = do
-    eTuples <- lift $ lift $ foreignAction terms
+    eTuples <- liftIO $ foreignAction terms
     case eTuples of
       Right tuples -> return $ handleTuples terms tuples
       Left msg -> panic $ "Fatal foreign function error: " <> msg
