@@ -16,21 +16,23 @@ import           Data.Maybe (fromJust)
 
 import           Language.Exalog.Core
 import           Language.Exalog.Dependency
+import           Language.Exalog.Logger
 
 -- |Returns a stratified program in the form of a list to be executed in
 -- order.
 stratify :: forall a. Eq (PredicateAnn a)
-         => Program ('ADependency a) -> Either Text [ Program a ]
+         => Program ('ADependency a) -> Logger [ Program a ]
 stratify pr@Program{annotation = ann} = sequence $ do
   comp <- sccs
   let polarities = sccPolarities comp
   if Negative `elem` polarities
-    then return $ Left "There is cyclic negation."
+    then pure $
+      scold Nothing "Stratification failed due to cyclic use of negation."
     else do
       let peeledPr = peel pr
       let cls = concatMap (search $ peeledPr) . findPreds depGrDict $ comp
       guard (not . null $ cls)
-      return $ Right $
+      pure $ pure $
         Program (peelA ann) cls (queries cls (queryPreds peeledPr))
   where
   depGr = dependencyGr pr

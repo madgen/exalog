@@ -48,12 +48,10 @@ addRule cl = modify $
 compute :: Eq (PredicateAnn a) => Solver a (R.Solution a)
 compute = do
   pr <- program <$> get
-  let eprs = stratify . decorate $ pr
-  edb <- case eprs of
-    Left msg -> panic msg
-    Right prs -> lift $ do
-      initEDB <- ask
-      foldlM (\edb -> local (const edb) . semiNaive) initEDB prs
+  prs <- lift $ lift $ stratify . decorate $ pr
+  edb <- lift $ do
+    initEDB <- ask
+    foldlM (\edb -> local (const edb) . semiNaive) initEDB prs
   -- Filter out non-queries solutions
   return $
     R.filter (\(R.Relation p _) -> PredicateBox p `elem` queryPreds pr) edb

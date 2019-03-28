@@ -123,15 +123,17 @@ evalClauses clss = do
 
 evalClause :: forall a. Eq (PredicateAnn a)
            => Clause a -> SemiNaive a (R.Relation a)
-evalClause Clause{..} = deriveHead <$> foldrM walkBody [ U.empty ] body
+evalClause Clause{..} = deriveHead =<< foldrM walkBody [ U.empty ] body
   where
-  deriveHead :: [ U.Unifier ] -> R.Relation a
+  deriveHead :: [ U.Unifier ] -> SemiNaive a (R.Relation a)
   deriveHead unifiers
-    | Literal{predicate = pred, terms = terms} <- head =
+    | Literal{predicate = pred, terms = terms} <- head = do
       let preTuples = map (`U.substitute` terms) unifiers
-      in R.Relation pred . T.fromList $ flip map preTuples $ \preTuple ->
-        fromMaybe (panic "Range-restriction is violated.")
-                  (extractTuples preTuple)
+      tuples <- (`traverse` preTuples) $ \preTuple -> do
+        maybe (lift $ scold Nothing "Range-restriction is violated.")
+              pure
+              (extractTuples preTuple)
+      pure $ R.Relation pred . T.fromList $ tuples
 
   walkBody :: Literal a -> [ U.Unifier ] -> SemiNaive a [ U.Unifier ]
   walkBody lit unifiers = fmap (catMaybes . concat) $ sequence $ do
@@ -145,7 +147,7 @@ execLiteral Literal{predicate = p@Predicate{nature = nature}, ..}
     eTuples <- liftIO $ foreignAction terms
     case eTuples of
       Right tuples -> return $ handleTuples terms tuples
-      Left msg -> panic $ "Fatal foreign function error: " <> msg
+      Left msg -> lift $ scold Nothing $ "Fatal foreign function error: " <> msg
   | otherwise =
     handleTuples terms . T.toList . R.findTuples p <$> ask
   where
