@@ -13,7 +13,6 @@ module Language.Exalog.Pretty
 import Protolude hiding ((<>), empty, head)
 
 import qualified Data.List.NonEmpty as NE
-import           Data.Text (unpack)
 import qualified Data.Vector.Sized as V
 
 import Text.PrettyPrint
@@ -93,9 +92,6 @@ instance Pretty (PredicateAnn ann) => Pretty (R.Solution ann) where
   pretty = vcat . prettyC . R.toList
 
 -- Common pretty instances
-
-instance Pretty Text where
-  pretty = text . unpack
 
 instance Pretty Bool where
   pretty True  = "true"

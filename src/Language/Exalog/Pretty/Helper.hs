@@ -9,7 +9,9 @@ module Language.Exalog.Pretty.Helper
   ) where
 
 import Protolude hiding ((<>), empty, head)
+
 import           Data.String (fromString)
+import           Data.Text (unpack)
 
 import Text.PrettyPrint
 
@@ -51,3 +53,6 @@ csep = hsep . punctuate comma
 
 instance {-# OVERLAPPABLE #-} Pretty a => PrettyCollection [ a ] where
   prettyC = map pretty
+
+instance Pretty Text where
+  pretty = text . unpack
