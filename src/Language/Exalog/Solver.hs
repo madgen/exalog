@@ -27,7 +27,7 @@ data SolverSt ann = SolverSt
 
 type Solver ann = StateT (SolverSt ann) (SemiNaive ann)
 
-solve :: Eq (PredicateAnn a)
+solve :: (SpannableAST a, Eq (PredicateAnn a))
       => Program a -> R.Solution a -> Logger (R.Solution a)
 solve = evalSolver compute
 
@@ -45,7 +45,7 @@ addRule cl = modify $
   \SolverSt{program = Program{..}, ..} ->
     SolverSt{program = Program{clauses = cl : clauses, ..}, ..}
 
-compute :: Eq (PredicateAnn a) => Solver a (R.Solution a)
+compute :: (SpannableAST a, Eq (PredicateAnn a)) => Solver a (R.Solution a)
 compute = do
   pr <- program <$> get
   prs <- lift $ lift $ stratify . decorate $ pr

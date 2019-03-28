@@ -26,8 +26,9 @@ import qualified Data.Vector.Sized as V
 import           Language.Exalog.Core
 import           Language.Exalog.Delta
 import           Language.Exalog.Logger
-import qualified Language.Exalog.Relation as R
 import qualified Language.Exalog.Tuples as T
+import qualified Language.Exalog.Relation as R
+import           Language.Exalog.SrcLoc (Spannable(..))
 import qualified Language.Exalog.Unification as U
 
 type SemiNaiveT ann = ReaderT (R.Solution ann)
@@ -41,7 +42,7 @@ withDifferentEnvironment :: Monad m
 withDifferentEnvironment envMap (ReaderT f) =
   ReaderT $ f . envMap
 
-semiNaive :: forall a. Eq (PredicateAnn a)
+semiNaive :: forall a. (SpannableAST a, Eq (PredicateAnn a))
           => Program a -> SemiNaive a (R.Solution a)
 semiNaive pr = do
   initEDB <- initEDBM
@@ -114,14 +115,14 @@ semiNaive pr = do
     let maintenance = updateFromDelta . shiftPrevs . elimDecor PrevX2
     axeDeltaRedundancies <$> local maintenance evalClauses'
 
-evalClauses :: Eq (PredicateAnn a)
+evalClauses :: (SpannableAST a, Eq (PredicateAnn a))
             => [ Clause a ] -> SemiNaive a (R.Solution a)
 evalClauses clss = do
   rels <- mapM evalClause clss
   edb <- ask
   return $ foldr R.add edb rels
 
-evalClause :: forall a. Eq (PredicateAnn a)
+evalClause :: forall a. (SpannableAST a, Eq (PredicateAnn a))
            => Clause a -> SemiNaive a (R.Relation a)
 evalClause Clause{..} = deriveHead =<< foldrM walkBody [ U.empty ] body
   where
@@ -141,13 +142,15 @@ evalClause Clause{..} = deriveHead =<< foldrM walkBody [ U.empty ] body
     return $ fmap (`U.extend` unifier)
          <$> execLiteral (unifier `U.substitute` lit)
 
-execLiteral :: Eq (PredicateAnn a) => Literal a -> SemiNaive a [ U.Unifier ]
-execLiteral Literal{predicate = p@Predicate{nature = nature}, ..}
+execLiteral :: (SpannableAST a, Eq (PredicateAnn a))
+            => Literal a -> SemiNaive a [ U.Unifier ]
+execLiteral lit@Literal{predicate = p@Predicate{nature = nature}, ..}
   | Extralogical foreignAction <- nature = do
     eTuples <- liftIO $ foreignAction terms
     case eTuples of
       Right tuples -> return $ handleTuples terms tuples
-      Left msg -> lift $ scold Nothing $ "Fatal foreign function error: " <> msg
+      Left msg -> lift $ scold (Just (span lit)) $
+        "Fatal foreign function error: " <> msg
   | otherwise =
     handleTuples terms . T.toList . R.findTuples p <$> ask
   where
