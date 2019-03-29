@@ -24,14 +24,15 @@ import qualified Language.Exalog.Tuples as T
 
 -- Core pretty instances
 
-instance Pretty (Ann (Predicate n) ann) => Pretty (Predicate n ann) where
+instance Identifiable (Ann (Predicate n) ann) b
+    => Pretty (Predicate n ann) where
   pretty Predicate{..} =
       pretty fxSym
    <> "_" <>
       case nature of
         Logical{}    -> char 'L'
         Extralogical{} -> char 'E'
-   <> ("PA" <> colon) <?> pretty annotation
+   <> ("PA" <> colon) <?> pretty (idFragment annotation)
 
 instance Pretty Sym where
   pretty (SymText   t) = doubleQuotes $ pretty t
@@ -46,26 +47,24 @@ instance Pretty Term where
   pretty (TSym s) = pretty s
   pretty (TVar v) = pretty v
 
-instance ( Pretty (PredicateAnn ann)
-         , Pretty (Ann Literal ann)
+instance ( Identifiable (PredicateAnn ann) a
+         , Identifiable (Ann Literal ann) b
          ) => Pretty (Literal ann) where
   pretty Literal{..} =
        cond (polarity == Negative) (text "not" <> space)
    <+> pretty predicate
-   <> ("LA" <> colon) <?> pretty annotation
+   <> ("LA" <> colon) <?> pretty (idFragment annotation)
    <> (parens . csep . prettyC $ terms)
 
-instance ( Pretty (PredicateAnn ann)
-         , Pretty (Ann Literal ann)
-         , Pretty (Ann Clause ann)
+instance ( Identifiable (PredicateAnn ann) a
+         , Identifiable (Ann Literal ann) b
          ) => Pretty (Clause ann) where
   pretty Clause{..} =
     pretty head <+> ":-" <+> (csep . prettyC $ body) <> "."
 
-instance ( Pretty (PredicateAnn ann)
-         , Pretty (Ann Literal ann)
-         , Pretty (Ann Clause ann)
-         , Pretty (Ann Program ann)
+instance ( Identifiable (PredicateAnn ann) a
+         , Identifiable (Ann Literal ann) b
+         , Identifiable (Ann Clause ann) c
          ) => Pretty (Program ann) where
   pretty Program{..} = vcat . prettyC $ clauses
 
@@ -78,7 +77,7 @@ instance Pretty (ProgramAnn   'ABase) where pretty _ = empty
 
 -- Solution related data type instances
 
-instance Pretty (PredicateAnn ann) => Pretty (R.Relation ann) where
+instance Identifiable (PredicateAnn ann) b => Pretty (R.Relation ann) where
   pretty (R.Relation predicate tuples) =
     pretty predicate <+> parens (int . T.size $ tuples) <+> "= {"
     $+$ (nest 2 . vcat . map csep . groupsOf 8 . prettyC $ tuples)
@@ -88,7 +87,7 @@ instance Pretty (PredicateAnn ann) => Pretty (R.Relation ann) where
     groupsOf _ [] = []
     groupsOf i xs = let (gr, rest) = splitAt i xs in gr : groupsOf i rest
 
-instance Pretty (PredicateAnn ann) => Pretty (R.Solution ann) where
+instance Identifiable (PredicateAnn ann) b => Pretty (R.Solution ann) where
   pretty = vcat . prettyC . R.toList
 
 -- Common pretty instances
