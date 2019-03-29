@@ -25,6 +25,7 @@ import qualified Fixture.Ancestor.EDB as AncEDB
 import qualified Fixture.Constant as Const
 import qualified Fixture.Foreign as Foreign
 import qualified Fixture.RepeatedVars as Repeated
+import qualified Fixture.SpanIrrelevance as SpanIrr
 import           Fixture.Util
 
 import           Language.Exalog.Core hiding (Positive)
@@ -74,6 +75,10 @@ spec =
       finalEDB <- execSemiNaive Foreign.programCartesian23 Foreign.initCartesian23EDB
       it "interprets 'cartesian23' correctly" $
         R.findTuples Foreign.cartesian23Pred <$> finalEDB `shouldBe` Just Foreign.cartesian23Tuples
+
+    finalEDB <- execSemiNaive SpanIrr.program SpanIrr.initEDB
+    it "evaluates correctly with different spans" $
+      R.findTuples SpanIrr.rPred <$> finalEDB `shouldBe` Just SpanIrr.rTuples
 
 -- Arbitrary instances for solution
 instance Arbitrary Sym where
