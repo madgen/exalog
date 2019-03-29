@@ -77,24 +77,26 @@ instance Spannable Void where
   span = absurd
 
 printSpan :: MonadIO m => SrcSpan -> m ()
-printSpan (SrcSpan loc1 loc2) = liftIO $ do
-  putStrLn . render . nest 2 $ "Context:"
-  if file loc1 == file loc2
-    then do
-      contents <- zip [(1 :: Int)..] . lines <$> readFile (file loc1)
-      let contextLines = take nOfLines $ drop (line loc1 - 1) contents
+printSpan (SrcSpan loc1 loc2)
+  | loc1 == SrcDummy || loc2 == SrcDummy = pure ()
+  | otherwise = liftIO $ do
+    putStrLn . render . nest 2 $ "Context:"
+    if file loc1 == file loc2
+      then do
+        contents <- zip [(1 :: Int)..] . lines <$> readFile (file loc1)
+        let contextLines = take nOfLines $ drop (line loc1 - 1) contents
 
-      traverse_
-        (putStrLn . render . nest 2 .
-          (\(i,l) -> (justifyLeft' 6 . pack . show $ i) <> (text . unpack) l))
-        contextLines
+        traverse_
+          (putStrLn . render . nest 2 .
+            (\(i,l) -> (justifyLeft' 6 . pack . show $ i) <> (text . unpack) l))
+          contextLines
 
-      when (nOfLines == 1) $
-        putStrLn . render . nest 2 $
-          justifyLeft' 6 " " <> hcat (replicate (col loc1 - 1) " ") <>
-          hcat (replicate nOfCols "^")
-    else putStrLn $ render . nest 2 $
-      "The error occurred across multiple files. I can't print the context."
+        when (nOfLines == 1) $
+          putStrLn . render . nest 2 $
+            justifyLeft' 6 " " <> hcat (replicate (col loc1 - 1) " ") <>
+            hcat (replicate nOfCols "^")
+      else putStrLn $ render . nest 2 $
+        "The error occurred across multiple files. I can't print the context."
   where
   nOfLines = line loc2 - line loc1 + 1
   nOfCols  = col  loc2 - col  loc1 + 1
