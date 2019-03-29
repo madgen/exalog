@@ -6,6 +6,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
@@ -25,12 +26,21 @@ import Protolude hiding (head)
 
 import           Control.Comonad (Comonad(..))
 
+import           Language.Exalog.Pretty.Helper (Pretty(..))
 import           Language.Exalog.Core
 import qualified Language.Exalog.Relation as R
-import           Language.Exalog.SrcLoc
 import qualified Language.Exalog.Util.List.Zipper as LZ
 
 data Decor = Normal | Delta | Prev | PrevX2 deriving (Eq, Ord, Show)
+
+instance Pretty Decor where
+  pretty Normal = "Norm"
+  pretty Delta  = "Δ"
+  pretty Prev   = "-1"
+  pretty Prev   = "-2"
+
+instance Pretty b => Pretty (Decor, b) where
+  pretty (dec, b) = pretty dec <> "_" <> pretty b
 
 data    instance PredicateAnn ('ADelta a) = PredADelta Decor (PredicateAnn a)
 data    instance LiteralAnn ('ADelta a)   = LitADelta (LiteralAnn a)
@@ -61,6 +71,19 @@ instance SpannableAnn (ClauseAnn a) => SpannableAnn (ClauseAnn ('ADelta a)) wher
 instance SpannableAnn (ProgramAnn a) => SpannableAnn (ProgramAnn ('ADelta a)) where
   annSpan (ProgADelta ann) = annSpan ann
 
+instance IdentifiableAnn (PredicateAnn ann) b
+    => IdentifiableAnn (PredicateAnn ('ADelta ann)) (Decor,b) where
+  idFragment (PredADelta dec rest) = (dec, idFragment rest)
+instance IdentifiableAnn (LiteralAnn ann) b
+    => IdentifiableAnn (LiteralAnn ('ADelta ann)) b where
+  idFragment (LitADelta rest) = idFragment rest
+instance IdentifiableAnn (ClauseAnn ann) b
+    => IdentifiableAnn (ClauseAnn ('ADelta ann)) b where
+  idFragment (ClADelta rest) = idFragment rest
+instance IdentifiableAnn (ProgramAnn ann) b
+    => IdentifiableAnn (ProgramAnn ('ADelta ann)) b where
+  idFragment (ProgADelta rest) = idFragment rest
+
 updateDecor :: Decor -> Predicate n ('ADelta a) -> Predicate n ('ADelta a)
 updateDecor dec p@Predicate{annotation = PredADelta _ prevAnn} =
   p {annotation = PredADelta dec prevAnn}
@@ -71,12 +94,9 @@ elimDecor d sol = (`R.filter` sol) $ \(R.Relation p _) -> decor p /= d
 decor :: Predicate n ('ADelta a) -> Decor
 decor Predicate{annotation = PredADelta dec _} = dec
 
-instance DecorableAnn LiteralAnn 'ADelta where
-  decorA = LitADelta
-instance DecorableAnn ClauseAnn 'ADelta where
-  decorA = ClADelta
-instance DecorableAnn ProgramAnn 'ADelta where
-  decorA = ProgADelta
+instance DecorableAnn LiteralAnn 'ADelta where decorA = LitADelta
+instance DecorableAnn ClauseAnn  'ADelta where decorA = ClADelta
+instance DecorableAnn ProgramAnn 'ADelta where decorA = ProgADelta
 
 instance PeelableAnn PredicateAnn 'ADelta where
   peelA (PredADelta _ prevAnn) = prevAnn
@@ -133,7 +153,7 @@ mkDeltaPredicate deco Predicate{..} = Predicate
   { annotation = PredADelta deco annotation
   , ..}
 
-mkDeltaSolution :: Eq (PredicateAnn a)
+mkDeltaSolution :: Identifiable (PredicateAnn a) b
                 => Program a -> R.Solution a -> R.Solution ('ADelta a)
 mkDeltaSolution pr sol = intDeltas `R.merge` intPrevs `R.merge` extNormals
   where

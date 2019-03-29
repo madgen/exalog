@@ -42,7 +42,7 @@ withDifferentEnvironment :: Monad m
 withDifferentEnvironment envMap (ReaderT f) =
   ReaderT $ f . envMap
 
-semiNaive :: forall a. (SpannableAST a, Eq (PredicateAnn a))
+semiNaive :: forall a b. (SpannableAST a, Identifiable (PredicateAnn a) b)
           => Program a -> SemiNaive a (R.Solution a)
 semiNaive pr = do
   initEDB <- initEDBM
@@ -115,14 +115,14 @@ semiNaive pr = do
     let maintenance = updateFromDelta . shiftPrevs . elimDecor PrevX2
     axeDeltaRedundancies <$> local maintenance evalClauses'
 
-evalClauses :: (SpannableAST a, Eq (PredicateAnn a))
+evalClauses :: (SpannableAST a, Identifiable (PredicateAnn a) b)
             => [ Clause a ] -> SemiNaive a (R.Solution a)
 evalClauses clss = do
   rels <- mapM evalClause clss
   edb <- ask
   return $ foldr R.add edb rels
 
-evalClause :: forall a. (SpannableAST a, Eq (PredicateAnn a))
+evalClause :: forall a b. (SpannableAST a, Identifiable (PredicateAnn a) b)
            => Clause a -> SemiNaive a (R.Relation a)
 evalClause Clause{..} = deriveHead =<< foldrM walkBody [ U.empty ] body
   where
@@ -142,7 +142,7 @@ evalClause Clause{..} = deriveHead =<< foldrM walkBody [ U.empty ] body
     return $ fmap (`U.extend` unifier)
          <$> execLiteral (unifier `U.substitute` lit)
 
-execLiteral :: (SpannableAST a, Eq (PredicateAnn a))
+execLiteral :: (SpannableAST a, Identifiable (PredicateAnn a) b)
             => Literal a -> SemiNaive a [ U.Unifier ]
 execLiteral lit@Literal{predicate = p@Predicate{nature = nature}, ..}
   | Extralogical foreignAction <- nature = do

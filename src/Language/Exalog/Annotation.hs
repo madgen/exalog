@@ -1,10 +1,12 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
 
 module Language.Exalog.Annotation
   ( AnnType(..)
@@ -16,11 +18,14 @@ module Language.Exalog.Annotation
   , PeelableAnn(..)
   , DecorableAnn(..)
   , SpannableAnn(..)
+  , IdentifiableAnn(..)
+  , Identifiable
   ) where
 
 import Protolude
 
 import Language.Exalog.SrcLoc
+import Language.Exalog.Pretty.Helper (Pretty)
 
 data AnnType = ABase | ADelta AnnType | ADependency AnnType
 
@@ -55,3 +60,13 @@ instance SpannableAnn (PredicateAnn 'ABase) where annSpan = span
 instance SpannableAnn (LiteralAnn   'ABase) where annSpan = span
 instance SpannableAnn (ClauseAnn    'ABase) where annSpan = span
 instance SpannableAnn (ProgramAnn   'ABase) where annSpan = span
+
+class IdentifiableAnn a b | a -> b where
+  idFragment :: a -> b
+
+instance IdentifiableAnn (PredicateAnn 'ABase) () where idFragment = const ()
+instance IdentifiableAnn (LiteralAnn   'ABase) () where idFragment = const ()
+instance IdentifiableAnn (ClauseAnn    'ABase) () where idFragment = const ()
+instance IdentifiableAnn (ProgramAnn   'ABase) () where idFragment = const ()
+
+type Identifiable a b = (IdentifiableAnn a b, Eq b, Ord b, Pretty b)

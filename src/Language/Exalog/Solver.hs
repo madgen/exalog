@@ -27,15 +27,15 @@ data SolverSt ann = SolverSt
 
 type Solver ann = StateT (SolverSt ann) (SemiNaive ann)
 
-solve :: (SpannableAST a, Eq (PredicateAnn a))
+solve :: (SpannableAST a, Identifiable (PredicateAnn a) b)
       => Program a -> R.Solution a -> Logger (R.Solution a)
 solve = evalSolver compute
 
-evalSolver :: Eq (PredicateAnn ann)
+evalSolver :: Identifiable (PredicateAnn ann) b
            => Solver ann a -> Program ann -> R.Solution ann -> Logger a
 evalSolver action pr = evalSemiNaiveT (evalStateT action (SolverSt pr mempty))
 
-addFact :: Eq (PredicateAnn a) => R.Relation a -> Solver a ()
+addFact :: Identifiable (PredicateAnn a) b => R.Relation a -> Solver a ()
 addFact fact = modify $
   \SolverSt{..} ->
     SolverSt{initEDB = R.add fact initEDB, ..}
@@ -45,7 +45,8 @@ addRule cl = modify $
   \SolverSt{program = Program{..}, ..} ->
     SolverSt{program = Program{clauses = cl : clauses, ..}, ..}
 
-compute :: (SpannableAST a, Eq (PredicateAnn a)) => Solver a (R.Solution a)
+compute :: (SpannableAST a, Identifiable (PredicateAnn a) b)
+        => Solver a (R.Solution a)
 compute = do
   pr <- program <$> get
   prs <- lift $ lift $ stratify . decorate $ pr

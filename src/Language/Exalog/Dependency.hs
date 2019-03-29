@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Language.Exalog.Dependency
   ( DependencyGr
@@ -39,6 +40,19 @@ instance SpannableAnn (ClauseAnn a) => SpannableAnn (ClauseAnn ('ADependency a))
 instance SpannableAnn (ProgramAnn a) => SpannableAnn (ProgramAnn ('ADependency a)) where
   annSpan (ProgADependency _ ann) = annSpan ann
 
+instance IdentifiableAnn (PredicateAnn ann) b
+    => IdentifiableAnn (PredicateAnn ('ADependency ann)) b where
+  idFragment (PredADependency rest) = idFragment rest
+instance IdentifiableAnn (LiteralAnn ann) b
+    => IdentifiableAnn (LiteralAnn ('ADependency ann)) b where
+  idFragment (LitADependency rest) = idFragment rest
+instance IdentifiableAnn (ClauseAnn ann) b
+    => IdentifiableAnn (ClauseAnn ('ADependency ann)) b where
+  idFragment (ClADependency rest) = idFragment rest
+instance IdentifiableAnn (ProgramAnn ann) b
+    => IdentifiableAnn (ProgramAnn ('ADependency ann)) b where
+  idFragment (ProgADependency _ rest) = idFragment rest
+
 instance PeelableAnn PredicateAnn 'ADependency where
   peelA (PredADependency a) = a
 instance PeelableAnn LiteralAnn 'ADependency where
@@ -70,7 +84,7 @@ instance DecorableAST (Literal a) 'ADependency where
             , ..}
 
 instance {-# OVERLAPPING #-}
-         Eq (PredicateAnn a)
+         Identifiable (PredicateAnn a) b
       => DecorableAST (Program a) 'ADependency where
   decorate pr@Program{..} =
     Program { annotation = ProgADependency (mkDependencyGr pr) annotation
@@ -80,7 +94,8 @@ instance {-# OVERLAPPING #-}
 dependencyGr :: Program ('ADependency a) -> DependencyGr a
 dependencyGr Program{annotation = ProgADependency gr _} = gr
 
-mkDependencyGr :: forall a. Eq (PredicateAnn a) => Program a -> DependencyGr a
+mkDependencyGr :: forall a b. Identifiable (PredicateAnn a) b
+               => Program a -> DependencyGr a
 mkDependencyGr pr@Program{..} = G.mkGraph nodes (nub edges)
   where
   nodeDict :: [ (PredicateBox a, G.Node) ]

@@ -20,7 +20,7 @@ import           Language.Exalog.Logger
 
 -- |Returns a stratified program in the form of a list to be executed in
 -- order.
-stratify :: forall a. Eq (PredicateAnn a)
+stratify :: forall a b. Identifiable (PredicateAnn a) b
          => Program ('ADependency a) -> Logger [ Program a ]
 stratify pr@Program{annotation = ann} = sequence $ do
   comp <- sccs
@@ -53,7 +53,7 @@ stratify pr@Program{annotation = ann} = sequence $ do
     let gr = condensation depGr
     in findPreds (G.labNodes gr) (topsort gr)
 
-  findPreds :: forall b. [ G.LNode b ] -> [ G.Node ] -> [ b ]
+  findPreds :: forall c. [ G.LNode c ] -> [ G.Node ] -> [ c ]
   findPreds nodeDict = map (fromJust . flip lookup nodeDict)
 
   sccPolarities :: [ G.Node ] -> [ Polarity ]

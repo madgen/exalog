@@ -56,3 +56,6 @@ instance {-# OVERLAPPABLE #-} Pretty a => PrettyCollection [ a ] where
 
 instance Pretty Text where
   pretty = text . unpack
+
+instance Pretty () where
+  pretty _ = empty

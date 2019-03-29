@@ -42,7 +42,7 @@ data Relation a = forall n. Relation (Predicate n a) (T.Tuples n)
 
 deriving instance Show (PredicateAnn a) => Show (Relation a)
 
-instance Ord (PredicateAnn a) => Ord (Relation a) where
+instance Identifiable (PredicateAnn a) b => Ord (Relation a) where
   Relation p ts `compare` Relation p' ts'
     | Proved Refl <- sameArity p p' =  (p,ts) `compare` (p',ts')
     | otherwise = fromSing (arity p) `compare` fromSing (arity p')
@@ -54,13 +54,13 @@ instance Eq (Relation a) where
 
 newtype Solution a = Solution [ Relation a ]
 
-instance Eq (PredicateAnn a) => Semigroup (Solution a) where
+instance Identifiable (PredicateAnn a) b => Semigroup (Solution a) where
   Solution sol <> Solution sol' = Solution $ foldr add' sol' sol
 
-instance Eq (PredicateAnn a) => Monoid (Solution a) where
+instance Identifiable (PredicateAnn a) b => Monoid (Solution a) where
   mempty = Solution []
 
-deriving instance Ord (PredicateAnn a) => Ord (Solution a)
+deriving instance Identifiable (PredicateAnn a) b => Ord (Solution a)
 
 instance Ord (Relation a) => Eq (Solution a) where
   Solution rels == Solution rels' = S.fromList rels == S.fromList rels'
@@ -70,16 +70,17 @@ deriving instance Show (PredicateAnn a) => Show (Solution a)
 isEmpty :: Solution a -> Bool
 isEmpty (Solution xs) = null xs
 
-fromList :: Eq (PredicateAnn a) => [ Relation a ] -> Solution a
+fromList :: Identifiable (PredicateAnn a) b => [ Relation a ] -> Solution a
 fromList = mconcat . map (Solution . return)
 
 toList :: Solution a -> [ Relation a ]
 toList (Solution rs) = rs
 
-add :: Eq (PredicateAnn a) => Relation a -> Solution a -> Solution a
+add :: Identifiable (PredicateAnn a) b => Relation a -> Solution a -> Solution a
 add rel (Solution rs) = Solution $ add' rel rs
 
-add' :: Eq (PredicateAnn a) => Relation a -> [ Relation a ] -> [ Relation a ]
+add' :: Identifiable (PredicateAnn a) b
+     => Relation a -> [ Relation a ] -> [ Relation a ]
 add' rel [] = [ rel ]
 add' rel@(Relation p ts) (rel'@(Relation p' ts') : sol)
   | Proved Refl <- sameArity p p'
@@ -93,14 +94,14 @@ partition p (Solution rs)
 filter :: (Relation a -> Bool) -> Solution a -> Solution a
 filter p (Solution rs) = Solution $ L.filter p rs
 
-merge :: Eq (PredicateAnn a) => Solution a -> Solution a -> Solution a
+merge :: Identifiable (PredicateAnn a) b => Solution a -> Solution a -> Solution a
 merge (Solution sol) (Solution sol') = Solution $ foldr add' sol' sol
 
 rename :: (forall n. Predicate n a -> Predicate n b) -> Solution a -> Solution b
 rename renamer (Solution rs) =
   Solution $ map (\(Relation p ts) -> Relation (renamer p) ts) rs
 
-findTuples :: forall a n. Eq (PredicateAnn a)
+findTuples :: forall a b n. Identifiable (PredicateAnn a) b
            => Predicate n a -> Solution a -> T.Tuples n
 findTuples p (Solution rs) = findTuples' p rs
   where
