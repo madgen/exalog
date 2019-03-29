@@ -51,11 +51,7 @@ class DecorableAnn (f :: AnnType -> Type) (ann :: AnnType -> AnnType) where
 class SpannableAnn a where
   annSpan :: a -> SrcSpan
 
-instance SpannableAnn (PredicateAnn 'ABase) where
-  annSpan = span
-instance SpannableAnn (LiteralAnn 'ABase) where
-  annSpan = span
-instance SpannableAnn (ClauseAnn 'ABase) where
-  annSpan = span
-instance SpannableAnn (ProgramAnn 'ABase) where
-  annSpan = span
+instance SpannableAnn (PredicateAnn 'ABase) where annSpan = span
+instance SpannableAnn (LiteralAnn   'ABase) where annSpan = span
+instance SpannableAnn (ClauseAnn    'ABase) where annSpan = span
+instance SpannableAnn (ProgramAnn   'ABase) where annSpan = span
