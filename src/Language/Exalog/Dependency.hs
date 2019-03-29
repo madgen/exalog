@@ -88,7 +88,8 @@ instance {-# OVERLAPPING #-}
       => DecorableAST (Program a) 'ADependency where
   decorate pr@Program{..} =
     Program { annotation = ProgADependency (mkDependencyGr pr) annotation
-            , clauses = map decorate clauses
+            , clauses    = map decorate clauses
+            , queryPreds = map decorate queryPreds
             }
 
 dependencyGr :: Program ('ADependency a) -> DependencyGr a

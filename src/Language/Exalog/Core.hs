@@ -186,6 +186,11 @@ instance {-# OVERLAPPABLE #-}
 
 instance {-# OVERLAPPABLE #-}
          ( DecorableAnn PredicateAnn ann
+         ) => DecorableAST (PredicateBox a) ann where
+  decorate (PredicateBox p) = PredicateBox (decorate p)
+
+instance {-# OVERLAPPABLE #-}
+         ( DecorableAnn PredicateAnn ann
          ) => DecorableAST (Predicate n a) ann where
   decorate Predicate{..} =
     Predicate (decorA annotation) fxSym arity nature
