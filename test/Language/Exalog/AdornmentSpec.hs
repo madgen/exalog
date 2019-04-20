@@ -17,5 +17,5 @@ spec =
       it "adorns linear ancestor correctly" $
         adornProgram LAnc.program `shouldBe` LAnc.adornedProgram
 
---      it "adorns non-linear ancestor correctly" $
---        adornProgram NLAnc.program `shouldBe` NLAnc.adornProgram
+      it "adorns non-linear ancestor correctly" $
+        adornProgram NLAnc.program `shouldBe` NLAnc.adornedProgram
