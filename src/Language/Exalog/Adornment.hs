@@ -80,6 +80,15 @@ instance IdentifiableAnn (ProgramAnn ann) b
     => IdentifiableAnn (ProgramAnn ('AAdornment ann)) b where
   idFragment (ProgAAdornment rest) = idFragment rest
 
+instance SpannableAnn (PredicateAnn a) => SpannableAnn (PredicateAnn ('AAdornment a)) where
+  annSpan (PredAAdornment ann) = annSpan ann
+instance SpannableAnn (LiteralAnn a) => SpannableAnn (LiteralAnn ('AAdornment a)) where
+  annSpan (LitAAdornment _ ann) = annSpan ann
+instance SpannableAnn (ClauseAnn a) => SpannableAnn (ClauseAnn ('AAdornment a)) where
+  annSpan (ClAAdornment ann) = annSpan ann
+instance SpannableAnn (ProgramAnn a) => SpannableAnn (ProgramAnn ('AAdornment a)) where
+  annSpan (ProgAAdornment ann) = annSpan ann
+
 --------------------------------------------------------------------------------
 -- Program adornment
 --------------------------------------------------------------------------------
