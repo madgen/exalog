@@ -18,7 +18,7 @@ import           Language.Exalog.SrcLoc
 import Fixture.Ancestor.Common
 import Fixture.Util
 
-{-| Linear ancestor program:
+{-| Non-linear ancestor program:
 -
 - anc(X,Z) :- anc(X,Y), anc(Y,Z).
 - anc(X,Y) :- par(X,Y).
@@ -34,7 +34,7 @@ program = Program (ProgABase dummySpan)
   , PredicateBox parPred
   ]
 
-{-| Linear ancestor program deltafied:
+{-| Non-linear ancestor program deltafied:
 -
 - delta_{i+1}_anc(X,Z) :- delta_i_anc(X,Y), anc_{i-1}(Y,Z).
 - delta_{i+1}_anc(X,Z) :- anc_i(X,Y), delta_i_anc(Y,Z).
