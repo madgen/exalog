@@ -310,11 +310,16 @@ instance (Identifiable (ClauseAnn a) b, Ord (Literal a)) => Ord (Clause a) where
 deriving instance (Show (ClauseAnn a), Show (Literal a)) => Show (Clause a)
 
 -- Program
-instance (Ord (Clause a), Identifiable (ProgramAnn a) b) => Eq (Program a) where
-  Program{annotation = ann, clauses = clss} ==
-    Program{annotation = ann', clauses = clss'} =
+instance ( Identifiable (ProgramAnn a) b
+         , Identifiable (PredicateAnn a) c
+         , Ord (PredicateBox a)
+         , Ord (Clause a)
+         ) => Eq (Program a) where
+  Program{annotation = ann, clauses = clss, queryPreds = qPreds} ==
+    Program{annotation = ann', clauses = clss', queryPreds = qPreds'} =
     idFragment ann == idFragment ann' &&
-    S.fromList clss == S.fromList clss'
+    S.fromList clss == S.fromList clss' &&
+    S.fromList qPreds == S.fromList qPreds'
 
 deriving instance
   ( Show (Clause a)
@@ -332,11 +337,16 @@ infixr 0 $$
 ($$) :: (forall n. Predicate n a -> b) -> PredicateBox a -> b
 f $$ (PredicateBox p) = f p
 
-
 instance Identifiable (PredicateAnn ann) b => Eq (PredicateBox ann) where
   PredicateBox p == PredicateBox p'
     | Proved Refl <- sameArity p p' = p == p'
     | otherwise = False
+
+instance Identifiable (PredicateAnn ann) b => Ord (PredicateBox ann) where
+  PredicateBox p `compare` PredicateBox p'
+    | Proved Refl <- sameArity p p'
+    , p == p' = p `compare` p'
+    | otherwise = fromSing (arity p) `compare` fromSing (arity p')
 
 -- Misc. helpers
 
