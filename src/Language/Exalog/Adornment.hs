@@ -3,14 +3,17 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Language.Exalog.Adornment
-  ( adornProgram
+  ( Adornment(..)
+  , adornProgram
   , adornClauses
   , adornClause
+  , adornLiteral
   ) where
 
 import Protolude hiding (head)
@@ -20,28 +23,56 @@ import qualified Data.List.NonEmpty as NE
 import           Data.Singletons (fromSing)
 import qualified Data.Vector.Sized as V
 
+import Text.PrettyPrint (hcat)
+
+import Language.Exalog.Pretty.Helper (Pretty(..), prettyC)
 import Language.Exalog.Core
 
 data Adornment = Free | Bound deriving (Eq, Ord, Show)
+
+instance Pretty Adornment where
+  pretty Free  = "f"
+  pretty Bound = "b"
+
+instance Pretty [ Adornment ] where
+  pretty = hcat . prettyC
+
+instance Pretty b => Pretty ([ Adornment ], b) where
+  pretty (dec, b) = pretty dec <> "_" <> pretty b
 
 newtype instance PredicateAnn ('AAdornment ann) = PredAAdornment               (PredicateAnn ann)
 data    instance LiteralAnn   ('AAdornment ann) = LitAAdornment  [ Adornment ] (LiteralAnn   ann)
 newtype instance ClauseAnn    ('AAdornment ann) = ClAAdornment                 (ClauseAnn    ann)
 newtype instance ProgramAnn   ('AAdornment ann) = ProgAAdornment               (ProgramAnn   ann)
 
+deriving instance Show (PredicateAnn a) => Show (PredicateAnn ('AAdornment a))
+deriving instance Show (LiteralAnn a)   => Show (LiteralAnn   ('AAdornment a))
+deriving instance Show (ClauseAnn a)    => Show (ClauseAnn    ('AAdornment a))
+deriving instance Show (ProgramAnn a)   => Show (ProgramAnn   ('AAdornment a))
+
+deriving instance Eq (PredicateAnn a) => Eq (PredicateAnn ('AAdornment a))
+deriving instance Eq (LiteralAnn a)   => Eq (LiteralAnn   ('AAdornment a))
+deriving instance Eq (ClauseAnn a)    => Eq (ClauseAnn    ('AAdornment a))
+deriving instance Eq (ProgramAnn a)   => Eq (ProgramAnn   ('AAdornment a))
+
+deriving instance Ord (PredicateAnn a) => Ord (PredicateAnn ('AAdornment a))
+deriving instance Ord (LiteralAnn a)   => Ord (LiteralAnn   ('AAdornment a))
+deriving instance Ord (ClauseAnn a)    => Ord (ClauseAnn    ('AAdornment a))
+deriving instance Ord (ProgramAnn a)   => Ord (ProgramAnn   ('AAdornment a))
+
 instance DecorableAnn PredicateAnn 'AAdornment where decorA = PredAAdornment
 instance DecorableAnn ClauseAnn    'AAdornment where decorA = ClAAdornment
 instance DecorableAnn ProgramAnn   'AAdornment where decorA = ProgAAdornment
 
 instance PeelableAnn PredicateAnn 'AAdornment where peelA (PredAAdornment ann)  = ann
-instance PeelableAnn LiteralAnn 'AAdornment   where peelA (LitAAdornment _ ann) = ann
+instance PeelableAnn LiteralAnn   'AAdornment where peelA (LitAAdornment _ ann) = ann
 
 instance IdentifiableAnn (PredicateAnn ann) b
     => IdentifiableAnn (PredicateAnn ('AAdornment ann)) b where
   idFragment (PredAAdornment rest) = idFragment rest
 instance IdentifiableAnn (LiteralAnn ann) b
-    => IdentifiableAnn (LiteralAnn ('AAdornment ann)) (b, [ Adornment ]) where
-  idFragment (LitAAdornment ads rest) = (idFragment rest, ads)
+    => IdentifiableAnn (LiteralAnn ('AAdornment ann)) ([ Adornment ], b) where
+  idFragment (LitAAdornment ads rest) = (ads, idFragment rest)
 instance IdentifiableAnn (ClauseAnn ann) b
     => IdentifiableAnn (ClauseAnn ('AAdornment ann)) b where
   idFragment (ClAAdornment rest) = idFragment rest
@@ -61,7 +92,7 @@ adornProgram Program{..} = Program
   , queryPreds = (PredicateBox . decorate $$) <$> queryPreds
   , ..}
   where
-  adornedClauses = join $ (`adornClauses` clauses) <$> queryPreds
+  adornedClauses = (`adornClauses` clauses) =<< queryPreds
 
 --------------------------------------------------------------------------------
 -- Multiple clause adornment with an entry point
@@ -113,7 +144,7 @@ adornClauses :: Identifiable (PredicateAnn ann) b
 adornClauses pBox@(PredicateBox p) clauses =
   execAdorn (adornClausesM clauses) pBox allFreeBinding
   where
-  allFreeBinding = replicate (fromIntegral (fromSing (arity p))) $ Free
+  allFreeBinding = replicate (fromIntegral . fromSing . arity $ p) Free
 
 adornClausesM :: forall ann b. Identifiable (PredicateAnn ann) b
               => [ Clause ann ] -> Adorn ann ()
