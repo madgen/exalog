@@ -6,8 +6,13 @@ import Test.Hspec
 
 import qualified Fixture.Ancestor.LinearAncestor as LAnc
 import qualified Fixture.Ancestor.NonLinearAncestor as NLAnc
+import qualified Fixture.Ancestor.EDB as AncEDB
 
 import Language.Exalog.Adornment
+import Language.Exalog.Core (decorate)
+import Language.Exalog.Relation
+
+import Language.Exalog.SemiNaiveSpec (execSemiNaive)
 
 spec :: Spec
 spec =
@@ -22,3 +27,11 @@ spec =
 
       it "adorns swapped non-linear ancestor correctly" $
         adornProgram NLAnc.programSwapped `shouldBe` NLAnc.adornedProgramSwapped
+
+      finalEDB <- execSemiNaive NLAnc.adornedProgram (rename decorate AncEDB.initEDB)
+      it "adornment preserves non-linear ancestor solutions" $
+        finalEDB `shouldBe` Just (rename decorate AncEDB.finalEDB)
+
+      finalEDB <- execSemiNaive LAnc.adornedProgram (rename decorate AncEDB.initEDB)
+      it "adornment preserves linear ancestor solutions" $
+        finalEDB `shouldBe` Just (rename decorate AncEDB.finalEDB)

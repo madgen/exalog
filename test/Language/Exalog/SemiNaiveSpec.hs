@@ -6,7 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
 
-module Language.Exalog.SemiNaiveSpec (spec) where
+module Language.Exalog.SemiNaiveSpec (spec, execSemiNaive) where
 
 import Protolude hiding (Nat)
 
