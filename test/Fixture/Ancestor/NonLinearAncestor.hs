@@ -2,8 +2,10 @@
 
 module Fixture.Ancestor.NonLinearAncestor
   ( program
+  , programSwapped
   , deltaProgram
   , adornedProgram
+  , adornedProgramSwapped
   ) where
 
 import Protolude
@@ -79,6 +81,42 @@ adornedProgram = Program (decorA (ProgABase dummySpan))
       (adornLiteral [Bound, Free] $ anc (tvar "X") (tvar "Y"))
       $ NE.fromList
         [ adornLiteral [Bound, Free] $ par (tvar "X") (tvar "Y") ]
+  ]
+  [ PredicateBox . decorate $ ancPred
+  , PredicateBox . decorate $ parPred
+  ]
+
+{-| Same non-linear ancestor program except anc atoms are swapped
+- (minus base case):
+-
+- anc(X,Z) :- anc(Y,Z), anc(X,Y).
+|-}
+programSwapped :: Program 'ABase
+programSwapped = Program (ProgABase dummySpan)
+  [ Clause (ClABase dummySpan) (anc (tvar "X") (tvar "Z")) $ NE.fromList
+      [ anc (tvar "Y") (tvar "Z"), anc (tvar "X") (tvar "Y") ]
+  ]
+  [ PredicateBox ancPred
+  , PredicateBox parPred
+  ]
+
+{-| Adorned swapped non-linear ancestor program:
+-
+- anc_ff(X,Z) :- anc_ff(Y,Z), anc_fb(X,Y).
+- anc_fb(X,Z) :- anc_fb(Y,Z), anc_fb(X,Y).
+|-}
+adornedProgramSwapped :: Program ('AAdornment 'ABase)
+adornedProgramSwapped = Program (decorA $ ProgABase dummySpan)
+  [ Clause (decorA $ ClABase dummySpan)
+      (adornLiteral [Free, Free] $ anc (tvar "X") (tvar "Z"))
+      $ NE.fromList
+        [ adornLiteral [ Free, Free  ] $ anc (tvar "Y") (tvar "Z")
+        , adornLiteral [ Free, Bound ] $ anc (tvar "X") (tvar "Y") ]
+  , Clause (decorA $ ClABase dummySpan)
+      (adornLiteral [Free, Bound] $ anc (tvar "X") (tvar "Z"))
+      $ NE.fromList
+        [ adornLiteral [ Free, Bound ] $ anc (tvar "Y") (tvar "Z")
+        , adornLiteral [ Free, Bound ] $ anc (tvar "X") (tvar "Y") ]
   ]
   [ PredicateBox . decorate $ ancPred
   , PredicateBox . decorate $ parPred

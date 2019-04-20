@@ -19,3 +19,6 @@ spec =
 
       it "adorns non-linear ancestor correctly" $
         adornProgram NLAnc.program `shouldBe` NLAnc.adornedProgram
+
+      it "adorns swapped non-linear ancestor correctly" $
+        adornProgram NLAnc.programSwapped `shouldBe` NLAnc.adornedProgramSwapped
