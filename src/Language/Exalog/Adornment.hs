@@ -18,7 +18,7 @@ module Language.Exalog.Adornment
 
 import Protolude hiding (head)
 
-import           Data.List (nub)
+import           Data.List (nub, (\\))
 import qualified Data.List.NonEmpty as NE
 import           Data.Singletons (fromSing)
 import qualified Data.Vector.Sized as V
@@ -84,11 +84,14 @@ instance IdentifiableAnn (ProgramAnn ann) b
 -- Program adornment
 --------------------------------------------------------------------------------
 
-adornProgram :: Identifiable (PredicateAnn ann) b
+adornProgram :: ( Identifiable (PredicateAnn ann) b
+                , Identifiable (LiteralAnn ann) b
+                , Identifiable (ClauseAnn ann) b
+                )
              => Program ann -> Program ('AAdornment ann)
 adornProgram Program{..} = Program
   { annotation = decorA annotation
-  , clauses    = adornedClauses
+  , clauses    = nub adornedClauses
   , queryPreds = (PredicateBox . decorate $$) <$> queryPreds
   , ..}
   where
@@ -123,7 +126,8 @@ addAdornedClauses clauses = do
   let targets = map target . join $ NE.toList . body <$> clauses
 
   modify (\s -> s { _adornedClauses = clauses <> _adornedClauses s
-                  , _toAdorn        = nub $ targets <> _toAdorn s
+                  , _toAdorn        =
+                    nub $ (targets \\ _alreadyAdorned s) <> _toAdorn s
                   })
   where
   target :: Literal ('AAdornment ann) -> (PredicateBox ann, [ Adornment ])
@@ -179,6 +183,10 @@ runAdornClause = evalState
 getBoundVariables :: AdornClause [ Var ]
 getBoundVariables = get
 
+addBoundVariables :: [ Var ] -> AdornClause ()
+addBoundVariables vars = modify (vars <>)
+
+
 adornClause :: [ Adornment ] -> Clause ann -> Clause ('AAdornment ann)
 adornClause ads cl@Clause{..} =
   runAdornClause (adornClauseM cl) boundVars
@@ -189,7 +197,8 @@ adornClauseM :: Clause ann -> AdornClause (Clause ('AAdornment ann))
 adornClauseM Clause{..} = do
   aHead <- adornLiteralM head
 
-  aBody <- traverse adornLiteralM body
+  aBody <-traverse
+    (\lit -> adornLiteralM lit <* addBoundVariables (variables lit)) body
 
   pure $ Clause{head = aHead, body = aBody, annotation = decorA annotation}
 
@@ -215,11 +224,7 @@ adornLiteralM :: Literal ann -> AdornClause (Literal ('AAdornment ann))
 adornLiteralM lit@Literal{..} = do
   ads <- deriveAdornmentM lit
 
-  let variablesBeingBound = variables lit
-
   let adornedLit = adornLiteral ads lit
-
-  modify (variablesBeingBound <>)
 
   pure adornedLit
 
