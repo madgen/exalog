@@ -51,6 +51,7 @@ deltaProgram = Program (decorA (ProgABase dummySpan))
 - anc_ff(X,Z) :- par_ff(X,Y), anc_bf(Y,Z).
 - anc_bf(X,Z) :- par_bf(X,Y), anc_bf(Y,Z).
 - anc_ff(X,Y) :- par_ff(X,Y).
+- anc_bf(X,Y) :- par_bf(X,Y).
 |-}
 adornedProgram :: Program ('AAdornment 'ABase)
 adornedProgram = Program (decorA (ProgABase dummySpan))
@@ -68,6 +69,10 @@ adornedProgram = Program (decorA (ProgABase dummySpan))
       (adornLiteral [ Free, Free ] $ anc (tvar "X") (tvar "Y"))
       $ NE.fromList
         [ adornLiteral [ Free, Free ] $ par (tvar "X") (tvar "Y") ]
+  , Clause (decorA (ClABase dummySpan))
+      (adornLiteral [ Bound, Free ] $ anc (tvar "X") (tvar "Y"))
+      $ NE.fromList
+        [ adornLiteral [ Bound, Free ] $ par (tvar "X") (tvar "Y") ]
   ]
   [ PredicateBox . decorate $ ancPred
   , PredicateBox . decorate $ parPred
