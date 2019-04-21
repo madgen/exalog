@@ -94,7 +94,7 @@ data Sym =
   deriving (Eq, Ord, Show)
 
 -- |A term is a variable or a symbol
-data Term = TVar Var | TSym Sym deriving (Eq, Ord, Show)
+data Term = TVar Var | TSym Sym | TWild deriving (Eq, Ord, Show)
 
 -- |If p is a predicate with arity n and (x_1,...,x_n) is a tuple of terms,
 -- p(x_1,...,x_n) and neg p(x_1,...,x_n) are literals.
@@ -207,6 +207,7 @@ instance Formula (Literal a) where
   variables Literal{terms = terms} = flip mapMaybe (V.toList terms) $ \case
     TVar var -> Just var
     TSym _   -> Nothing
+    TWild    -> Nothing
 
   predicates Literal{predicate = predicate} = [ PredicateBox predicate ]
 

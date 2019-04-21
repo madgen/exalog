@@ -123,7 +123,8 @@ filterFakeResults ts =
 consistent :: Sym -> Term -> Bool
 consistent sym = \case
   TSym sym' -> sym == sym'
-  TVar{}  -> True
+  TVar{}    -> True
+  TWild     -> True
 
 --------------------------------------------------------------------------------
 -- Util
@@ -280,5 +281,5 @@ instance ( ReturnableB r ~ 'True
 fromTerm :: Term -> Sym
 fromTerm = \case
   TSym s -> s
-  TVar{} -> panic
+  _      -> panic
     "Mode error: Foreign function argument is not sufficiently bound."

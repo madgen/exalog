@@ -36,16 +36,16 @@ unify :: V.Vector n Term -> V.Vector n Sym -> Maybe Unifier
 unify v w = Unifier <$> foldr' attempt (Just []) (V.zip v w)
   where
   attempt :: (Term, Sym) -> Maybe [ (Var, Sym) ] -> Maybe [ (Var, Sym) ]
-  attempt _ Nothing = Nothing
-  attempt (TVar var, sym) mus@(Just unifierAcc) =
+  attempt _                Nothing               = Nothing
+  attempt (TWild, _)       mus                   = mus
+  attempt (TSym sym, sym') mus     | sym == sym' = mus
+                                   | otherwise   = Nothing
+  attempt (TVar var, sym)  mus@(Just unifierAcc) =
     case var `lookup` unifierAcc of
       Just sym'
         | sym == sym' -> mus
         | otherwise   -> Nothing
       Nothing         -> ((var,sym) :) <$> mus
-  attempt (TSym sym, sym') mus@(Just unifierAcc)
-    | sym == sym' = mus
-    | otherwise   = Nothing
 
 class Substitutable a where
   substitute :: Unifier -> a -> a
@@ -53,11 +53,9 @@ class Substitutable a where
 instance Substitutable (V.Vector n Term) where
   substitute (Unifier u) = fmap $ \t ->
     case t of
-      TVar v ->
-        case v `lookup` u of
-          Just s -> TSym s
-          Nothing -> t
+      TVar v -> maybe t TSym (v `lookup` u)
       TSym{} -> t
+      TWild  -> t
 
 instance Substitutable (Literal a) where
   substitute unifier Literal{..} =

@@ -46,6 +46,7 @@ instance Pretty Var where
 instance Pretty Term where
   pretty (TSym s) = pretty s
   pretty (TVar v) = pretty v
+  pretty TWild    = "_"
 
 instance ( Identifiable (PredicateAnn ann) a
          , Identifiable (Ann Literal ann) b

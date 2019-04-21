@@ -15,7 +15,7 @@ module Language.Exalog.SemiNaive
   , evalSemiNaiveT
   ) where
 
-import Protolude hiding (head, pred)
+import Protolude hiding (head, pred, sym)
 
 import Control.Monad.Trans.Reader (ReaderT)
 
@@ -124,16 +124,13 @@ evalClauses clss = do
 
 evalClause :: forall a b. (SpannableAST a, Identifiable (PredicateAnn a) b)
            => Clause a -> SemiNaive a (R.Relation a)
-evalClause Clause{..} = deriveHead =<< foldrM walkBody [ U.empty ] body
+evalClause cl@Clause{..} = deriveHead =<< foldrM walkBody [ U.empty ] body
   where
   deriveHead :: [ U.Unifier ] -> SemiNaive a (R.Relation a)
   deriveHead unifiers
     | Literal{predicate = pred, terms = terms} <- head = do
       let preTuples = map (`U.substitute` terms) unifiers
-      tuples <- (`traverse` preTuples) $ \preTuple -> do
-        maybe (lift $ scold Nothing "Range-restriction is violated.")
-              pure
-              (extractTuples preTuple)
+      tuples <- lift $ traverse extractHeadTuple preTuples
       pure $ R.Relation pred . T.fromList $ tuples
 
   walkBody :: Literal a -> [ U.Unifier ] -> SemiNaive a [ U.Unifier ]
@@ -141,6 +138,12 @@ evalClause Clause{..} = deriveHead =<< foldrM walkBody [ U.empty ] body
     unifier <- unifiers
     return $ fmap (`U.extend` unifier)
          <$> execLiteral (unifier `U.substitute` lit)
+
+  extractHeadTuple :: V.Vector n Term -> Logger (V.Vector n Sym)
+  extractHeadTuple = traverse (\case
+    TSym sym -> pure sym
+    TVar{}   -> scream (Just $ span cl) "Range-restriction is violated"
+    TWild    -> scream (Just $ span cl) "Head contains a wildcard")
 
 execLiteral :: (SpannableAST a, Identifiable (PredicateAnn a) b)
             => Literal a -> SemiNaive a [ U.Unifier ]
@@ -162,11 +165,6 @@ execLiteral lit@Literal{predicate = p@Predicate{nature = nature}, ..}
 
   tuplesToUnifiers :: V.Vector n Term -> [ V.Vector n Sym ] -> [ U.Unifier ]
   tuplesToUnifiers terms = mapMaybe (U.unify terms)
-
-extractTuples :: V.Vector n Term -> Maybe (V.Vector n Sym)
-extractTuples = traverse (\case
-  TSym sym -> Just sym
-  TVar{}   -> Nothing)
 
 reverseClauses :: Program a -> Program a
 reverseClauses pr = pr { clauses = map reverseClause . clauses $ pr}
