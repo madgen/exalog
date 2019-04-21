@@ -43,7 +43,7 @@ instance Pretty Sym where
 instance Pretty Var where
   pretty (Var v) = char '\'' <> pretty v
 
-instance Pretty Term where
+instance (Pretty var, Pretty sym) => Pretty (Term var sym) where
   pretty (TSym s) = pretty s
   pretty (TVar v) = pretty v
   pretty TWild    = "_"
