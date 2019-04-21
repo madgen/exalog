@@ -250,6 +250,7 @@ deriveAdornment :: Literal ann -> [ Var ] -> [ Adornment ]
 deriveAdornment Literal{..} boundVars =
   (`map` V.toList terms) $ \case
     TSym{} -> Bound
+    TWild  -> Free
     TVar v -> if v `elem` boundVars then Bound else Free
 
 deriveAdornmentM :: Literal ann -> AdornClause [ Adornment ]
