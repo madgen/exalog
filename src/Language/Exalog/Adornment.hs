@@ -10,6 +10,7 @@
 
 module Language.Exalog.Adornment
   ( Adornment(..)
+  , adornment
   , adornProgram
   , adornClauses
   , adornClause
@@ -88,6 +89,13 @@ instance SpannableAnn (ClauseAnn a) => SpannableAnn (ClauseAnn ('AAdornment a)) 
   annSpan (ClAAdornment ann) = annSpan ann
 instance SpannableAnn (ProgramAnn a) => SpannableAnn (ProgramAnn ('AAdornment a)) where
   annSpan (ProgAAdornment ann) = annSpan ann
+
+--------------------------------------------------------------------------------
+-- Accessor to the binding pattern
+--------------------------------------------------------------------------------
+
+adornment :: Literal ('AAdornment ann) -> [ Adornment ]
+adornment Literal{annotation = LitAAdornment ads _} = ads
 
 --------------------------------------------------------------------------------
 -- Program adornment
