@@ -37,7 +37,7 @@ instance Pretty Decor where
   pretty Normal = "Norm"
   pretty Delta  = "Δ"
   pretty Prev   = "-1"
-  pretty Prev   = "-2"
+  pretty PrevX2 = "-2"
 
 instance Pretty b => Pretty (Decor, b) where
   pretty (dec, b) = pretty dec <> "_" <> pretty b
