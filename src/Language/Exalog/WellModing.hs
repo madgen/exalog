@@ -59,5 +59,5 @@ instance SpannableAnn (LiteralAnn ann)
   isWellModable lit@Literal{..}
     | Positive <- polarity = True
     | otherwise = (`all` zip (adornment lit) (V.toList terms)) $ \case
-      (Free,TVar{}) -> False
+      (Free, TVar{}) -> False
       _             -> True

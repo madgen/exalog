@@ -203,7 +203,6 @@ getBoundVariables = get
 addBoundVariables :: [ Var ] -> AdornClause ()
 addBoundVariables vars = modify (vars <>)
 
-
 adornClause :: [ Adornment ] -> Clause ann -> Clause ('AAdornment ann)
 adornClause ads cl@Clause{..} =
   runAdornClause (adornClauseM cl) boundVars
