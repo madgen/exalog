@@ -24,7 +24,6 @@ module Language.Exalog.Core
   , ForeignFunc
   -- ** Literal
   , Literal(..)
-  , CoreTerm
   , Term(..)
   , Var(..), Sym(..)
   , Polarity(..)
@@ -66,8 +65,7 @@ import qualified GHC.Show as Show
 import           Language.Exalog.Annotation
 import           Language.Exalog.SrcLoc
 
-type ForeignFunc n =
-  V.Vector n (Term Var Sym) -> IO (Either Text [ V.Vector n Sym ])
+type ForeignFunc n = V.Vector n Term -> IO (Either Text [ V.Vector n Sym ])
 
 -- |Type indicating the nature of Datalog predicate
 data Nature (n :: Nat) =
@@ -96,13 +94,11 @@ data Sym =
   deriving (Eq, Ord, Show)
 
 -- |A term is a variable or a symbol
-data Term var sym =
-    TVar { _var :: var }
-  | TSym { _sym :: sym }
+data Term =
+    TVar { _var :: Var }
+  | TSym { _sym :: Sym }
   | TWild
   deriving (Eq, Ord, Show)
-
-type CoreTerm = Term Var Sym
 
 -- |If p is a predicate with arity n and (x_1,...,x_n) is a tuple of terms,
 -- p(x_1,...,x_n) and neg p(x_1,...,x_n) are literals.
@@ -110,7 +106,7 @@ data Literal a = forall n . Literal
   { annotation :: LiteralAnn a
   , polarity   :: Polarity
   , predicate  :: Predicate n a
-  , terms      :: V.Vector n (Term Var Sym)
+  , terms      :: V.Vector n Term
   }
 
 type Head a = Literal a

@@ -139,7 +139,7 @@ evalClause cl@Clause{..} = deriveHead =<< foldrM walkBody [ U.empty ] body
     return $ fmap (`U.extend` unifier)
          <$> execLiteral (unifier `U.substitute` lit)
 
-  extractHeadTuple :: V.Vector n CoreTerm -> Logger (V.Vector n Sym)
+  extractHeadTuple :: V.Vector n Term -> Logger (V.Vector n Sym)
   extractHeadTuple = traverse (\case
     TSym sym -> pure sym
     TVar{}   -> scream (Just $ span cl) "Range-restriction is violated"
@@ -157,13 +157,13 @@ execLiteral lit@Literal{predicate = p@Predicate{nature = nature}, ..}
   | otherwise =
     handleTuples terms . T.toList . R.findTuples p <$> ask
   where
-  handleTuples :: V.Vector n CoreTerm -> [ V.Vector n Sym ] -> [ U.Unifier ]
+  handleTuples :: V.Vector n Term -> [ V.Vector n Sym ] -> [ U.Unifier ]
   handleTuples terms tuples =
     case polarity of
       Positive -> tuplesToUnifiers terms tuples
       Negative -> [ U.empty | null (tuplesToUnifiers terms tuples) ]
 
-  tuplesToUnifiers :: V.Vector n CoreTerm -> [ V.Vector n Sym ] -> [ U.Unifier ]
+  tuplesToUnifiers :: V.Vector n Term -> [ V.Vector n Sym ] -> [ U.Unifier ]
   tuplesToUnifiers terms = mapMaybe (U.unify terms)
 
 reverseClauses :: Program a -> Program a

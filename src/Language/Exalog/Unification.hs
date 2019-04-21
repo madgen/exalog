@@ -32,10 +32,10 @@ extend' (binding@(v,s) : u) u' =
     Just s' -> if s == s' then extend' u u' else Nothing
     Nothing -> (binding:) <$> extend' u u'
 
-unify :: V.Vector n CoreTerm -> V.Vector n Sym -> Maybe Unifier
+unify :: V.Vector n Term -> V.Vector n Sym -> Maybe Unifier
 unify v w = Unifier <$> foldr' attempt (Just []) (V.zip v w)
   where
-  attempt :: (CoreTerm, Sym) -> Maybe [ (Var, Sym) ] -> Maybe [ (Var, Sym) ]
+  attempt :: (Term, Sym) -> Maybe [ (Var, Sym) ] -> Maybe [ (Var, Sym) ]
   attempt _                Nothing               = Nothing
   attempt (TWild, _)       mus                   = mus
   attempt (TSym sym, sym') mus     | sym == sym' = mus
@@ -50,7 +50,7 @@ unify v w = Unifier <$> foldr' attempt (Just []) (V.zip v w)
 class Substitutable a where
   substitute :: Unifier -> a -> a
 
-instance Substitutable (V.Vector n CoreTerm) where
+instance Substitutable (V.Vector n Term) where
   substitute (Unifier u) = fmap $ \t ->
     case t of
       TVar v -> maybe t TSym (v `lookup` u)

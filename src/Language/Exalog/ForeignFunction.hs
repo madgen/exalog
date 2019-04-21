@@ -48,7 +48,7 @@ import Language.Exalog.Core
 - answer set. Otherwise, it returns an empty answer set.
 -}
 liftPredicate :: (Applicable f, RetTy f ~ Bool) => f -> ForeignFunc (Arity f)
-liftPredicate p v = return . return $ [ fromCoreTerm <$> v | p @@ v ]
+liftPredicate p v = return . return $ [ fromTerm <$> v | p @@ v ]
 
 {- | A variant of 'liftPredicate' for functions that have side effects and
 - may produce errors.
@@ -56,7 +56,7 @@ liftPredicate p v = return . return $ [ fromCoreTerm <$> v | p @@ v ]
 liftPredicateME :: (Applicable f, RetTy f ~ IO (Either Text Bool))
                 => f -> ForeignFunc (Arity f)
 liftPredicateME p v =
-  fmap (\cond -> [ fromCoreTerm <$> v | cond ]) <$> p @@ v
+  fmap (\cond -> [ fromTerm <$> v | cond ]) <$> p @@ v
 
 --------------------------------------------------------------------------------
 -- Lift functions that do not return Bool
@@ -81,7 +81,7 @@ liftFunction :: forall f r
              => f -> ForeignFunc (NRets r + Arity f)
 liftFunction f v = return . return $ genTuples (toReturnVs $ f @@ args) v
   where
-  args :: V.Vector (Arity f) CoreTerm
+  args :: V.Vector (Arity f) Term
   args = V.take' (Proxy :: Proxy (Arity f)) v
 
 {- | A variant of 'liftFunction' for functions that have side effects and
@@ -96,31 +96,31 @@ liftFunctionME f v = do
     resss <- eResss
     return $ genTuples resss v
   where
-  args :: V.Vector (Arity f) CoreTerm
+  args :: V.Vector (Arity f) Term
   args = V.take' (Proxy :: Proxy (Arity f)) v
 
 genTuples :: forall na nr
            . KnownNat na
           => [ V.Vector nr Sym ]
-          -> V.Vector (na + nr) CoreTerm
+          -> V.Vector (na + nr) Term
           -> [ V.Vector (na + nr) Sym ]
 genTuples resss v =
   [ symArgs V.++ ress
   | ress <- filterFakeResults rets resss ]
   where
-  symArgs = fromCoreTerm <$> args
+  symArgs = fromTerm <$> args
   (args, rets) = V.splitAt @na v
 
 -- Eliminate tuples with results that contradict with what is bound in the
 -- subgoal for that result.
-filterFakeResults :: V.Vector nr CoreTerm
+filterFakeResults :: V.Vector nr Term
                   -> [ V.Vector nr Sym ]
                   -> [ V.Vector nr Sym ]
 filterFakeResults ts =
   filter (\ress -> all (uncurry consistent) $ V.zip ress ts)
 
 -- Check if a particular result is consistent with the given term
-consistent :: Sym -> CoreTerm -> Bool
+consistent :: Sym -> Term -> Bool
 consistent sym = \case
   TSym sym' -> sym == sym'
   TVar{}    -> True
@@ -205,9 +205,9 @@ instance ReturnableBase a => Returnable' 'True [ a ] where
 
 interpretAt :: forall i n a
              . (KnownNat i, Argumentable a)
-            => V.Vector ((i + n) + 1) CoreTerm
+            => V.Vector ((i + n) + 1) Term
             -> a
-interpretAt v = interpret . fromCoreTerm . V.index' v $ (Proxy :: Proxy i)
+interpretAt v = interpret . fromTerm . V.index' v $ (Proxy :: Proxy i)
 
 class Argumentable a where
   interpret :: Sym -> a
@@ -241,7 +241,7 @@ type family Arity f :: Nat where
 type Applicable f = Applicable' f (Arity f)
 
 class ari ~ Arity f => Applicable' f (ari :: Nat) where
-  (@@) :: f -> V.Vector ari CoreTerm -> RetTy f
+  (@@) :: f -> V.Vector ari Term -> RetTy f
 
 instance ( ReturnableB r ~ 'True
          , Argumentable a
@@ -278,8 +278,8 @@ instance ( ReturnableB r ~ 'True
              (interpretAt @3 v)
              (interpretAt @4 v)
 
-fromCoreTerm :: CoreTerm -> Sym
-fromCoreTerm = \case
+fromTerm :: Term -> Sym
+fromTerm = \case
   TSym s -> s
   _      -> panic
     "Mode error: Foreign function argument is not sufficiently bound."
