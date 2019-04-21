@@ -55,7 +55,7 @@ instance SpannableAnn (LiteralAnn ann) => Moded (Clause ('AAdornment ann)) where
 instance SpannableAnn (LiteralAnn ann)
     => Moded (Literal ('AAdornment ann)) where
   checkWellModability lit =
-    when (isWellModable lit) $ scold (Just $ span lit) "Not well-modable."
+    unless (isWellModable lit) $ scold (Just $ span lit) "Not well-modable."
   isWellModable lit@Literal{..}
     | Positive <- polarity = True
     | otherwise = (`all` zip (adornment lit) (V.toList terms)) $ \case
