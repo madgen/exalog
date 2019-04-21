@@ -27,6 +27,7 @@ import qualified Fixture.Foreign as Foreign
 import qualified Fixture.RepeatedVars as Repeated
 import qualified Fixture.SpanIrrelevance as SpanIrr
 import           Fixture.Util
+import qualified Fixture.Wildcard as Wildcard
 
 import           Language.Exalog.Core hiding (Positive)
 import           Language.Exalog.Logger
@@ -61,6 +62,10 @@ spec =
     finalEDB <- execSemiNaive Repeated.program Repeated.initEDB
     it "does not forget repeated variables" $
       R.findTuples Repeated.pPred <$> finalEDB `shouldBe` Just Repeated.pTuples
+
+    finalEDB <- execSemiNaive Wildcard.program Wildcard.initEDB
+    it "evaluates literals with wildcads correctly" $
+      R.findTuples Wildcard.pPred <$> finalEDB `shouldBe` Just Wildcard.pTuples
 
     describe "Foreign function" $ do
 
