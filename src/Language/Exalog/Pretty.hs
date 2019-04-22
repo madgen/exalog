@@ -24,6 +24,9 @@ import qualified Language.Exalog.Tuples as T
 
 -- Core pretty instances
 
+instance Pretty PredicateSymbol where
+  pretty (PredicateSymbol predSym) = pretty predSym
+
 instance Identifiable (Ann (Predicate n) ann) b
     => Pretty (Predicate n ann) where
   pretty Predicate{..} =

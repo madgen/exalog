@@ -61,7 +61,7 @@ instance Termable Bool where
 -- Common and generic arbitrary instances
 
 -- For Core
-instance Arbitrary PredicateSym where
+instance Arbitrary PredicateSymbol where
   arbitrary = fromString <$> arbitrary
 
 instance SingI n => Arbitrary (Predicate n 'ABase) where

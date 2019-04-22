@@ -19,7 +19,7 @@ module Language.Exalog.Core
   -- * Core data types
   -- ** Predicate
   , Predicate(..)
-  , PredicateSym
+  , PredicateSymbol(..)
   , Nature(..)
   , ForeignFunc
   -- ** Literal
@@ -58,7 +58,10 @@ import           Data.Singletons (fromSing)
 import           Data.Singletons.TypeLits (SNat)
 import           Data.Singletons.Prelude (sCompare)
 import           Data.Singletons.Decide (Decision(..), (%~))
+import           Data.String (IsString(fromString))
+import           Data.Text (pack)
 import qualified Data.Vector.Sized as V
+
 
 import qualified GHC.Show as Show
 
@@ -72,12 +75,12 @@ data Nature (n :: Nat) =
     Logical
   | Extralogical (ForeignFunc n)
 
-type PredicateSym = Text
+newtype PredicateSymbol = PredicateSymbol Text deriving (Eq, Ord, Show)
 
 -- |A predicate is a predicate symbol and an arity
 data Predicate (n :: Nat) a = Predicate
   { annotation :: PredicateAnn a
-  , fxSym      :: PredicateSym
+  , fxSym      :: PredicateSymbol
   , arity      :: SNat n
   , nature     :: Nature n
   }
@@ -247,6 +250,9 @@ instance Show (PredicateAnn ann) => Show (Predicate n ann) where
 deriving instance
   ( Show (PredicateAnn a)
   ) => Show (PredicateBox a)
+
+instance IsString PredicateSymbol where
+  fromString = PredicateSymbol . pack
 
 -- Literal
 instance ( Identifiable (PredicateAnn a) b
