@@ -27,7 +27,12 @@ import Protolude
 import Language.Exalog.SrcLoc
 import Language.Exalog.Pretty.Helper (Pretty)
 
-data AnnType = ABase | ADelta AnnType | ADependency AnnType | AAdornment AnnType
+data AnnType =
+    ABase
+  | ADelta AnnType
+  | ADependency AnnType
+  | AAdornment AnnType
+  | ARename AnnType
 
 data family PredicateAnn (a :: AnnType)
 data instance PredicateAnn 'ABase = PredABase {_span :: SrcSpan}
