@@ -41,6 +41,7 @@ module Language.Exalog.Core
   , SpannableAST
   , Formula(..)
   -- * Helper functions
+  , literals
   , sameArity
   , ($$)
   , search
@@ -379,6 +380,9 @@ instance ( IdentifiableAnn (PredicateAnn ann) b
     | otherwise = fromSing (arity p) `compare` fromSing (arity p')
 
 -- Misc. helpers
+
+literals :: Clause ann -> NE.NonEmpty (Literal ann)
+literals Clause{..} = head `NE.cons` body
 
 -- | Decide if two predicates have the same arity
 sameArity :: Predicate n ann -> Predicate m ann -> Decision (n :~: m)
