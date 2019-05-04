@@ -8,7 +8,12 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Language.Exalog.Renamer where
+module Language.Exalog.Renamer
+  ( rename
+  , mkPredicateMap
+  , mkLiteralMap
+  , mkClauseMap
+  ) where
 
 import Protolude
 
