@@ -214,7 +214,9 @@ instance Formula (Literal a) where
 
   predicates Literal{predicate = predicate} = [ PredicateBox predicate ]
 
-instance Identifiable (PredicateAnn a) b => Formula (Clause a) where
+instance ( IdentifiableAnn (PredicateAnn a) b
+         , Ord b
+         ) => Formula (Clause a) where
   type Annotation (Clause a) = a
 
   variables Clause{..} =
@@ -223,7 +225,9 @@ instance Identifiable (PredicateAnn a) b => Formula (Clause a) where
   predicates Clause{head = head, body = body} =
     nub $ concatMap predicates $ head : NE.toList body
 
-instance Identifiable (PredicateAnn a) b => Formula (Program a) where
+instance ( IdentifiableAnn (PredicateAnn a) b
+         , Ord b
+         ) => Formula (Program a) where
   type Annotation (Program a) = a
 
   variables = panic "Obtaining variables of a program is meaningless."
@@ -233,11 +237,15 @@ instance Identifiable (PredicateAnn a) b => Formula (Program a) where
 -- Instances for standard type classes like Eq, Ord, Show
 
 -- Predicate
-instance Identifiable (PredicateAnn ann) b => Eq (Predicate n ann) where
+instance ( IdentifiableAnn (PredicateAnn ann) b
+         , Eq b
+         ) => Eq (Predicate n ann) where
   p@Predicate{annotation = ann} == p'@Predicate{annotation = ann'} =
     fxSym p == fxSym p' && idFragment ann == idFragment ann'
 
-instance Identifiable (PredicateAnn ann) b => Ord (Predicate n ann) where
+instance ( IdentifiableAnn (PredicateAnn ann) b
+         , Ord b
+         ) => Ord (Predicate n ann) where
   p@Predicate{annotation = ann} `compare` p'@Predicate{annotation = ann'} =
     (idFragment ann, fxSym p) `compare` (idFragment ann', fxSym p')
 
@@ -255,8 +263,10 @@ instance IsString PredicateSymbol where
   fromString = PredicateSymbol . pack
 
 -- Literal
-instance ( Identifiable (PredicateAnn a) b
-         , Identifiable (LiteralAnn a) c
+instance ( IdentifiableAnn (PredicateAnn a) b
+         , IdentifiableAnn (LiteralAnn a) c
+         , Eq b
+         , Eq c
          ) => Eq (Literal a) where
   l@Literal{annotation = ann, predicate = p, terms = ts} ==
     l'@Literal{annotation = ann', predicate = p', terms = ts'}
@@ -267,8 +277,10 @@ instance ( Identifiable (PredicateAnn a) b
       ts == ts'
     | otherwise = False
 
-instance ( Identifiable (PredicateAnn a) b
-         , Identifiable (LiteralAnn a) c
+instance ( IdentifiableAnn (PredicateAnn a) b
+         , IdentifiableAnn (LiteralAnn a) c
+         , Ord b
+         , Ord c
          ) => Ord (Literal a) where
   Literal ann pol p@Predicate{arity = n} ts `compare`
     Literal ann' pol' p'@Predicate{arity = n'} ts'
@@ -305,20 +317,27 @@ type SpannableAST ann =
   )
 
 -- Clause
-instance (Identifiable (ClauseAnn a) b, Eq (Literal a)) => Eq (Clause a) where
+instance ( IdentifiableAnn (ClauseAnn a) b
+         , Eq b
+         , Eq (Literal a)
+         ) => Eq (Clause a) where
   Clause ann head body == Clause ann' head' body' =
     idFragment ann == idFragment ann' &&
     head == head' &&
     body == body'
-instance (Identifiable (ClauseAnn a) b, Ord (Literal a)) => Ord (Clause a) where
+instance ( IdentifiableAnn (ClauseAnn a) b
+         , Ord b
+         , Ord (Literal a)
+         ) => Ord (Clause a) where
   Clause ann head body `compare` Clause ann' head' body' =
     (idFragment ann, head, body) `compare` (idFragment ann', head', body')
 
 deriving instance (Show (ClauseAnn a), Show (Literal a)) => Show (Clause a)
 
 -- Program
-instance ( Identifiable (ProgramAnn a) b
-         , Identifiable (PredicateAnn a) c
+instance ( IdentifiableAnn (ProgramAnn a) b
+         , IdentifiableAnn (PredicateAnn a) c
+         , Eq b
          , Ord (PredicateBox a)
          , Ord (Clause a)
          ) => Eq (Program a) where
@@ -344,12 +363,16 @@ infixr 0 $$
 ($$) :: (forall n. Predicate n a -> b) -> PredicateBox a -> b
 f $$ (PredicateBox p) = f p
 
-instance Identifiable (PredicateAnn ann) b => Eq (PredicateBox ann) where
+instance ( IdentifiableAnn (PredicateAnn ann) b
+         , Eq b
+         ) => Eq (PredicateBox ann) where
   PredicateBox p == PredicateBox p'
     | Proved Refl <- sameArity p p' = p == p'
     | otherwise = False
 
-instance Identifiable (PredicateAnn ann) b => Ord (PredicateBox ann) where
+instance ( IdentifiableAnn (PredicateAnn ann) b
+         , Ord b
+         ) => Ord (PredicateBox ann) where
   PredicateBox p `compare` PredicateBox p'
     | Proved Refl <- sameArity p p'
     , p == p' = p `compare` p'
