@@ -6,9 +6,13 @@ module Language.Exalog.Dataflow where
 
 import Protolude hiding (head, sym)
 
+import Numeric.LinearAlgebra hiding (sym)
+
+import           Data.List (nub)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Vector.Sized as V
 import qualified Data.Map.Strict as M
+import qualified Data.Bimap as BM
 import qualified Data.IntSet as IS
 
 import Language.Exalog.Core
@@ -100,3 +104,17 @@ programEdges :: Program ('ARename ann) -> [ Edge ]
 programEdges pr@Program{..} = concatMap (clauseEdges intentionals) clauses
   where
   intentionals = IS.fromList . map uniqID . findIntentionals $ pr
+
+--------------------------------------------------------------------------------
+-- Matrix operations
+--------------------------------------------------------------------------------
+
+fromGraph :: [ Edge ] -> (Matrix I, BM.Bimap Node Int)
+fromGraph edges = (assoc (len,len) 0 assocList , bmap)
+  where
+  nodes = nub $ map fst edges ++ map snd edges
+  len = length nodes
+
+  bmap = BM.fromList $ zip nodes [0..]
+
+  assocList = map ((,1) . bimap (bmap BM.!) (bmap BM.!)) edges
