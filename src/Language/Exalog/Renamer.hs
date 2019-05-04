@@ -13,6 +13,7 @@ module Language.Exalog.Renamer
   , mkPredicateMap
   , mkLiteralMap
   , mkClauseMap
+  , HasUniqueID(..)
   ) where
 
 import Protolude
@@ -29,6 +30,23 @@ data    instance PredicateAnn ('ARename a) = PredARename { _predicateID :: Int, 
 data    instance LiteralAnn   ('ARename a) = LitARename  { _literalID   :: Int, _prevAnn :: LiteralAnn   a }
 data    instance ClauseAnn    ('ARename a) = ClARename   { _clauseID    :: Int, _prevAnn :: ClauseAnn    a }
 newtype instance ProgramAnn   ('ARename a) = ProgARename {                      _prevAnn :: ProgramAnn   a }
+
+--------------------------------------------------------------------------------
+-- Accessor to the unique identifier
+--------------------------------------------------------------------------------
+
+class HasUniqueID a where
+  uniqID :: a -> Int
+
+instance HasUniqueID (PredicateAnn ('ARename ann)) where uniqID = _predicateID
+instance HasUniqueID (LiteralAnn   ('ARename ann)) where uniqID = _literalID
+instance HasUniqueID (ClauseAnn    ('ARename ann)) where uniqID = _clauseID
+
+instance HasUniqueID (Predicate n  ('ARename ann)) where uniqID Predicate{..} = uniqID annotation
+instance HasUniqueID (Literal      ('ARename ann)) where uniqID Literal{..}   = uniqID   annotation
+instance HasUniqueID (Clause       ('ARename ann)) where uniqID Clause{..}    = uniqID    annotation
+
+instance HasUniqueID (PredicateBox ('ARename ann)) where uniqID (PredicateBox pred) = uniqID pred
 
 --------------------------------------------------------------------------------
 -- Renamer
