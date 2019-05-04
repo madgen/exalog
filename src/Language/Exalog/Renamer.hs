@@ -12,6 +12,8 @@ module Language.Exalog.Renamer where
 
 import Protolude
 
+import qualified Data.Bimap as BM
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as S
 
 import Language.Exalog.Core
@@ -84,14 +86,32 @@ renamePredicate pred@Predicate{..} = do
     Nothing -> lift $ lift $ scream (Just $ span pred)
       "Impossible happened! Renamed predicate is not a predicate of the program."
 
--- mkPredicateMap :: Program ('ARename ann) -> IM.IntMap (PredicateBox ('ARename ann))
--- mkPredicateMap = _
+mkPredicateMap :: IdentifiableAnn (PredicateAnn ann) a
+               => Ord a
+               => Program ('ARename ann)
+               -> BM.Bimap (PredicateBox ('ARename ann)) Int
+mkPredicateMap pr = BM.fromList $ (<$> predicates pr) $
+  \pBox@(PredicateBox Predicate{..}) -> (pBox, _predicateID annotation)
 
--- mkLiteralMap :: Program ('ARename ann) -> IM.IntMap (PredicateBox ('ARename ann))
--- mkLiteralMap = _
+mkLiteralMap :: IdentifiableAnn (PredicateAnn ann) a
+             => IdentifiableAnn (LiteralAnn ann) b
+             => Ord a => Ord b
+             => Program ('ARename ann)
+             -> BM.Bimap (Literal ('ARename ann)) Int
+mkLiteralMap Program{..} = BM.fromList
+                         $ fmap (\lit@Literal{..} -> (lit, _literalID annotation))
+                         . join
+                         $ NE.toList . literals
+                       <$> clauses
 
--- mkClauseMap :: Program ('ARename ann) -> IM.IntMap (Clause ('ARename ann))
--- mkClauseMap = _
+mkClauseMap :: IdentifiableAnn (PredicateAnn ann) a
+            => IdentifiableAnn (LiteralAnn ann) b
+            => IdentifiableAnn (ClauseAnn ann) c
+            => Ord a => Ord b => Ord c
+            => Program ('ARename ann)
+            -> BM.Bimap (Clause ('ARename ann)) Int
+mkClauseMap Program{..} = BM.fromList $ (<$> clauses) $
+  \cl@Clause{..} -> (cl, _clauseID annotation)
 
 --------------------------------------------------------------------------------
 -- Monadic actions for renaming
