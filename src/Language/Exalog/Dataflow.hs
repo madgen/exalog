@@ -1,14 +1,21 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Language.Exalog.Dataflow where
+module Language.Exalog.Dataflow
+  ( PositiveTermFlowGr
+  , Node(..)
+  , analysePositiveTermFlow
+  ) where
 
 import Protolude hiding (head, sym)
 
-import qualified Data.List.NonEmpty as NE
-import qualified Data.Vector.Sized as V
-import qualified Data.Map.Strict as M
+import           Data.List (nub)
+import qualified Data.Graph.Inductive.Graph as G
+import qualified Data.Graph.Inductive.PatriciaTree as P
 import qualified Data.IntSet as IS
+import qualified Data.List.NonEmpty as NE
+import qualified Data.Map.Strict as M
+import qualified Data.Vector.Sized as V
 
 import Language.Exalog.Core
 import Language.Exalog.Renamer
@@ -22,6 +29,19 @@ data Node =
   deriving (Eq, Ord)
 
 type Edge = (Node, Node)
+
+type PositiveTermFlowGr = P.Gr Node ()
+
+analysePositiveTermFlow :: Program ('ARename ann) -> PositiveTermFlowGr
+analysePositiveTermFlow pr = G.mkGraph lnodes ledges
+  where
+  edges = nub $ programEdges pr
+  lnodes = zip [0..] $ nub (map fst edges ++ map snd edges)
+  nodeDict = M.fromList $ map swap lnodes
+
+  ledges = (\(a,b) -> (a,b,()))
+         . bimap (nodeDict M.!) (nodeDict M.!)
+       <$> edges
 
 --------------------------------------------------------------------------------
 -- Edge extraction
