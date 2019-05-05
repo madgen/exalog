@@ -1,18 +1,17 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Language.Exalog.Dataflow where
 
 import Protolude hiding (head, sym)
 
-import Numeric.LinearAlgebra hiding (sym)
+-- import Numeric.LinearAlgebra hiding (sym)
 
-import           Data.List (nub)
+-- import           Data.List (nub)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Vector.Sized as V
 import qualified Data.Map.Strict as M
-import qualified Data.Bimap as BM
+-- import qualified Data.Bimap as BM
 import qualified Data.IntSet as IS
 
 import Language.Exalog.Core
@@ -43,12 +42,10 @@ evalSideways :: IS.IntSet -> Sideways a -> a
 evalSideways intentionalIDs = (`evalState` initSidewaysSt)
                             . (`runReaderT` intentionalIDs)
 
-whenIntentional :: Int -> a -> Sideways (Maybe a)
-whenIntentional id a = do
+getPredNode :: Int -> Int -> Sideways [ Node ]
+getPredNode id ix = do
   intentionalIDs <- ask
-  pure $ if id `IS.member` intentionalIDs
-    then Just a
-    else Nothing
+  pure [ NPredicate id ix | id `IS.member` intentionalIDs ]
 
 getBinder :: Var -> Sideways (Maybe Node)
 getBinder var = lift $ M.lookup var . _binderMap <$> get
@@ -65,32 +62,19 @@ handleHeadLiteral Literal{..} =
 
 handleBodyLiteral :: Literal ('ARename ann) -> Sideways [ Edge ]
 handleBodyLiteral Literal{..} = do
-  edgess <- forM (zip [0..] $ V.toList terms) $ \case
-    (ix, term) -> do
-      let litNode  = NLiteral   (uniqID annotation) ix
+  edgess <- forM (zip [0..] $ V.toList terms) $ \(ix, term) -> do
+    dsts <- getPredNode (uniqID predicate) ix
 
-      -- Vertical dataflow edge
-      let predID = uniqID predicate
-      mVerticalEdge <- whenIntentional predID $
-        let predNode = NPredicate (uniqID predicate) ix
-        in (litNode, predNode)
+    case term of
+      TVar var -> do
+        mSrc <- getBinder var
 
-      -- Horizontal dataflow edge
-      mHorizontalEdge <- case term of
-        TVar var -> do
-          mSrcNode <- getBinder var
+        let litNode = NLiteral (uniqID annotation) ix
+        when (polarity == Positive) $ updateBinder var litNode
 
-          updateBinder var litNode
-
-          pure $ (,litNode) <$> mSrcNode
-        TSym sym -> pure $ Just (NConstant (CSym sym), litNode)
-        TWild    -> pure $ Just (NConstant CWild     , litNode)
-
-      pure $ case (mVerticalEdge, mHorizontalEdge) of
-        (Just vEdge, Just hEdge) -> [ vEdge, hEdge ]
-        (Just vEdge, Nothing)    -> [ vEdge ]
-        (Nothing   , Just hEdge) -> [ hEdge ]
-        (Nothing   , Nothing)    -> []
+        pure [ (src, dst) | src <- toList mSrc, dst <- litNode : dsts ]
+      TSym sym -> pure [ (NConstant (CSym sym), dst) | dst <- dsts ]
+      TWild    -> pure [ (NConstant CWild     , dst) | dst <- dsts ]
 
   pure $ mconcat edgess
 
@@ -109,12 +93,24 @@ programEdges pr@Program{..} = concatMap (clauseEdges intentionals) clauses
 -- Matrix operations
 --------------------------------------------------------------------------------
 
-fromGraph :: [ Edge ] -> (Matrix I, BM.Bimap Node Int)
-fromGraph edges = (assoc (len,len) 0 assocList , bmap)
-  where
-  nodes = nub $ map fst edges ++ map snd edges
-  len = length nodes
-
-  bmap = BM.fromList $ zip nodes [0..]
-
-  assocList = map ((,1) . bimap (bmap BM.!) (bmap BM.!)) edges
+-- newtype PredNodeCount = PredNodeCount Int
+-- type NodeMatrixMap = BM.Bimarp Node Int
+-- 
+-- fromGraph :: [ Edge ] -> (Matrix I, NodeMatrixMap, PredNodeCount)
+-- fromGraph edges = (assoc (len,len) 0 assocList , bmap, predNodeCount)
+--   where
+--   nodes = nub . sort $ map fst edges ++ map snd edges
+--   predNodeCount = PredNodeCount $
+--     length (takeWhile (\case {NPredicate{} -> True; _ False})) nodes
+--   len = length nodes
+-- 
+--   bmap = BM.fromList $ zip nodes [0..]
+-- 
+--   assocList = map ((,1) . bimap (bmap BM.!) (bmap BM.!)) edges
+-- 
+-- process :: PredNodeCodunt -> Matrix I -> Matrix I
+-- process (PredNodeCount pNodeCount) m = step (m * m)
+--   where
+--   nOfRows = rows m
+-- 
+--   blah = map []
