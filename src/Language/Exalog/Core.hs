@@ -312,9 +312,10 @@ type SpannableAST ann =
   ( Spannable (Program ann)
   , Spannable (Clause  ann)
   , Spannable (Literal ann)
-  , SpannableAnn (ProgramAnn ann)
-  , SpannableAnn (ClauseAnn  ann)
-  , SpannableAnn (LiteralAnn ann)
+  , SpannableAnn (ProgramAnn   ann)
+  , SpannableAnn (ClauseAnn    ann)
+  , SpannableAnn (LiteralAnn   ann)
+  , SpannableAnn (PredicateAnn ann)
   )
 
 -- Clause
