@@ -4,7 +4,8 @@
 
 module Language.Exalog.Dataflow
   ( PositiveFlowGr
-  , ConcreteDomain(..)
+  , FlowSource(..)
+  , FlowSink(..)
   , analysePositiveFlow
   , nearestCoveringPositives
   ) where
@@ -28,7 +29,8 @@ import Language.Exalog.Renamer
 
 data PositiveFlowGr = PositiveFlowGr (P.Gr Node ()) (M.Map Node Int)
 
-data ConcreteDomain = DomParameter LiteralID Int | DomConstant  Constant
+data FlowSink   = FSinkLiteral   LiteralID Int | FSinkPredicate PredicateID Int
+data FlowSource = FSourceLiteral LiteralID Int | FSourceConstant Constant
 
 --------------------------------------------------------------------------------
 -- Main operations
@@ -48,23 +50,19 @@ analysePositiveFlow pr = PositiveFlowGr (Gr.mkGraph lnodes ledges) nodeDict
 -- |Finds the nearest positive parameters of predicates or constants that
 -- flow into a given literal argument. The results together cover the
 -- domain of values the target can take.
-nearestCoveringPositives :: PositiveFlowGr
-                         -> (LiteralID, Int)
-                         -> Maybe [ ConcreteDomain ]
-nearestCoveringPositives (PositiveFlowGr gr dict) (litID, ix) =
+nearestCoveringPositives :: PositiveFlowGr -> FlowSink -> Maybe [ FlowSource ]
+nearestCoveringPositives (PositiveFlowGr gr dict) fSink =
   concatMap (go []) . Gr.pre' <$> mContext
   where
-  mContext = Gr.context gr <$> NLiteral litID ix `M.lookup` dict
+  mContext = Gr.context gr <$> toNode fSink `M.lookup` dict
 
-  go :: [ Gr.Node ]         -- Visited predicates
-     -> Gr.Node             -- Current node
-     -> [ ConcreteDomain ] -- Flowing domain
+  go :: [ Gr.Node ] -> Gr.Node -> [ FlowSource ]
   go visitedNodes node
     | node `elem` visitedNodes = mempty
     | context <- Gr.context gr node =
       case Gr.lab' context of
-        NConstant constant -> pure $ DomConstant constant
-        NLiteral litID ix  -> pure $ DomParameter litID ix
+        NConstant constant -> pure $ FSourceConstant constant
+        NLiteral litID ix  -> pure $ FSourceLiteral litID ix
         NPredicate _ _     ->
           concatMap (go (node : visitedNodes)) . Gr.pre' $ context
 
@@ -81,6 +79,10 @@ data Node =
   deriving (Eq, Ord)
 
 type Edge = (Node, Node)
+
+toNode :: FlowSink -> Node
+toNode (FSinkLiteral   litID  ix) = NLiteral   litID  ix
+toNode (FSinkPredicate predID ix) = NPredicate predID ix
 
 --------------------------------------------------------------------------------
 -- Feature extraction
