@@ -13,7 +13,7 @@ module Language.Exalog.Renamer
   , mkPredicateMap
   , mkLiteralMap
   , mkClauseMap
-  , PredicateID, ClauseID, LiteralID
+  , PredicateID(..), ClauseID(..), LiteralID(..)
   , HasPredicateID(..), HasClauseID(..), HasLiteralID(..)
   ) where
 
@@ -61,13 +61,15 @@ instance HasClauseID (Clause    ('ARename ann)) where clauseID Clause{..}    = _
 --------------------------------------------------------------------------------
 
 rename :: SpannableAnn (PredicateAnn ann)
-       => Identifiable (PredicateAnn ann) b
+       => IdentifiableAnn (PredicateAnn ann) b
+       => Ord b
        => Program ann
        -> Logger (Program ('ARename ann))
 rename pr = evalRename (S.fromList $ predicates pr) . renameProgram $ pr
 
 renameProgram :: SpannableAnn (PredicateAnn ann)
-              => Identifiable (PredicateAnn ann) b
+              => IdentifiableAnn (PredicateAnn ann) b
+              => Ord b
               => Program ann
               -> Rename ann (Program ('ARename ann))
 renameProgram Program{..} = do
@@ -80,7 +82,8 @@ renameProgram Program{..} = do
     , ..}
 
 renameClause :: SpannableAnn (PredicateAnn ann)
-             => Identifiable (PredicateAnn ann) b
+             => IdentifiableAnn (PredicateAnn ann) b
+             => Ord b
              => Clause ann
              -> Rename ann (Clause ('ARename ann))
 renameClause Clause{..} = do
@@ -94,7 +97,8 @@ renameClause Clause{..} = do
     , ..}
 
 renameLiteral :: SpannableAnn (PredicateAnn ann)
-              => Identifiable (PredicateAnn ann) b
+              => IdentifiableAnn (PredicateAnn ann) b
+              => Ord b
               => Literal ann
               -> Rename ann (Literal ('ARename ann))
 renameLiteral Literal{..} = do
@@ -106,7 +110,8 @@ renameLiteral Literal{..} = do
     , ..}
 
 renamePredicate :: SpannableAnn (PredicateAnn ann)
-                => Identifiable (PredicateAnn ann) b
+                => IdentifiableAnn (PredicateAnn ann) b
+                => Ord b
                 => Predicate n ann
                 -> Rename ann (Predicate n ('ARename ann))
 renamePredicate pred@Predicate{..} = do
@@ -196,3 +201,14 @@ instance IdentifiableAnn (ClauseAnn    ann) b => IdentifiableAnn (ClauseAnn    (
   idFragment (ClARename   (ClauseID id)    rest) = (id, idFragment rest)
 instance IdentifiableAnn (ProgramAnn   ann) b => IdentifiableAnn (ProgramAnn   ('ARename ann)) b where
   idFragment (ProgARename                  rest) = idFragment rest
+
+instance PeelableAnn PredicateAnn 'ARename where peelA (PredARename _ prevAnn) = prevAnn
+instance PeelableAnn LiteralAnn   'ARename where peelA (LitARename  _ prevAnn) = prevAnn
+instance PeelableAnn ClauseAnn    'ARename where peelA (ClARename   _ prevAnn) = prevAnn
+instance PeelableAnn ProgramAnn   'ARename where peelA (ProgARename   prevAnn) = prevAnn
+
+instance PeelableAST (Literal ('ARename ann)) where
+  peel Literal{..} = Literal
+    { annotation = peelA annotation
+    , predicate = peel predicate
+    , ..}
