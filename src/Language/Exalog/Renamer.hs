@@ -13,7 +13,8 @@ module Language.Exalog.Renamer
   , mkPredicateMap
   , mkLiteralMap
   , mkClauseMap
-  , HasUniqueID(..)
+  , PredicateID, ClauseID, LiteralID
+  , HasPredicateID(..), HasClauseID(..), HasLiteralID(..)
   ) where
 
 import Protolude
@@ -26,27 +27,34 @@ import Language.Exalog.Core
 import Language.Exalog.Logger
 import Language.Exalog.SrcLoc
 
-data    instance PredicateAnn ('ARename a) = PredARename { _predicateID :: Int, _prevAnn :: PredicateAnn a }
-data    instance LiteralAnn   ('ARename a) = LitARename  { _literalID   :: Int, _prevAnn :: LiteralAnn   a }
-data    instance ClauseAnn    ('ARename a) = ClARename   { _clauseID    :: Int, _prevAnn :: ClauseAnn    a }
-newtype instance ProgramAnn   ('ARename a) = ProgARename {                      _prevAnn :: ProgramAnn   a }
+newtype PredicateID = PredicateID Int deriving (Eq, Ord, Show)
+newtype LiteralID   = LiteralID   Int deriving (Eq, Ord, Show)
+newtype ClauseID    = ClauseID    Int deriving (Eq, Ord, Show)
+
+data    instance PredicateAnn ('ARename a) = PredARename { _predicateID :: PredicateID, _prevAnn :: PredicateAnn a }
+data    instance LiteralAnn   ('ARename a) = LitARename  { _literalID   :: LiteralID  , _prevAnn :: LiteralAnn   a }
+data    instance ClauseAnn    ('ARename a) = ClARename   { _clauseID    :: ClauseID   , _prevAnn :: ClauseAnn    a }
+newtype instance ProgramAnn   ('ARename a) = ProgARename {                              _prevAnn :: ProgramAnn   a }
 
 --------------------------------------------------------------------------------
--- Accessor to the unique identifier
+-- Accessor
 --------------------------------------------------------------------------------
 
-class HasUniqueID a where
-  uniqID :: a -> Int
+class    HasPredicateID a                             where predicateID :: a -> PredicateID
+instance HasPredicateID (PredicateAnn ('ARename ann)) where predicateID PredARename{..} = _predicateID
+instance HasPredicateID (Predicate n  ('ARename ann)) where predicateID Predicate{..}   = _predicateID annotation
 
-instance HasUniqueID (PredicateAnn ('ARename ann)) where uniqID = _predicateID
-instance HasUniqueID (LiteralAnn   ('ARename ann)) where uniqID = _literalID
-instance HasUniqueID (ClauseAnn    ('ARename ann)) where uniqID = _clauseID
+instance HasPredicateID (PredicateBox ('ARename ann)) where predicateID (PredicateBox pred) = predicateID pred
 
-instance HasUniqueID (Predicate n  ('ARename ann)) where uniqID Predicate{..} = uniqID annotation
-instance HasUniqueID (Literal      ('ARename ann)) where uniqID Literal{..}   = uniqID   annotation
-instance HasUniqueID (Clause       ('ARename ann)) where uniqID Clause{..}    = uniqID    annotation
+instance HasPredicateID (Literal      ('ARename ann)) where predicateID Literal{..} = predicateID predicate
 
-instance HasUniqueID (PredicateBox ('ARename ann)) where uniqID (PredicateBox pred) = uniqID pred
+class    HasLiteralID a                           where literalID :: a -> LiteralID
+instance HasLiteralID (LiteralAnn ('ARename ann)) where literalID LitARename{..} = _literalID
+instance HasLiteralID (Literal    ('ARename ann)) where literalID Literal{..}    = _literalID annotation
+
+class    HasClauseID a                          where clauseID :: a -> ClauseID
+instance HasClauseID (ClauseAnn ('ARename ann)) where clauseID ClARename{..} = _clauseID
+instance HasClauseID (Clause    ('ARename ann)) where clauseID Clause{..}    = _clauseID annotation
 
 --------------------------------------------------------------------------------
 -- Renamer
@@ -80,7 +88,7 @@ renameClause Clause{..} = do
   renamedBody <- traverse renameLiteral body
   id <- freshID
   pure Clause
-    { annotation = ClARename id annotation
+    { annotation = ClARename (ClauseID id) annotation
     , head       = renamedHead
     , body       = renamedBody
     , ..}
@@ -93,7 +101,7 @@ renameLiteral Literal{..} = do
   renamedPredicate <- renamePredicate predicate
   id <- freshID
   pure $ Literal
-    { annotation = LitARename id annotation
+    { annotation = LitARename (LiteralID id) annotation
     , predicate  = renamedPredicate
     , ..}
 
@@ -105,24 +113,24 @@ renamePredicate pred@Predicate{..} = do
   preds <- ask
   case PredicateBox pred `S.lookupIndex` preds of
     Just ix -> pure $
-      Predicate{annotation = PredARename ix annotation,..}
+      Predicate{annotation = PredARename (PredicateID ix) annotation,..}
     Nothing -> lift $ lift $ scream (Just $ span pred)
       "Impossible happened! Renamed predicate is not a predicate of the program."
 
 mkPredicateMap :: IdentifiableAnn (PredicateAnn ann) a
                => Ord a
                => Program ('ARename ann)
-               -> BM.Bimap (PredicateBox ('ARename ann)) Int
+               -> BM.Bimap (PredicateBox ('ARename ann)) PredicateID
 mkPredicateMap pr = BM.fromList $ (<$> predicates pr) $
-  \pBox@(PredicateBox Predicate{..}) -> (pBox, _predicateID annotation)
+  \pBox@(PredicateBox Predicate{..}) -> (pBox, predicateID annotation)
 
 mkLiteralMap :: IdentifiableAnn (PredicateAnn ann) a
              => IdentifiableAnn (LiteralAnn ann) b
              => Ord a => Ord b
              => Program ('ARename ann)
-             -> BM.Bimap (Literal ('ARename ann)) Int
+             -> BM.Bimap (Literal ('ARename ann)) LiteralID
 mkLiteralMap Program{..} = BM.fromList
-                         $ fmap (\lit@Literal{..} -> (lit, _literalID annotation))
+                         $ fmap (\lit@Literal{..} -> (lit, literalID annotation))
                          . join
                          $ NE.toList . literals
                        <$> clauses
@@ -132,9 +140,9 @@ mkClauseMap :: IdentifiableAnn (PredicateAnn ann) a
             => IdentifiableAnn (ClauseAnn ann) c
             => Ord a => Ord b => Ord c
             => Program ('ARename ann)
-            -> BM.Bimap (Clause ('ARename ann)) Int
+            -> BM.Bimap (Clause ('ARename ann)) ClauseID
 mkClauseMap Program{..} = BM.fromList $ (<$> clauses) $
-  \cl@Clause{..} -> (cl, _clauseID annotation)
+  \cl@Clause{..} -> (cl, clauseID annotation)
 
 --------------------------------------------------------------------------------
 -- Monadic actions for renaming
@@ -181,10 +189,10 @@ instance SpannableAnn (ProgramAnn a)   => SpannableAnn (ProgramAnn   ('ARename a
   annSpan (ProgARename   ann) = annSpan ann
 
 instance IdentifiableAnn (PredicateAnn ann) b => IdentifiableAnn (PredicateAnn ('ARename ann)) (Int,b) where
-  idFragment (PredARename id rest) = (id, idFragment rest)
+  idFragment (PredARename (PredicateID id) rest) = (id, idFragment rest)
 instance IdentifiableAnn (LiteralAnn   ann) b => IdentifiableAnn (LiteralAnn   ('ARename ann)) (Int,b) where
-  idFragment (LitARename  id rest) = (id, idFragment rest)
+  idFragment (LitARename  (LiteralID   id) rest) = (id, idFragment rest)
 instance IdentifiableAnn (ClauseAnn    ann) b => IdentifiableAnn (ClauseAnn    ('ARename ann)) (Int,b) where
-  idFragment (ClARename   id rest) = (id, idFragment rest)
+  idFragment (ClARename   (ClauseID id)    rest) = (id, idFragment rest)
 instance IdentifiableAnn (ProgramAnn   ann) b => IdentifiableAnn (ProgramAnn   ('ARename ann)) b where
-  idFragment (ProgARename    rest) = idFragment rest
+  idFragment (ProgARename                  rest) = idFragment rest

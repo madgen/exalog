@@ -16,9 +16,9 @@ import Protolude hiding (head, sym)
 import           Data.List (nub)
 import qualified Data.Graph.Inductive.Graph as G
 import qualified Data.Graph.Inductive.PatriciaTree as P
-import qualified Data.IntSet as IS
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as M
+import qualified Data.Set as S
 import qualified Data.Vector.Sized as V
 
 import Language.Exalog.Core
@@ -64,8 +64,8 @@ reversePositiveFlow (PositiveFlowGr gr) = PositiveFlowGr
 data Constant = CSym Sym | CWild deriving (Eq, Ord)
 
 data Node =
-    NPredicate { _predicateID :: Int, _paramIndex :: Int }
-  | NLiteral   { _literalID   :: Int, _paramIndex :: Int }
+    NPredicate { _predicateID :: PredicateID, _paramIndex :: Int }
+  | NLiteral   { _literalID   :: LiteralID  , _paramIndex :: Int }
   | NConstant  { _constant    :: Constant }
   deriving (Eq, Ord)
 
@@ -78,9 +78,9 @@ type Edge = (Node, Node)
 programEdges :: Program ('ARename ann) -> [ Edge ]
 programEdges pr@Program{..} = concatMap (clauseEdges intentionals) clauses
   where
-  intentionals = IS.fromList . map uniqID . findIntentionals $ pr
+  intentionals = S.fromList . map predicateID . findIntentionals $ pr
 
-clauseEdges :: IS.IntSet -> Clause ('ARename ann) -> [ Edge ]
+clauseEdges :: S.Set PredicateID -> Clause ('ARename ann) -> [ Edge ]
 clauseEdges intentionals Clause{..} = join . evalSideways intentionals $ do
   handleHeadLiteral head
 
@@ -89,7 +89,7 @@ clauseEdges intentionals Clause{..} = join . evalSideways intentionals $ do
 handleHeadLiteral :: Literal ('ARename ann) -> Sideways ()
 handleHeadLiteral Literal{..} =
   forM_ (zip [0..] $ V.toList terms) $ \case
-    (ix, TVar var) -> updateBinder var (NPredicate (uniqID predicate) ix)
+    (ix, TVar var) -> updateBinder var (NPredicate (predicateID predicate) ix)
     _              -> pure ()
 
 handleBodyLiteral :: Literal ('ARename ann) -> Sideways [ Edge ]
@@ -97,13 +97,13 @@ handleBodyLiteral Literal{..} = do
   edgess <- forM (zip [0..] $ V.toList terms) $ \(ix, term) -> do
     -- Bother with predicate node as a destination only if it is
     -- intentional.
-    dsts <- getPredNode (uniqID predicate) ix
+    dsts <- getPredNode (predicateID predicate) ix
 
     case term of
       TVar var -> do
         mSrc <- getBinder var
 
-        let litNode = NLiteral (uniqID annotation) ix
+        let litNode = NLiteral (literalID annotation) ix
         when (polarity == Positive) $ updateBinder var litNode
 
         pure [ (src, dst) | src <- toList mSrc, dst <- litNode : dsts ]
@@ -118,19 +118,19 @@ handleBodyLiteral Literal{..} = do
 
 newtype SidewaysSt = SidewaysSt { _binderMap :: M.Map Var Node }
 
-type Sideways = ReaderT IS.IntSet (State SidewaysSt)
+type Sideways = ReaderT (S.Set PredicateID) (State SidewaysSt)
 
 initSidewaysSt :: SidewaysSt
 initSidewaysSt = SidewaysSt M.empty
 
-evalSideways :: IS.IntSet -> Sideways a -> a
+evalSideways :: S.Set PredicateID -> Sideways a -> a
 evalSideways intentionalIDs = (`evalState` initSidewaysSt)
                             . (`runReaderT` intentionalIDs)
 
-getPredNode :: Int -> Int -> Sideways [ Node ]
+getPredNode :: PredicateID -> Int -> Sideways [ Node ]
 getPredNode id ix = do
   intentionalIDs <- ask
-  pure [ NPredicate id ix | id `IS.member` intentionalIDs ]
+  pure [ NPredicate id ix | id `S.member` intentionalIDs ]
 
 getBinder :: Var -> Sideways (Maybe Node)
 getBinder var = lift $ M.lookup var . _binderMap <$> get
