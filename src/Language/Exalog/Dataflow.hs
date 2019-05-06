@@ -1,10 +1,14 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Language.Exalog.Dataflow
-  ( PositiveTermFlowGr
-  , Node(..)
-  , analysePositiveTermFlow
+  ( PositiveFlowGr
+  , Direction(..)
+  , type Reverse
+  , analysePositiveFlow
+  , reversePositiveFlow
   ) where
 
 import Protolude hiding (head, sym)
@@ -20,6 +24,43 @@ import qualified Data.Vector.Sized as V
 import Language.Exalog.Core
 import Language.Exalog.Renamer
 
+--------------------------------------------------------------------------------
+-- Exported data types
+--------------------------------------------------------------------------------
+
+newtype PositiveFlowGr (dir :: Direction) = PositiveFlowGr (P.Gr Node ())
+
+data Direction = Forward | Backward
+
+type family Reverse (dir :: Direction) where
+  Reverse 'Forward  = 'Backward
+  Reverse 'Backward = 'Forward
+
+--------------------------------------------------------------------------------
+-- Main operations
+--------------------------------------------------------------------------------
+
+analysePositiveFlow :: Program ('ARename ann) -> PositiveFlowGr 'Forward
+analysePositiveFlow pr = PositiveFlowGr $ G.mkGraph lnodes ledges
+  where
+  edges = nub $ programEdges pr
+  lnodes = zip [0..] $ nub (map fst edges ++ map snd edges)
+  nodeDict = M.fromList $ map swap lnodes
+
+  ledges = (\(a,b) -> (a,b,()))
+         . bimap (nodeDict M.!) (nodeDict M.!)
+       <$> edges
+
+reversePositiveFlow :: PositiveFlowGr dir -> PositiveFlowGr (Reverse dir)
+reversePositiveFlow (PositiveFlowGr gr) = PositiveFlowGr
+                                        . G.mkGraph (G.labNodes gr)
+                                        $ (\(src,dst,lab) -> (dst,src,lab))
+                                      <$> G.labEdges gr
+
+--------------------------------------------------------------------------------
+-- Internal data types
+--------------------------------------------------------------------------------
+
 data Constant = CSym Sym | CWild deriving (Eq, Ord)
 
 data Node =
@@ -30,21 +71,8 @@ data Node =
 
 type Edge = (Node, Node)
 
-type PositiveTermFlowGr = P.Gr Node ()
-
-analysePositiveTermFlow :: Program ('ARename ann) -> PositiveTermFlowGr
-analysePositiveTermFlow pr = G.mkGraph lnodes ledges
-  where
-  edges = nub $ programEdges pr
-  lnodes = zip [0..] $ nub (map fst edges ++ map snd edges)
-  nodeDict = M.fromList $ map swap lnodes
-
-  ledges = (\(a,b) -> (a,b,()))
-         . bimap (nodeDict M.!) (nodeDict M.!)
-       <$> edges
-
 --------------------------------------------------------------------------------
--- Edge extraction
+-- Feature extraction
 --------------------------------------------------------------------------------
 
 programEdges :: Program ('ARename ann) -> [ Edge ]
