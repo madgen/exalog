@@ -1,20 +1,18 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Language.Exalog.Dataflow
   ( PositiveFlowGr
-  , Direction(..)
-  , type Reverse
+  , ConcreteDomain(..)
   , analysePositiveFlow
-  , reversePositiveFlow
+  , nearestCoveringPositives
   ) where
 
 import Protolude hiding (head, sym)
 
 import           Data.List (nub)
-import qualified Data.Graph.Inductive.Graph as G
+import qualified Data.Graph.Inductive.Graph as Gr
 import qualified Data.Graph.Inductive.PatriciaTree as P
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as M
@@ -28,20 +26,16 @@ import Language.Exalog.Renamer
 -- Exported data types
 --------------------------------------------------------------------------------
 
-newtype PositiveFlowGr (dir :: Direction) = PositiveFlowGr (P.Gr Node ())
+data PositiveFlowGr = PositiveFlowGr (P.Gr Node ()) (M.Map Node Int)
 
-data Direction = Forward | Backward
-
-type family Reverse (dir :: Direction) where
-  Reverse 'Forward  = 'Backward
-  Reverse 'Backward = 'Forward
+data ConcreteDomain = DomParameter LiteralID Int | DomConstant  Constant
 
 --------------------------------------------------------------------------------
 -- Main operations
 --------------------------------------------------------------------------------
 
-analysePositiveFlow :: Program ('ARename ann) -> PositiveFlowGr 'Forward
-analysePositiveFlow pr = PositiveFlowGr $ G.mkGraph lnodes ledges
+analysePositiveFlow :: Program ('ARename ann) -> PositiveFlowGr
+analysePositiveFlow pr = PositiveFlowGr (Gr.mkGraph lnodes ledges) nodeDict
   where
   edges = nub $ programEdges pr
   lnodes = zip [0..] $ nub (map fst edges ++ map snd edges)
@@ -51,11 +45,28 @@ analysePositiveFlow pr = PositiveFlowGr $ G.mkGraph lnodes ledges
          . bimap (nodeDict M.!) (nodeDict M.!)
        <$> edges
 
-reversePositiveFlow :: PositiveFlowGr dir -> PositiveFlowGr (Reverse dir)
-reversePositiveFlow (PositiveFlowGr gr) = PositiveFlowGr
-                                        . G.mkGraph (G.labNodes gr)
-                                        $ (\(src,dst,lab) -> (dst,src,lab))
-                                      <$> G.labEdges gr
+-- |Finds the nearest positive parameters of predicates or constants that
+-- flow into a given literal argument. The results together cover the
+-- domain of values the target can take.
+nearestCoveringPositives :: PositiveFlowGr
+                         -> (LiteralID, Int)
+                         -> Maybe [ ConcreteDomain ]
+nearestCoveringPositives (PositiveFlowGr gr dict) (litID, ix) =
+  concatMap (go []) . Gr.pre' <$> mContext
+  where
+  mContext = Gr.context gr <$> NLiteral litID ix `M.lookup` dict
+
+  go :: [ Gr.Node ]         -- Visited predicates
+     -> Gr.Node             -- Current node
+     -> [ ConcreteDomain ] -- Flowing domain
+  go visitedNodes node
+    | node `elem` visitedNodes = mempty
+    | context <- Gr.context gr node =
+      case Gr.lab' context of
+        NConstant constant -> pure $ DomConstant constant
+        NLiteral litID ix  -> pure $ DomParameter litID ix
+        NPredicate _ _     ->
+          concatMap (go (node : visitedNodes)) . Gr.pre' $ context
 
 --------------------------------------------------------------------------------
 -- Internal data types
