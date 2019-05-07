@@ -30,7 +30,6 @@ import           Language.Exalog.Renamer
 import qualified Language.Exalog.Relation as R
 import qualified Language.Exalog.Tuples as T
 import           Language.Exalog.SrcLoc (Spannable(..),SrcSpan)
-import           Language.Exalog.Pretty (pp)
 
 -- |Checks if all variables in the head appear in the bodies of the
 -- clauses.
@@ -61,18 +60,21 @@ instance SpannableAnn (ClauseAnn ann) => RangeRestriction (Clause ann) where
   isRangeRestricted Clause{..} =
     null $ variables head \\ mconcat (variables <$> NE.toList body)
 
-fixRangeRestriction :: (Program 'ABase, R.Solution 'ABase)
+fixRangeRestriction :: LiteralIDMap 'ABase
+                    -> (Program ('ARename 'ABase), R.Solution ('ARename 'ABase))
                     -> Logger (Program 'ABase, R.Solution 'ABase)
-fixRangeRestriction (pr@Program{..}, sol) = do
-  renamedPr@Program{clauses = renamedClauses} <- rename pr
-
-  runRepair renamedPr $ do
+fixRangeRestriction literalMap (pr@Program{..}, sol) =
+  runRepair pr literalMap $ do
 
     (originalClauses, guardClausess, guardSols) <- unzip3 <$>
-      traverse fixRangeRestrictionClause renamedClauses
+      traverse fixRangeRestrictionClause clauses
 
-    pure ( Program{clauses = originalClauses <> join guardClausess,..}
-         , mconcat (sol : guardSols)
+    pure ( Program
+            { annotation = peelA annotation
+            , clauses    = originalClauses <> join guardClausess
+            , queryPreds = (PredicateBox . peel $$) <$> queryPreds
+            , ..}
+         , mconcat (R.rename peel sol : guardSols)
          )
 
 fixRangeRestrictionClause :: Clause ('ARename 'ABase)
@@ -189,14 +191,16 @@ rangeRestrictionViolations Clause{..} = map (genSink . fst &&& snd)
 type RepairEnv = (LiteralIDMap 'ABase, PositiveFlowGr)
 type Repair = ReaderT RepairEnv (FreshT Logger)
 
-runRepair :: Program ('ARename 'ABase) -> Repair a -> Logger a
-runRepair pr = runFreshT (Just "guard") reserved
-             . (`runReaderT` (literalMap, flowGr))
+runRepair :: Program ('ARename 'ABase)
+          -> LiteralIDMap 'ABase
+          -> Repair a
+          -> Logger a
+runRepair pr literalMap = runFreshT (Just "guard") reserved
+                        . (`runReaderT` (literalMap, flowGr))
   where
   flowGr = analysePositiveFlow pr
   reserved  = ((\Predicate{fxSym = PredicateSymbol txt} -> txt) $$)
           <$> predicates pr
-  literalMap = mkLiteralMap pr
 
 getLiteralMap :: Repair (LiteralIDMap 'ABase)
 getLiteralMap = fst <$> ask

@@ -8,7 +8,6 @@ import qualified Fixture.RangeRestriction as RRes
 import qualified Fixture.DomainDependent as DDep
 
 import Language.Exalog.Logger
-import Language.Exalog.Relation
 import Language.Exalog.RangeRestriction
 
 spec :: Spec
@@ -25,7 +24,7 @@ spec =
         runLoggerT (checkRangeRestriction DDep.programBad2) `shouldReturn` Nothing
 
     describe "Repair" $
-      it "program1 can be repaired" $ do
-        let input = (RRes.programSimple, mempty)
-        let output = (RRes.programSimpleRepaired, mempty)
-        runLoggerT (fixRangeRestriction input) `shouldReturn` Just output
+      it "programSimple can be repaired" $ do
+        let input = (RRes.prSimple, mempty)
+        let output = (RRes.prSimpleRepaired, mempty)
+        runLoggerT (fixRangeRestriction RRes.prSimpleLiteralMap input) `shouldReturn` Just output

@@ -12,9 +12,9 @@ module Language.Exalog.Renamer
   ( rename
   , mkPredicateMap, mkLiteralMap, mkClauseMap
   , PredicateIDMap, LiteralIDMap, ClauseIDMap
-  , PredicateID(..), ClauseID(..), LiteralID(..)
-  , Literal(..), ClauseID(..), LiteralID(..)
-  , HasPredicateID(..), HasClauseID(..), HasLiteralID(..)
+  , PredicateID(..), LiteralID(..), ClauseID(..)
+  , PredicateAnn(PredARename), LiteralAnn(LitARename), ClauseAnn(ClARename), ProgramAnn(ProgARename)
+  , HasPredicateID(..), HasLiteralID(..), HasClauseID(..)
   ) where
 
 import Protolude
