@@ -27,4 +27,4 @@ spec =
       it "programSimple can be repaired" $ do
         let input = (RRes.prSimple, mempty)
         let output = (RRes.prSimpleRepaired, mempty)
-        runLoggerT (fixRangeRestriction RRes.prSimpleLiteralMap input) `shouldReturn` Just output
+        runLoggerT (fixRangeRestriction input) `shouldReturn` Just output

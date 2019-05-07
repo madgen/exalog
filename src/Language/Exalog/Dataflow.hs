@@ -1,6 +1,10 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Language.Exalog.Dataflow
   ( PositiveFlowGr
@@ -22,16 +26,20 @@ import qualified Data.Set as S
 import qualified Data.Vector.Sized as V
 
 import Language.Exalog.Core
-import Language.Exalog.Renamer
 
 --------------------------------------------------------------------------------
 -- Exported data types
 --------------------------------------------------------------------------------
 
-data PositiveFlowGr = PositiveFlowGr (P.Gr Node ()) (M.Map Node Int)
+data PositiveFlowGr ann = PositiveFlowGr (P.Gr (Node ann) ()) (M.Map (Node ann) Int)
 
-data FlowSink   = FSinkLiteral   LiteralID Int | FSinkPredicate PredicateID Int
-data FlowSource = FSourceLiteral LiteralID Int | FSourceConstant Constant
+data FlowSink ann =
+    FSinkLiteral   (Literal ('ARename ann)) Int
+  | FSinkPredicate (PredicateBox ('ARename ann)) Int
+
+data FlowSource ann =
+    FSourceLiteral (Literal ('ARename ann)) Int
+  | FSourceConstant Constant
 
 data Constant = CSym Sym | CWild deriving (Eq, Ord, Show)
 
@@ -39,7 +47,9 @@ data Constant = CSym Sym | CWild deriving (Eq, Ord, Show)
 -- Main operations
 --------------------------------------------------------------------------------
 
-analysePositiveFlow :: Program ('ARename ann) -> PositiveFlowGr
+analysePositiveFlow :: IdentifiableAnn (PredicateAnn ('ARename ann)) a => Ord a
+                    => IdentifiableAnn (LiteralAnn   ('ARename ann)) b => Ord b
+                    => Program ('ARename ann) -> PositiveFlowGr ann
 analysePositiveFlow pr = PositiveFlowGr (Gr.mkGraph lnodes ledges) nodeDict
   where
   edges = nub $ programEdges pr
@@ -53,16 +63,19 @@ analysePositiveFlow pr = PositiveFlowGr (Gr.mkGraph lnodes ledges) nodeDict
 -- |Finds the nearest positive parameters of predicates or constants that
 -- flow into a given literal argument. The results together cover the
 -- domain of values the target can take.
-nearestCoveringPositives :: PositiveFlowGr
-                         -> FlowSink
-                         -> Maybe (NE.NonEmpty FlowSource)
+nearestCoveringPositives :: forall ann a b
+                          . IdentifiableAnn (PredicateAnn ('ARename ann)) a => Ord a
+                         => IdentifiableAnn (LiteralAnn   ('ARename ann)) b => Ord b
+                         => PositiveFlowGr ann
+                         -> FlowSink ann
+                         -> Maybe (NE.NonEmpty (FlowSource ann))
 nearestCoveringPositives (PositiveFlowGr gr dict) fSink = do
   context <- mContext
   nonEmpty . concatMap (go []) . Gr.pre' $ context
   where
   mContext = Gr.context gr <$> toNode fSink `M.lookup` dict
 
-  go :: [ Gr.Node ] -> Gr.Node -> [ FlowSource ]
+  go :: [ Gr.Node ] -> Gr.Node -> [ FlowSource ann ]
   go visitedNodes node
     | node `elem` visitedNodes = mempty
     | context <- Gr.context gr node =
@@ -76,51 +89,69 @@ nearestCoveringPositives (PositiveFlowGr gr dict) fSink = do
 -- Internal data types
 --------------------------------------------------------------------------------
 
-data Node =
-    NPredicate { _predicateID :: PredicateID, _paramIndex :: Int }
-  | NLiteral   { _literalID   :: LiteralID  , _paramIndex :: Int }
-  | NConstant  { _constant    :: Constant }
-  deriving (Eq, Ord, Show)
+data Node ann =
+    NPredicate { _predicate :: PredicateBox ('ARename ann), _paramIndex :: Int }
+  | NLiteral   { _literal   :: Literal      ('ARename ann), _paramIndex :: Int }
+  | NConstant  { _constant  :: Constant }
 
-type Edge = (Node, Node)
+deriving instance
+  ( Show (PredicateAnn ('ARename ann))
+  , Show (LiteralAnn   ('ARename ann))
+  ) => Show (Node ann)
+deriving instance
+  ( IdentifiableAnn (PredicateAnn ('ARename ann)) a, Eq a
+  , IdentifiableAnn (LiteralAnn   ('ARename ann)) b, Eq b
+  ) => Eq (Node ann)
+deriving instance
+  ( IdentifiableAnn (PredicateAnn ('ARename ann)) a, Ord a
+  , IdentifiableAnn (LiteralAnn   ('ARename ann)) b, Ord b
+  ) => Ord (Node ann)
 
-toNode :: FlowSink -> Node
-toNode (FSinkLiteral   litID  ix) = NLiteral   litID  ix
-toNode (FSinkPredicate predID ix) = NPredicate predID ix
+type Edge ann = (Node ann, Node ann)
+
+toNode :: FlowSink ann -> Node ann
+toNode (FSinkLiteral   lit  ix) = NLiteral   lit  ix
+toNode (FSinkPredicate pBox ix) = NPredicate pBox ix
 
 --------------------------------------------------------------------------------
 -- Feature extraction
 --------------------------------------------------------------------------------
 
-programEdges :: Program ('ARename ann) -> [ Edge ]
+programEdges :: IdentifiableAnn (PredicateAnn ('ARename ann)) a => Ord a
+             => Program ('ARename ann) -> [ Edge ann ]
 programEdges pr@Program{..} = concatMap (clauseEdges intentionals) clauses
   where
-  intentionals = S.fromList . map predicateID . findIntentionals $ pr
+  intentionals = S.fromList . findIntentionals $ pr
 
-clauseEdges :: S.Set PredicateID -> Clause ('ARename ann) -> [ Edge ]
+clauseEdges :: IdentifiableAnn (PredicateAnn ('ARename ann)) a => Ord a
+            => S.Set (PredicateBox ('ARename ann))
+            -> Clause ('ARename ann)
+            -> [ Edge ann ]
 clauseEdges intentionals Clause{..} = join . evalSideways intentionals $ do
   handleHeadLiteral head
 
   traverse handleBodyLiteral (NE.toList body)
 
-handleHeadLiteral :: Literal ('ARename ann) -> Sideways ()
+handleHeadLiteral :: IdentifiableAnn (PredicateAnn ('ARename ann)) a => Ord a
+                  => Literal ('ARename ann) -> Sideways ann ()
 handleHeadLiteral Literal{..} =
   forM_ (zip [0..] $ V.toList terms) $ \case
-    (ix, TVar var) -> updateBinder var (NPredicate (predicateID predicate) ix)
+    (ix, TVar var) -> updateBinder var (NPredicate (PredicateBox predicate) ix)
     _              -> pure ()
 
-handleBodyLiteral :: Literal ('ARename ann) -> Sideways [ Edge ]
-handleBodyLiteral Literal{..} = do
+handleBodyLiteral :: IdentifiableAnn (PredicateAnn ('ARename ann)) a => Ord a
+                  => Literal ('ARename ann) -> Sideways ann [ Edge ann ]
+handleBodyLiteral lit@Literal{..} = do
   edgess <- forM (zip [0..] $ V.toList terms) $ \(ix, term) -> do
     -- Bother with predicate node as a destination only if it is
     -- intentional.
-    dsts <- getPredNode (predicateID predicate) ix
+    dsts <- getPredNode (PredicateBox predicate) ix
 
     case term of
       TVar var -> do
         mSrc <- getBinder var
 
-        let litNode = NLiteral (literalID annotation) ix
+        let litNode = NLiteral lit ix
         when (polarity == Positive) $ updateBinder var litNode
 
         pure [ (src, dst) | src <- toList mSrc, dst <- litNode : dsts ]
@@ -133,25 +164,27 @@ handleBodyLiteral Literal{..} = do
 -- Monadic actions
 --------------------------------------------------------------------------------
 
-newtype SidewaysSt = SidewaysSt { _binderMap :: M.Map Var Node }
+newtype SidewaysSt ann = SidewaysSt { _binderMap :: M.Map Var (Node ann) }
 
-type Sideways = ReaderT (S.Set PredicateID) (State SidewaysSt)
+type Sideways ann =
+  ReaderT (S.Set (PredicateBox ('ARename ann))) (State (SidewaysSt ann))
 
-initSidewaysSt :: SidewaysSt
+initSidewaysSt :: SidewaysSt ann
 initSidewaysSt = SidewaysSt M.empty
 
-evalSideways :: S.Set PredicateID -> Sideways a -> a
-evalSideways intentionalIDs = (`evalState` initSidewaysSt)
-                            . (`runReaderT` intentionalIDs)
+evalSideways :: S.Set (PredicateBox ('ARename ann)) -> Sideways ann a -> a
+evalSideways intentionals = (`evalState` initSidewaysSt)
+                          . (`runReaderT` intentionals)
 
-getPredNode :: PredicateID -> Int -> Sideways [ Node ]
-getPredNode id ix = do
-  intentionalIDs <- ask
-  pure [ NPredicate id ix | id `S.member` intentionalIDs ]
+getPredNode :: IdentifiableAnn (PredicateAnn ('ARename ann)) a => Ord a
+            => PredicateBox ('ARename ann) -> Int -> Sideways ann [ Node ann ]
+getPredNode pBox ix = do
+  intentionals <- ask
+  pure [ NPredicate pBox ix | pBox `S.member` intentionals ]
 
-getBinder :: Var -> Sideways (Maybe Node)
+getBinder :: Var -> Sideways ann (Maybe (Node ann))
 getBinder var = lift $ M.lookup var . _binderMap <$> get
 
-updateBinder :: Var -> Node -> Sideways ()
+updateBinder :: Var -> Node ann -> Sideways ann ()
 updateBinder var binder = lift $
   modify (\st -> st {_binderMap = M.insert var binder $ _binderMap st})

@@ -2,7 +2,6 @@
 
 module Fixture.RangeRestriction
   ( prSimple
-  , prSimpleLiteralMap
   , prSimpleRepaired
   ) where
 
@@ -68,9 +67,6 @@ prSimple = Program (ProgARename $ ProgABase dummySpan)
   , Clause (ClARename (ClauseID 11) $ ClABase dummySpan) (query' (tvar "X")) $ NE.fromList
     [ r' (tvar "X"), p' (tvar "X") ]
   ] [ PredicateBox queryPred' ]
-
-prSimpleLiteralMap :: LiteralIDMap 'ABase
-prSimpleLiteralMap = mkLiteralMap prSimple
 
 {-| Linear ancestor pr:
 -
