@@ -111,18 +111,12 @@ mkGuard sp flowSink var = do
     Just flowSources -> do
       (clauses, sols) <- fmap (partitionEithers . NE.toList)
                        $ (`traverse` flowSources) $ \case
-        FSourceLiteral lit ix -> do
-          let guardBody = mkGuardBody sp lit var ix
-          pure $ Left $ Clause
-            { annotation = ClABase sp
-            , head       = guardLit
-            , body       = guardBody
-            }
+        FSourceLiteral lit ix -> pure $ Left $
+          mkGuardClause sp guardLit (mkGuardBody sp lit var ix)
 
         FSourceConstant constant ->
           case constant of
-            CSym sym -> pure . Right $ R.fromList
-              [ R.Relation guardPred (T.fromList [ V.singleton sym ]) ]
+            CSym sym -> pure . Right $ mkGuardFact guardPred sym
             CWild -> lift $ lift $ scold (Just sp)
               "Range restriction is violated and it cannot be repaired due to dataflow."
 
@@ -132,6 +126,18 @@ mkGuard sp flowSink var = do
            )
     Nothing -> lift $ lift $ scold (Just sp)
       "Range restriction is violated and it cannot be repaired due to dataflow."
+
+mkGuardFact :: IdentifiableAnn (PredicateAnn ann) a => Ord a
+            => Predicate 1 ann -> Sym -> R.Solution ann
+mkGuardFact guardPred sym = R.fromList
+  [ R.Relation guardPred (T.fromList [ V.singleton sym ]) ]
+
+mkGuardClause :: SrcSpan -> Literal 'ABase -> Body 'ABase -> Clause 'ABase
+mkGuardClause sp head body = Clause
+  { annotation = ClABase sp
+  , head       = head
+  , body       = body
+  }
 
 mkGuardBody :: SrcSpan -> Literal ('ARename 'ABase) -> Var -> Int -> Body 'ABase
 mkGuardBody sp Literal{predicate = guardPred@Predicate{..}} var ix = do
