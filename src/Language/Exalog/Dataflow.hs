@@ -6,15 +6,16 @@ module Language.Exalog.Dataflow
   ( PositiveFlowGr
   , FlowSource(..)
   , FlowSink(..)
+  , Constant(..)
   , analysePositiveFlow
   , nearestCoveringPositives
   ) where
 
 import Protolude hiding (head, sym)
 
-import           Data.List (nub)
 import qualified Data.Graph.Inductive.Graph as Gr
 import qualified Data.Graph.Inductive.PatriciaTree as P
+import           Data.List (nub)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
@@ -31,6 +32,8 @@ data PositiveFlowGr = PositiveFlowGr (P.Gr Node ()) (M.Map Node Int)
 
 data FlowSink   = FSinkLiteral   LiteralID Int | FSinkPredicate PredicateID Int
 data FlowSource = FSourceLiteral LiteralID Int | FSourceConstant Constant
+
+data Constant = CSym Sym | CWild deriving (Eq, Ord)
 
 --------------------------------------------------------------------------------
 -- Main operations
@@ -50,9 +53,12 @@ analysePositiveFlow pr = PositiveFlowGr (Gr.mkGraph lnodes ledges) nodeDict
 -- |Finds the nearest positive parameters of predicates or constants that
 -- flow into a given literal argument. The results together cover the
 -- domain of values the target can take.
-nearestCoveringPositives :: PositiveFlowGr -> FlowSink -> Maybe [ FlowSource ]
-nearestCoveringPositives (PositiveFlowGr gr dict) fSink =
-  concatMap (go []) . Gr.pre' <$> mContext
+nearestCoveringPositives :: PositiveFlowGr
+                         -> FlowSink
+                         -> Maybe (NE.NonEmpty FlowSource)
+nearestCoveringPositives (PositiveFlowGr gr dict) fSink = do
+  context <- mContext
+  nonEmpty . concatMap (go []) . Gr.pre' $ context
   where
   mContext = Gr.context gr <$> toNode fSink `M.lookup` dict
 
@@ -69,8 +75,6 @@ nearestCoveringPositives (PositiveFlowGr gr dict) fSink =
 --------------------------------------------------------------------------------
 -- Internal data types
 --------------------------------------------------------------------------------
-
-data Constant = CSym Sym | CWild deriving (Eq, Ord)
 
 data Node =
     NPredicate { _predicateID :: PredicateID, _paramIndex :: Int }
