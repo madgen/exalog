@@ -10,10 +10,10 @@
 
 module Language.Exalog.Renamer
   ( rename
-  , mkPredicateMap
-  , mkLiteralMap
-  , mkClauseMap
+  , mkPredicateMap, mkLiteralMap, mkClauseMap
+  , PredicateIDMap, LiteralIDMap, ClauseIDMap
   , PredicateID(..), ClauseID(..), LiteralID(..)
+  , Literal(..), ClauseID(..), LiteralID(..)
   , HasPredicateID(..), HasClauseID(..), HasLiteralID(..)
   ) where
 
@@ -35,6 +35,10 @@ data    instance PredicateAnn ('ARename a) = PredARename { _predicateID :: Predi
 data    instance LiteralAnn   ('ARename a) = LitARename  { _literalID   :: LiteralID  , _prevAnn :: LiteralAnn   a }
 data    instance ClauseAnn    ('ARename a) = ClARename   { _clauseID    :: ClauseID   , _prevAnn :: ClauseAnn    a }
 newtype instance ProgramAnn   ('ARename a) = ProgARename {                              _prevAnn :: ProgramAnn   a }
+
+type PredicateIDMap ann = BM.Bimap (PredicateBox ('ARename ann)) PredicateID
+type LiteralIDMap ann   = BM.Bimap (Literal      ('ARename ann)) LiteralID
+type ClauseIDMap ann    = BM.Bimap (Clause       ('ARename ann)) ClauseID
 
 --------------------------------------------------------------------------------
 -- Accessor
@@ -125,7 +129,7 @@ renamePredicate pred@Predicate{..} = do
 mkPredicateMap :: IdentifiableAnn (PredicateAnn ann) a
                => Ord a
                => Program ('ARename ann)
-               -> BM.Bimap (PredicateBox ('ARename ann)) PredicateID
+               -> PredicateIDMap ann
 mkPredicateMap pr = BM.fromList $ (<$> predicates pr) $
   \pBox@(PredicateBox Predicate{..}) -> (pBox, predicateID annotation)
 
@@ -133,7 +137,7 @@ mkLiteralMap :: IdentifiableAnn (PredicateAnn ann) a
              => IdentifiableAnn (LiteralAnn ann) b
              => Ord a => Ord b
              => Program ('ARename ann)
-             -> BM.Bimap (Literal ('ARename ann)) LiteralID
+             -> LiteralIDMap ann
 mkLiteralMap Program{..} = BM.fromList
                          $ fmap (\lit@Literal{..} -> (lit, literalID annotation))
                          . join
@@ -145,7 +149,7 @@ mkClauseMap :: IdentifiableAnn (PredicateAnn ann) a
             => IdentifiableAnn (ClauseAnn ann) c
             => Ord a => Ord b => Ord c
             => Program ('ARename ann)
-            -> BM.Bimap (Clause ('ARename ann)) ClauseID
+            -> ClauseIDMap ann
 mkClauseMap Program{..} = BM.fromList $ (<$> clauses) $
   \cl@Clause{..} -> (cl, clauseID annotation)
 

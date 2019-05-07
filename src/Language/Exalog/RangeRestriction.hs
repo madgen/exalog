@@ -186,8 +186,7 @@ rangeRestrictionViolations Clause{..} = map (genSink . fst &&& snd)
   genSink = FSinkPredicate (predicateID head)
   bodyVariables = mconcat $ variables <$> NE.toList body
 
-type LiteralMap = BM.Bimap (Literal ('ARename 'ABase)) LiteralID
-type RepairEnv = (LiteralMap, PositiveFlowGr)
+type RepairEnv = (LiteralIDMap 'ABase, PositiveFlowGr)
 type Repair = ReaderT RepairEnv (FreshT Logger)
 
 runRepair :: Program ('ARename 'ABase) -> Repair a -> Logger a
@@ -199,7 +198,7 @@ runRepair pr = runFreshT (Just "guard") reserved
           <$> predicates pr
   literalMap = mkLiteralMap pr
 
-getLiteralMap :: Repair LiteralMap
+getLiteralMap :: Repair (LiteralIDMap 'ABase)
 getLiteralMap = fst <$> ask
 
 getPositiveFlowGraph :: Repair PositiveFlowGr
