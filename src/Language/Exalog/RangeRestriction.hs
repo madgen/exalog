@@ -61,25 +61,24 @@ instance SpannableAnn (ClauseAnn ann) => RangeRestriction (Clause ann) where
 
 fixRangeRestriction :: (Program ('ARename 'ABase), R.Solution ('ARename 'ABase))
                     -> Logger (Program 'ABase, R.Solution 'ABase)
-fixRangeRestriction (pr@Program{..}, sol) =
-  runRepair pr $ do
+fixRangeRestriction (pr@Program{..}, sol) = runRepairT pr $ do
+  (originalClauses, guardClausess, guardSols) <- unzip3 <$>
+    traverse fixRangeRestrictionClause clauses
 
-    (originalClauses, guardClausess, guardSols) <- unzip3 <$>
-      traverse fixRangeRestrictionClause clauses
-
-    pure ( Program
-            { annotation = peelA annotation
-            , clauses    = originalClauses <> join guardClausess
-            , queryPreds = (PredicateBox . peel $$) <$> queryPreds
-            , ..}
-         , mconcat (R.rename peel sol : guardSols)
-         )
+  pure ( Program
+          { annotation = peelA annotation
+          , clauses    = originalClauses <> join guardClausess
+          , queryPreds = (PredicateBox . peel $$) <$> queryPreds
+          , ..}
+       , mconcat (R.rename peel sol : guardSols)
+       )
 
 fixRangeRestrictionClause :: Clause ('ARename 'ABase)
-                          -> Repair ( Clause 'ABase
-                                    , [ Clause 'ABase ]
-                                    , R.Solution 'ABase
-                                    )
+                          -> RepairT Logger
+                             ( Clause 'ABase
+                             , [ Clause 'ABase ]
+                             , R.Solution 'ABase
+                             )
 fixRangeRestrictionClause cl@Clause{..} = do
   mGuard <- sequence <$> traverse (uncurry (mkGuard $ span head)) violations
 
@@ -98,10 +97,15 @@ fixRangeRestrictionClause cl@Clause{..} = do
   where
   violations = rangeRestrictionViolations cl
 
-mkGuard :: SrcSpan
+mkGuard :: Monad m
+        => SrcSpan
         -> FlowSink 'ABase
         -> Var
-        -> Repair (Maybe (Literal 'ABase, [ Clause 'ABase ], R.Solution 'ABase))
+        -> RepairT m
+           (Maybe ( Literal 'ABase
+                  , [ Clause 'ABase ]
+                  , R.Solution 'ABase
+                  ))
 mkGuard sp flowSink var = do
   flowGr <- getPositiveFlowGraph
 
@@ -179,20 +183,18 @@ rangeRestrictionViolations Clause{..} = map (genSink . fst &&& snd)
   bodyVariables = mconcat $ variables <$> NE.toList body
 
 type RepairEnv = PositiveFlowGr 'ABase
-type Repair = ReaderT RepairEnv (FreshT Logger)
+type RepairT m = ReaderT RepairEnv (FreshT m)
 
-runRepair :: Program ('ARename 'ABase)
-          -> Repair a
-          -> Logger a
-runRepair pr = runFreshT (Just "guard") reserved
+runRepairT :: Monad m => Program ('ARename 'ABase) -> RepairT m a -> m a
+runRepairT pr = runFreshT (Just "guard") reserved
              . (`runReaderT` flowGr)
   where
   flowGr = analysePositiveFlow pr
   reserved  = ((\Predicate{fxSym = PredicateSymbol txt} -> txt) $$)
           <$> predicates pr
 
-getPositiveFlowGraph :: Repair (PositiveFlowGr 'ABase)
+getPositiveFlowGraph :: Monad m => RepairT m (PositiveFlowGr 'ABase)
 getPositiveFlowGraph = ask
 
-getFreshPredSym :: Repair PredicateSymbol
+getFreshPredSym :: Monad m => RepairT m PredicateSymbol
 getFreshPredSym = lift $ PredicateSymbol <$> fresh
