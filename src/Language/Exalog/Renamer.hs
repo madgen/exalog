@@ -193,12 +193,12 @@ instance SpannableAnn (ClauseAnn    a) => SpannableAnn (ClauseAnn    ('ARename a
 instance SpannableAnn (ProgramAnn a)   => SpannableAnn (ProgramAnn   ('ARename a)) where
   annSpan (ProgARename   ann) = annSpan ann
 
-instance IdentifiableAnn (PredicateAnn ann) b => IdentifiableAnn (PredicateAnn ('ARename ann)) (Int,b) where
-  idFragment (PredARename (PredicateID id) rest) = (id, idFragment rest)
-instance IdentifiableAnn (LiteralAnn   ann) b => IdentifiableAnn (LiteralAnn   ('ARename ann)) (Int,b) where
-  idFragment (LitARename  (LiteralID   id) rest) = (id, idFragment rest)
-instance IdentifiableAnn (ClauseAnn    ann) b => IdentifiableAnn (ClauseAnn    ('ARename ann)) (Int,b) where
-  idFragment (ClARename   (ClauseID id)    rest) = (id, idFragment rest)
+instance IdentifiableAnn (PredicateAnn ann) b => IdentifiableAnn (PredicateAnn ('ARename ann)) Int where
+  idFragment (PredARename (PredicateID id) rest) = id
+instance IdentifiableAnn (LiteralAnn   ann) b => IdentifiableAnn (LiteralAnn   ('ARename ann)) Int where
+  idFragment (LitARename  (LiteralID   id) rest) = id
+instance IdentifiableAnn (ClauseAnn    ann) b => IdentifiableAnn (ClauseAnn    ('ARename ann)) Int where
+  idFragment (ClARename   (ClauseID id)    rest) = id
 instance IdentifiableAnn (ProgramAnn   ann) b => IdentifiableAnn (ProgramAnn   ('ARename ann)) b where
   idFragment (ProgARename                  rest) = idFragment rest
 

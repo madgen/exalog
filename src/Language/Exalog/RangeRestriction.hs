@@ -30,6 +30,7 @@ import           Language.Exalog.Renamer
 import qualified Language.Exalog.Relation as R
 import qualified Language.Exalog.Tuples as T
 import           Language.Exalog.SrcLoc (Spannable(..),SrcSpan)
+import           Language.Exalog.Pretty (pp)
 
 -- |Checks if all variables in the head appear in the bodies of the
 -- clauses.
@@ -64,6 +65,7 @@ fixRangeRestriction :: (Program 'ABase, R.Solution 'ABase)
                     -> Logger (Program 'ABase, R.Solution 'ABase)
 fixRangeRestriction (pr@Program{..}, sol) = do
   renamedPr@Program{clauses = renamedClauses} <- rename pr
+
   runRepair renamedPr $ do
 
     (originalClauses, guardClausess, guardSols) <- unzip3 <$>

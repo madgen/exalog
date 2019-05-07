@@ -33,7 +33,7 @@ data PositiveFlowGr = PositiveFlowGr (P.Gr Node ()) (M.Map Node Int)
 data FlowSink   = FSinkLiteral   LiteralID Int | FSinkPredicate PredicateID Int
 data FlowSource = FSourceLiteral LiteralID Int | FSourceConstant Constant
 
-data Constant = CSym Sym | CWild deriving (Eq, Ord)
+data Constant = CSym Sym | CWild deriving (Eq, Ord, Show)
 
 --------------------------------------------------------------------------------
 -- Main operations
@@ -80,7 +80,7 @@ data Node =
     NPredicate { _predicateID :: PredicateID, _paramIndex :: Int }
   | NLiteral   { _literalID   :: LiteralID  , _paramIndex :: Int }
   | NConstant  { _constant    :: Constant }
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Show)
 
 type Edge = (Node, Node)
 

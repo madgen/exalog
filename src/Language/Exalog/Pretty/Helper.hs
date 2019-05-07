@@ -59,3 +59,6 @@ instance Pretty Text where
 
 instance Pretty () where
   pretty _ = empty
+
+instance Pretty Int where
+  pretty = int
