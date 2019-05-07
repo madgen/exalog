@@ -161,7 +161,7 @@ evalRename preds = (`evalStateT` 0) . (`runReaderT` preds)
 
 freshID :: Rename ann Int
 freshID = lift $ do
-  id <- _counter <$> get
+  id <- get
   modify (+ 1)
   pure id
 
