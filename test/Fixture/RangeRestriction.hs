@@ -1,8 +1,8 @@
 {-# LANGUAGE DataKinds #-}
 
 module Fixture.RangeRestriction
-  ( program1
-  , program1Repaired
+  ( programSimple
+  , programSimpleRepaired
   ) where
 
 import Protolude
@@ -42,28 +42,28 @@ q = lit qPred $ fromJust $ V.fromList [ ]
 - p(X) :- q()
 - query(X) :- r(X), p(X)
 |-}
-program1 :: (Program 'ABase, Solution 'ABase)
-program1 =
-  ( Program (ProgABase dummySpan)
-    [ Clause (ClABase dummySpan) (p (tvar "X")) $ NE.fromList [ q ]
-    , Clause (ClABase dummySpan) (query (tvar "X")) $ NE.fromList
-      [ r (tvar "X"), p (tvar "X") ]
-    ] [ PredicateBox queryPred ]
-  , fromList [ ]
-  )
+programSimple :: Program 'ABase
+programSimple = Program (ProgABase dummySpan)
+  [ Clause (ClABase dummySpan) (p (tvar "X")) $ NE.fromList [ q ]
+  , Clause (ClABase dummySpan) (query (tvar "X")) $ NE.fromList
+    [ r (tvar "X"), p (tvar "X") ]
+  ] [ PredicateBox queryPred ]
 
-program1Repaired :: (Program 'ABase, Solution 'ABase)
-program1Repaired =
-  ( Program (ProgABase dummySpan)
-    [ Clause (ClABase dummySpan) (p (tvar "X")) $NE.fromList
-      [ guard0 (tvar "X"), q ]
-    , Clause (ClABase dummySpan) (query (tvar "X")) $ NE.fromList
-      [ r (tvar "X"), p (tvar "X") ]
-    , Clause (ClABase dummySpan) (guard0 (tvar "X")) $ NE.fromList
-      [ r (tvar "X") ]
-    ] [ PredicateBox queryPred ]
-  , fromList [ ]
-  )
+{-| Linear ancestor program:
+-
+- p(X) :- guard(X), q()
+- query(X) :- r(X), p(X)
+- guard(X) :- r(X)
+|-}
+programSimpleRepaired :: Program 'ABase
+programSimpleRepaired = Program (ProgABase dummySpan)
+  [ Clause (ClABase dummySpan) (p (tvar "X")) $NE.fromList
+    [ guard0 (tvar "X"), q ]
+  , Clause (ClABase dummySpan) (query (tvar "X")) $ NE.fromList
+    [ r (tvar "X"), p (tvar "X") ]
+  , Clause (ClABase dummySpan) (guard0 (tvar "X")) $ NE.fromList
+    [ r (tvar "X") ]
+  ] [ PredicateBox queryPred ]
 
 guard0Tuples :: [ V.Vector 1 Int ]
 guard0Tuples = fromJust . V.fromList <$>
