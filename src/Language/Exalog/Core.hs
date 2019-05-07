@@ -376,8 +376,7 @@ instance ( IdentifiableAnn (PredicateAnn ann) b
          , Ord b
          ) => Ord (PredicateBox ann) where
   PredicateBox p `compare` PredicateBox p'
-    | Proved Refl <- sameArity p p'
-    , p == p' = p `compare` p'
+    | Proved Refl <- sameArity p p' = p `compare` p'
     | otherwise = fromSing (arity p) `compare` fromSing (arity p')
 
 -- Misc. helpers
