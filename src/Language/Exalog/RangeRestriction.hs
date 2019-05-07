@@ -81,24 +81,27 @@ fixRangeRestrictionClause :: Clause ('ARename 'ABase)
                                     , R.Solution 'ABase
                                     )
 fixRangeRestrictionClause cl@Clause{..} = do
-  (guardLits, guardClausess, guardSols) <-
-    unzip3 <$> traverse (uncurry (mkGuard $ span head)) violations
+  mGuard <- sequence <$> traverse (uncurry (mkGuard $ span head)) violations
 
-  pure ( Clause
-          { annotation = peelA annotation
-          , head       = peel head
-          , body       = foldr' NE.cons (peel <$> body) guardLits
-          , ..}
-       , join guardClausess
-       , mconcat guardSols
-       )
+  case unzip3 <$> mGuard of
+    Just (guardLits, guardClausess, guardSols) ->
+      pure ( Clause
+              { annotation = peelA annotation
+              , head       = peel head
+              , body       = foldr' NE.cons (peel <$> body) guardLits
+              , ..}
+           , join guardClausess
+           , mconcat guardSols
+           )
+    Nothing -> lift $ lift $ scold (Just $ span head)
+      "Not range-restricted and cannot be repaired due to its dataflow."
   where
   violations = rangeRestrictionViolations cl
 
 mkGuard :: SrcSpan
         -> FlowSink 'ABase
         -> Var
-        -> Repair (Literal 'ABase, [ Clause 'ABase ], R.Solution 'ABase)
+        -> Repair (Maybe (Literal 'ABase, [ Clause 'ABase ], R.Solution 'ABase))
 mkGuard sp flowSink var = do
   flowGr <- getPositiveFlowGraph
 
@@ -107,25 +110,21 @@ mkGuard sp flowSink var = do
   let guardPred = mkGuardPredicate guardSym sp
   let guardLit  = mkGuardLiteral guardPred sp (TVar var)
 
-  case nearestCoveringPositives flowGr flowSink of
-    Just flowSources -> do
-      (clauses, sols) <- fmap (partitionEithers . NE.toList)
-                       $ (`traverse` flowSources) $ \case
-        FSourceLiteral lit ix -> pure $ Left $
-          mkGuardClause sp guardLit (mkGuardBody sp lit var ix)
+  pure $ do
+    coveringPositives <- nearestCoveringPositives flowGr flowSink
 
-        FSourceConstant constant ->
-          case constant of
-            CSym sym -> pure . Right $ mkGuardFact guardPred sym
-            CWild -> lift $ lift $ scold (Just sp)
-              "Range restriction is violated and it cannot be repaired due to dataflow."
+    eClausesFacts <- forM (NE.toList coveringPositives) $ \case
+      FSourceLiteral lit ix -> pure $ Left $
+        mkGuardClause sp guardLit (mkGuardBody sp lit var ix)
 
-      pure ( guardLit
-           , clauses
-           , mconcat sols
-           )
-    Nothing -> lift $ lift $ scold (Just sp)
-      "Range restriction is violated and it cannot be repaired due to dataflow."
+      FSourceConstant constant ->
+        case constant of
+          CSym sym -> pure $ Right $ mkGuardFact guardPred sym
+          CWild    -> Nothing
+
+    let (clauses, sols) = partitionEithers eClausesFacts
+
+    pure (guardLit, clauses, mconcat sols)
 
 mkGuardFact :: IdentifiableAnn (PredicateAnn ann) a => Ord a
             => Predicate 1 ann -> Sym -> R.Solution ann
