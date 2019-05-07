@@ -112,7 +112,7 @@ mkGuard sp flowSink var = do
       (clauses, sols) <- fmap (partitionEithers . NE.toList)
                        $ (`traverse` flowSources) $ \case
         FSourceLiteral lit ix -> do
-          guardBody <- mkGuardBody sp lit var ix
+          let guardBody = mkGuardBody sp lit var ix
           pure $ Left $ Clause
             { annotation = ClABase sp
             , head       = guardLit
@@ -133,21 +133,19 @@ mkGuard sp flowSink var = do
     Nothing -> lift $ lift $ scold (Just sp)
       "Range restriction is violated and it cannot be repaired due to dataflow."
 
-mkGuardBody :: SrcSpan -> Literal ('ARename 'ABase) -> Var -> Int -> Repair (Body 'ABase)
+mkGuardBody :: SrcSpan -> Literal ('ARename 'ABase) -> Var -> Int -> Body 'ABase
 mkGuardBody sp Literal{predicate = guardPred@Predicate{..}} var ix = do
   let ts = replicate (fromIntegral . fromSing $ arity) TWild
-  let ts' = take ix ts ++ TVar var : drop (ix + 1) ts
 
-  V.withSizedList ts' $ \(vts :: V.Vector n Term) ->
+  V.withSizedList ts $ \(vts :: V.Vector n Term) ->
     case (sing :: SNat n) %~ arity of
-      Proved Refl -> pure $ (NE.:| []) $ Literal
+      Proved Refl -> (NE.:| []) $ Literal
          { annotation = LitABase sp
          , predicate  = peel guardPred
-         , terms      = vts
+         , terms      = V.unsafeUpd vts [(ix,TVar var)]
          , polarity   = Positive
          }
-      _ -> lift $ lift $ scream (Just sp)
-        "Argument vector generation failed."
+      _ -> panic "Argument vector generation failed."
 
 mkGuardPredicate :: PredicateSymbol -> SrcSpan -> Predicate 1 'ABase
 mkGuardPredicate pSym sp = Predicate
