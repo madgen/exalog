@@ -31,6 +31,8 @@ import qualified Data.Vector.Sized as V
 
 import Language.Exalog.Core
 import Language.Exalog.Renamer ()
+import Language.Exalog.Pretty
+import Language.Exalog.Pretty.Helper
 
 --------------------------------------------------------------------------------
 -- Exported data types
@@ -299,3 +301,25 @@ deriving instance ( IdentifiableAnn (PredicateAnn ann) a, Eq a
                   , IdentifiableAnn (LiteralAnn   ann) a, Eq a
                   ) => Eq (FlowSource ann)
 
+instance Pretty Constant where
+  pretty CWild    = "_"
+  pretty (CSym sym) = pretty sym
+
+instance ( Pretty (Literal      ('ARename ann))
+         , Pretty (PredicateBox ('ARename ann))
+         ) => Pretty (Node ann) where
+  pretty NNothing              = "Null node"
+  pretty (NConstant  constant) = pretty constant
+  pretty (NPredicate pBox ix)  = pretty pBox PP.<+> "@" PP.<+> pretty ix
+  pretty (NLiteral   lit  ix)  = pretty lit  PP.<+> "@" PP.<+> pretty ix
+
+instance ( Pretty (Literal      ('ARename ann))
+         , Pretty (PredicateBox ('ARename ann))
+         ) => Pretty (PositiveFlowGr ann) where
+  pretty (PositiveFlowGr gr nodeDict) =
+    PP.vcat ((\(n,id) -> pretty n PP.<+> ":" PP.<+> pretty id) <$> nodes)
+    PP.$+$
+    PP.vcat ((\(n1,n2) -> pretty n1 PP.<+> "==>" PP.<+> pretty n2) <$> edges)
+    where
+    nodes = BM.toList nodeDict
+    edges = Gr.edges gr
