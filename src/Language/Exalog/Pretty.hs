@@ -51,6 +51,9 @@ instance Pretty Term where
   pretty (TVar v) = pretty v
   pretty TWild    = "_"
 
+instance (Identifiable (PredicateAnn ann) a) => Pretty (PredicateBox ann) where
+  pretty (PredicateBox p) = pretty p
+
 instance ( Identifiable (PredicateAnn ann) a
          , Identifiable (Ann Literal ann) b
          ) => Pretty (Literal ann) where

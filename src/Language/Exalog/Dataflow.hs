@@ -20,6 +20,9 @@ module Language.Exalog.Dataflow
 
 import Protolude hiding (head, sym, pred)
 
+import qualified Text.PrettyPrint as PP
+import           Text.Show (Show(..))
+
 import qualified Data.Graph.Inductive.Graph as Gr
 import qualified Data.Graph.Inductive.PatriciaTree as P
 import           Data.List (nub)
@@ -28,11 +31,12 @@ import qualified Data.Map.Strict as M
 import qualified Data.Bimap as BM
 import qualified Data.Set as S
 import qualified Data.Vector.Sized as V
+import           Data.Text (unpack)
 
 import Language.Exalog.Core
 import Language.Exalog.Renamer ()
-import Language.Exalog.Pretty
-import Language.Exalog.Pretty.Helper
+import Language.Exalog.Pretty.Helper (Pretty(..))
+import Language.Exalog.Pretty (pp)
 
 --------------------------------------------------------------------------------
 -- Exported data types
@@ -323,3 +327,6 @@ instance ( Pretty (Literal      ('ARename ann))
     where
     nodes = BM.toList nodeDict
     edges = Gr.edges gr
+
+instance Pretty (PositiveFlowGr ann) => Show (PositiveFlowGr ann) where
+  show = unpack . pp
