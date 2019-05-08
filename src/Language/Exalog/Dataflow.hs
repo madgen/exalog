@@ -275,3 +275,22 @@ matchNode :: IdentifiableAnn (PredicateAnn ann) a => Ord a
           -> Gr.Node
           -> Bool
 matchNode nodeDict f node = maybe False f (node `BM.lookupR` nodeDict)
+
+--------------------------------------------------------------------------------
+-- Useful instances
+--------------------------------------------------------------------------------
+
+deriving instance ( Show (PredicateAnn ann)
+                  , Show (LiteralAnn   ann)
+                  ) => Show (FlowSink   ann)
+deriving instance ( Show (PredicateAnn ann)
+                  , Show (LiteralAnn   ann)
+                  ) => Show (FlowSource ann)
+
+deriving instance ( IdentifiableAnn (PredicateAnn ann) a, Eq a
+                  , IdentifiableAnn (LiteralAnn   ann) a, Eq a
+                  ) => Eq (FlowSink   ann)
+deriving instance ( IdentifiableAnn (PredicateAnn ann) a, Eq a
+                  , IdentifiableAnn (LiteralAnn   ann) a, Eq a
+                  ) => Eq (FlowSource ann)
+

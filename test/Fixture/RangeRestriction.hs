@@ -53,8 +53,7 @@ q = lit qPred $ fromJust $ V.fromList [ ]
 q' :: Literal ('ARename 'ABase)
 q' = Literal (LitARename (LiteralID 9) $ LitABase dummySpan) Positive qPred' (fromJust $ V.fromList [ ])
 
-{-| Linear ancestor pr:
--
+{-|
 - p(X) :- q()
 - query(X) :- r(X), p(X)
 |-}
@@ -65,8 +64,7 @@ prSimple = Program (ProgARename $ ProgABase dummySpan)
     [ r' (tvar "X"), p' (tvar "X") ]
   ] [ PredicateBox queryPred' ]
 
-{-| Linear ancestor pr:
--
+{-|
 - p(X) :- guard(X), q()
 - query(X) :- r(X), p(X)
 - guard(X) :- r(X)
