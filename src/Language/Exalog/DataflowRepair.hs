@@ -9,6 +9,7 @@ module Language.Exalog.DataflowRepair
   , RepairResult(..)
   , runRepairT
   , attemptFix
+  , getPositiveFlowGraph
   ) where
 
 import Protolude hiding (sym, head, pred)
