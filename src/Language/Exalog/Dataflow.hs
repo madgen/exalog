@@ -16,6 +16,7 @@ module Language.Exalog.Dataflow
   , Constant(..)
   , analysePositiveFlow
   , nearestCoveringPositives
+  , isPredPredicate
   , HasEdge(..)
   ) where
 
@@ -92,7 +93,7 @@ nearestCoveringPositives (PositiveFlowGr gr dict) fSink = do
 
   go :: [ Gr.Node ] -> Gr.Node -> Maybe [ FlowSource ann ]
   go visitedNodes node
-    | node `elem` visitedNodes = Just []
+    | node `elem` visitedNodes      = Just []
     | context <- Gr.context gr node =
       case Gr.lab' context of
         NNull              -> Nothing
@@ -101,6 +102,17 @@ nearestCoveringPositives (PositiveFlowGr gr dict) fSink = do
         NPredicate _ _     -> fmap concat
                             $ traverse (go (node : visitedNodes))
                             $ Gr.pre' context
+
+-- | Is the predecessor a predicate
+isPredPredicate :: (IdentifiableAnn (PredicateAnn ann) a) => Ord a
+                => (IdentifiableAnn (LiteralAnn   ann) b) => Ord b
+                => PositiveFlowGr ann -> Literal ('ARename ann) -> Int -> Bool
+isPredPredicate (PositiveFlowGr gr nodeDict) lit ix =
+  case NLiteral lit ix `BM.lookup` nodeDict of
+    Just node -> any (\case {NPredicate{} -> True; _ -> False})
+               . map (nodeDict BM.!>)
+               $ Gr.pre gr node
+    Nothing   -> False
 
 --------------------------------------------------------------------------------
 -- Internal data types
