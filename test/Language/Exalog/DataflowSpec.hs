@@ -84,11 +84,6 @@ spec =
           let prs = findRenamedPred $ predicates renamedNegPr
           let frs = (\cl -> findRenamedLit (NE.toList . literals $ cl)) <$> clauses renamedNegPr
 
-          -- v(X) flows into t(X,Z)
-          let sources1 = FSourceLiteral ((frs !! 4) (Neg.v (tvar "X"))) 0 NE.:| []
-          let sink1    = FSinkLiteral ((frs !! 3) (Neg.t (tvar "X") (tvar "Z"))) 0
-          nearestCoveringPositives negGr sink1 `shouldBe` Just sources1
-
           -- v(Y) doesn't flow into r(Z,Y) because the second argument of
           -- the t preceding r(Z,Y) is free.
           let sink2    = FSinkLiteral ((frs !! 3) (Neg.r (tvar "Z") (tvar "Y"))) 1
