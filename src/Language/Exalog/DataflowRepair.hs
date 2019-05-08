@@ -12,8 +12,6 @@ module Language.Exalog.DataflowRepair
 
 import Protolude hiding (sym, head, pred)
 
-import Control.Arrow ((&&&))
-
 import           Data.Singletons (sing, fromSing)
 import           Data.Singletons.TypeLits (SNat)
 import           Data.Singletons.Decide (Decision(..), (%~))
