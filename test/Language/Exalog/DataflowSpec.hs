@@ -12,6 +12,7 @@ import           Data.Maybe (fromJust)
 
 import qualified Fixture.RangeRestriction as RR
 import qualified Fixture.Negation as Neg
+import qualified Fixture.Dataflow as DF
 import           Fixture.Util
 
 import Language.Exalog.Core hiding (head)
@@ -78,7 +79,7 @@ spec =
           edgeShouldExist negGr (Neg.v (tvar "X"), 0) (PredicateBox Neg.tPred, 0)
           edgeShouldExist negGr (Neg.v (tvar "Y"), 0) (PredicateBox Neg.tPred, 1)
 
-      describe "Nearest covering positives" $
+      describe "Nearest covering positives" $ do
         it "negation fixture has expected covers" $ do
           let prs = findRenamedPred $ predicates renamedNegPr
           let frs = (\cl -> findRenamedLit (NE.toList . literals $ cl)) <$> clauses renamedNegPr
@@ -100,3 +101,47 @@ spec =
           -- There is no covering for tc predicate
           let sink4 = FSinkPredicate (prs (PredicateBox Neg.tcPred)) 1
           nearestCoveringPositives negGr sink4 `shouldBe` Nothing
+
+        it "constant dataflow example has proper covers" $ do
+          let flowGr = analysePositiveFlow DF.prConst
+          nearestCoveringPositives flowGr DF.flowSinkQ `shouldBe` DF.flowSourcesConst
+
+        it "wildcard dataflow example has proper covers" $ do
+          let flowGr = analysePositiveFlow DF.prWild
+          nearestCoveringPositives flowGr DF.flowSinkQ `shouldBe` DF.flowSourcesWild
+
+        it "single open dataflow example has proper covers" $ do
+          let flowGr = analysePositiveFlow DF.prSingleOpen
+          nearestCoveringPositives flowGr DF.flowSinkQ `shouldBe` DF.flowSourcesSingleOpen
+
+        it "multiple closed dataflow example has proper covers" $ do
+          let flowGr = analysePositiveFlow DF.prMultipleClosed
+          nearestCoveringPositives flowGr DF.flowSinkQ `shouldBe` DF.flowSourcesMultipleClosed
+
+        it "half open dataflow example has proper covers" $ do
+          let flowGr = analysePositiveFlow DF.prHalfOpen
+          nearestCoveringPositives flowGr DF.flowSinkQ `shouldBe` DF.flowSourcesHalfOpen
+
+        it "alias head closed dataflow example has proper covers" $ do
+          let flowGr = analysePositiveFlow DF.prAliasHeadClosed
+          nearestCoveringPositives flowGr DF.flowSinkQ `shouldBe` DF.flowSourcesAliasHeadClosed
+
+        it "alias head open dataflow example has proper covers" $ do
+          let flowGr = analysePositiveFlow DF.prAliasHeadOpen
+          nearestCoveringPositives flowGr DF.flowSinkQ `shouldBe` DF.flowSourcesAliasHeadOpen
+
+        it "alias body dataflow example has proper covers" $ do
+          let flowGr = analysePositiveFlow DF.prAliasBody
+          nearestCoveringPositives flowGr DF.flowSinkR `shouldBe` DF.flowSourcesAliasBody
+
+        it "indirection dataflow example has proper covers" $ do
+          let flowGr = analysePositiveFlow DF.prIndirection
+          nearestCoveringPositives flowGr DF.flowSinkQ `shouldBe` DF.flowSourcesIndirection
+
+        it "closed recursion dataflow example has proper covers" $ do
+          let flowGr = analysePositiveFlow DF.prRecClosed
+          nearestCoveringPositives flowGr DF.flowSinkQ `shouldBe` DF.flowSourcesRecClosed
+
+        it "indifferent closed recursion dataflow example has proper covers" $ do
+          let flowGr = analysePositiveFlow DF.prRecClosedIndiff
+          nearestCoveringPositives flowGr DF.flowSinkQ `shouldBe` DF.flowSourcesRecClosedIndiff
