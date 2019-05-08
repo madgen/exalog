@@ -89,10 +89,11 @@ spec =
           let sink1    = FSinkLiteral ((frs !! 3) (Neg.t (tvar "X") (tvar "Z"))) 0
           nearestCoveringPositives negGr sink1 `shouldBe` Just sources1
 
-          -- v(Y) flows into r(Z,Y)
+          -- v(Y) doesn't flow into r(Z,Y) because the second argument of
+          -- the t preceding r(Z,Y) is free.
           let sources2 = FSourceLiteral ((frs !! 4) (Neg.v (tvar "Y"))) 0 NE.:| []
           let sink2    = FSinkLiteral ((frs !! 3) (Neg.r (tvar "Z") (tvar "Y"))) 1
-          nearestCoveringPositives negGr sink2 `shouldBe` Just sources2
+          nearestCoveringPositives negGr sink2 `shouldBe` Nothing
 
           -- There is no covering for the r(X,Y) in the first clause
           let sink3 = FSinkLiteral ((fromJust $ head frs) (Neg.r (tvar "X") (tvar "Y"))) 1
