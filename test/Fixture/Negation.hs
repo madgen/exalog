@@ -1,10 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 
-module Fixture.Negation
-  ( program
-  , initEDB
-  , finalEDB
-  ) where
+module Fixture.Negation where
 
 import Protolude hiding (not)
 
