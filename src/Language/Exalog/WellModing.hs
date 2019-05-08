@@ -95,7 +95,7 @@ fixModingClause cl@Clause{..} = do
       Guard gLit gCls gSol -> pure $ Just (gLit, gCls, gSol)
       DeadDataPath         -> pure Nothing
       NotFixable           -> lift $ lift $ scold (Just $ span head)
-        "Not range-restricted and cannot be repaired due to its dataflow."
+        "Not well-moded and cannot be repaired due to its dataflow."
 
   pure ( Clause
           { annotation = peelA annotation
