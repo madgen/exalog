@@ -21,6 +21,7 @@ module Language.Exalog.Relation
   , add
   , merge
   , rename
+  , renameM
   , atEach
     -- * Predicates
   , isEmpty
@@ -108,8 +109,14 @@ merge :: IdentifiableAnn (PredicateAnn a) b => Ord b
 merge (Solution sol) (Solution sol') = Solution $ foldr add' sol' sol
 
 rename :: (forall n. Predicate n a -> Predicate n b) -> Solution a -> Solution b
-rename renamer (Solution rs) =
-  Solution $ map (\(Relation p ts) -> Relation (renamer p) ts) rs
+rename renamer = runIdentity . renameM (pure <$> renamer)
+
+renameM :: Monad m
+        => (forall n. Predicate n a -> m (Predicate n b))
+        -> Solution a
+        -> m (Solution b)
+renameM renamer (Solution rs) = Solution <$>
+  traverse (\(Relation p ts) -> (`Relation` ts) <$> renamer p) rs
 
 findTuples :: forall a b n
             . IdentifiableAnn (PredicateAnn a) b => Ord b
