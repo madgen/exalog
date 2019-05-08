@@ -2,9 +2,11 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Language.Exalog.Dataflow
   ( PositiveFlowGr
@@ -13,25 +15,29 @@ module Language.Exalog.Dataflow
   , Constant(..)
   , analysePositiveFlow
   , nearestCoveringPositives
+  , HasEdge(..)
   ) where
 
-import Protolude hiding (head, sym)
+import Protolude hiding (head, sym, pred)
 
 import qualified Data.Graph.Inductive.Graph as Gr
 import qualified Data.Graph.Inductive.PatriciaTree as P
 import           Data.List (nub)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as M
+import qualified Data.Bimap as BM
 import qualified Data.Set as S
 import qualified Data.Vector.Sized as V
 
 import Language.Exalog.Core
+import Language.Exalog.Renamer ()
 
 --------------------------------------------------------------------------------
 -- Exported data types
 --------------------------------------------------------------------------------
 
-data PositiveFlowGr ann = PositiveFlowGr (P.Gr (Node ann) ()) (M.Map (Node ann) Int)
+data PositiveFlowGr ann =
+  PositiveFlowGr (P.Gr (Node ann) ()) (BM.Bimap (Node ann) Gr.Node)
 
 data FlowSink ann =
     FSinkLiteral   (Literal ('ARename ann)) Int
@@ -47,25 +53,25 @@ data Constant = CSym Sym | CWild deriving (Eq, Ord, Show)
 -- Main operations
 --------------------------------------------------------------------------------
 
-analysePositiveFlow :: IdentifiableAnn (PredicateAnn ('ARename ann)) a => Ord a
-                    => IdentifiableAnn (LiteralAnn   ('ARename ann)) b => Ord b
+analysePositiveFlow :: IdentifiableAnn (PredicateAnn ann) a => Ord a
+                    => IdentifiableAnn (LiteralAnn   ann) b => Ord b
                     => Program ('ARename ann) -> PositiveFlowGr ann
 analysePositiveFlow pr = PositiveFlowGr (Gr.mkGraph lnodes ledges) nodeDict
   where
   edges = nub $ programEdges pr
   lnodes = zip [0..] $ nub (map fst edges ++ map snd edges)
-  nodeDict = M.fromList $ map swap lnodes
+  nodeDict = BM.fromList $ map swap lnodes
 
   ledges = (\(a,b) -> (a,b,()))
-         . bimap (nodeDict M.!) (nodeDict M.!)
+         . bimap (nodeDict BM.!) (nodeDict BM.!)
        <$> edges
 
 -- |Finds the nearest positive parameters of predicates or constants that
 -- flow into a given literal argument. The results together cover the
 -- domain of values the target can take.
 nearestCoveringPositives :: forall ann a b
-                          . IdentifiableAnn (PredicateAnn ('ARename ann)) a => Ord a
-                         => IdentifiableAnn (LiteralAnn   ('ARename ann)) b => Ord b
+                          . IdentifiableAnn (PredicateAnn ann) a => Ord a
+                         => IdentifiableAnn (LiteralAnn   ann) b => Ord b
                          => PositiveFlowGr ann
                          -> FlowSink ann
                          -> Maybe (NE.NonEmpty (FlowSource ann))
@@ -73,7 +79,7 @@ nearestCoveringPositives (PositiveFlowGr gr dict) fSink = do
   context <- mContext
   nonEmpty . concatMap (go []) . Gr.pre' $ context
   where
-  mContext = Gr.context gr <$> toNode fSink `M.lookup` dict
+  mContext = Gr.context gr <$> toNode fSink `BM.lookup` dict
 
   go :: [ Gr.Node ] -> Gr.Node -> [ FlowSource ann ]
   go visitedNodes node
@@ -95,16 +101,16 @@ data Node ann =
   | NConstant  { _constant  :: Constant }
 
 deriving instance
-  ( Show (PredicateAnn ('ARename ann))
-  , Show (LiteralAnn   ('ARename ann))
+  ( Show (PredicateAnn ann)
+  , Show (LiteralAnn   ann)
   ) => Show (Node ann)
 deriving instance
-  ( IdentifiableAnn (PredicateAnn ('ARename ann)) a, Eq a
-  , IdentifiableAnn (LiteralAnn   ('ARename ann)) b, Eq b
+  ( IdentifiableAnn (PredicateAnn ann) a, Eq a
+  , IdentifiableAnn (LiteralAnn   ann) b, Eq b
   ) => Eq (Node ann)
 deriving instance
-  ( IdentifiableAnn (PredicateAnn ('ARename ann)) a, Ord a
-  , IdentifiableAnn (LiteralAnn   ('ARename ann)) b, Ord b
+  ( IdentifiableAnn (PredicateAnn ann) a, Ord a
+  , IdentifiableAnn (LiteralAnn   ann) b, Ord b
   ) => Ord (Node ann)
 
 type Edge ann = (Node ann, Node ann)
@@ -117,13 +123,13 @@ toNode (FSinkPredicate pBox ix) = NPredicate pBox ix
 -- Feature extraction
 --------------------------------------------------------------------------------
 
-programEdges :: IdentifiableAnn (PredicateAnn ('ARename ann)) a => Ord a
+programEdges :: IdentifiableAnn (PredicateAnn ann) a => Ord a
              => Program ('ARename ann) -> [ Edge ann ]
 programEdges pr@Program{..} = concatMap (clauseEdges intentionals) clauses
   where
   intentionals = S.fromList . findIntentionals $ pr
 
-clauseEdges :: IdentifiableAnn (PredicateAnn ('ARename ann)) a => Ord a
+clauseEdges :: IdentifiableAnn (PredicateAnn ann) a => Ord a
             => S.Set (PredicateBox ('ARename ann))
             -> Clause ('ARename ann)
             -> [ Edge ann ]
@@ -132,14 +138,14 @@ clauseEdges intentionals Clause{..} = join . evalSideways intentionals $ do
 
   traverse handleBodyLiteral (NE.toList body)
 
-handleHeadLiteral :: IdentifiableAnn (PredicateAnn ('ARename ann)) a => Ord a
+handleHeadLiteral :: IdentifiableAnn (PredicateAnn ann) a => Ord a
                   => Literal ('ARename ann) -> Sideways ann ()
 handleHeadLiteral Literal{..} =
   forM_ (zip [0..] $ V.toList terms) $ \case
     (ix, TVar var) -> updateBinder var (NPredicate (PredicateBox predicate) ix)
     _              -> pure ()
 
-handleBodyLiteral :: IdentifiableAnn (PredicateAnn ('ARename ann)) a => Ord a
+handleBodyLiteral :: IdentifiableAnn (PredicateAnn ann) a => Ord a
                   => Literal ('ARename ann) -> Sideways ann [ Edge ann ]
 handleBodyLiteral lit@Literal{..} = do
   edgess <- forM (zip [0..] $ V.toList terms) $ \(ix, term) -> do
@@ -176,7 +182,7 @@ evalSideways :: S.Set (PredicateBox ('ARename ann)) -> Sideways ann a -> a
 evalSideways intentionals = (`evalState` initSidewaysSt)
                           . (`runReaderT` intentionals)
 
-getPredNode :: IdentifiableAnn (PredicateAnn ('ARename ann)) a => Ord a
+getPredNode :: IdentifiableAnn (PredicateAnn ann) a => Ord a
             => PredicateBox ('ARename ann) -> Int -> Sideways ann [ Node ann ]
 getPredNode pBox ix = do
   intentionals <- ask
@@ -188,3 +194,84 @@ getBinder var = lift $ M.lookup var . _binderMap <$> get
 updateBinder :: Var -> Node ann -> Sideways ann ()
 updateBinder var binder = lift $
   modify (\st -> st {_binderMap = M.insert var binder $ _binderMap st})
+
+--------------------------------------------------------------------------------
+-- Useful for testing
+--------------------------------------------------------------------------------
+
+class HasEdge f g ann where
+  isAnEdge :: PositiveFlowGr ann -> (f ann, Int) -> (g ann, Int) -> Bool
+
+instance ( IdentifiableAnn (PredicateAnn  ann) a, Ord a
+         , IdentifiableAnn (LiteralAnn    ann) b, Ord b
+         ) => HasEdge Literal Literal ann where
+  isAnEdge (PositiveFlowGr flowGr nodeDict) (lit1, ix1) (lit2, ix2) =
+    any match (Gr.edges flowGr)
+    where
+    match :: (Gr.Node, Gr.Node) -> Bool
+    match (node1, node2) = matchNode nodeDict (matchLitNode lit1 ix1) node1
+                        && matchNode nodeDict (matchLitNode lit2 ix2) node2
+
+instance ( IdentifiableAnn (PredicateAnn  ann) a, Ord a
+         , IdentifiableAnn (LiteralAnn    ann) b, Ord b
+         ) => HasEdge PredicateBox Literal ann where
+  isAnEdge (PositiveFlowGr flowGr nodeDict) (pBox, ix1) (lit, ix2) =
+    any match (Gr.edges flowGr)
+    where
+    match :: (Gr.Node, Gr.Node) -> Bool
+    match (node1, node2) = matchNode nodeDict (matchPredNode pBox ix1) node1
+                        && matchNode nodeDict (matchLitNode  lit  ix2) node2
+
+instance ( IdentifiableAnn (PredicateAnn  ann) a, Ord a
+         , IdentifiableAnn (LiteralAnn    ann) b, Ord b
+         ) => HasEdge Literal PredicateBox ann where
+  isAnEdge (PositiveFlowGr flowGr nodeDict) (lit, ix1) (pBox, ix2) =
+    any match (Gr.edges flowGr)
+    where
+    match :: (Gr.Node, Gr.Node) -> Bool
+    match (node1, node2) = matchNode nodeDict (matchLitNode lit ix1) node1
+                        && matchNode nodeDict (matchPredNode  pBox  ix2) node2
+
+
+instance ( IdentifiableAnn (PredicateAnn ann) a, Ord a
+         , IdentifiableAnn (LiteralAnn   ann) b, Ord b
+         ) => HasEdge PredicateBox PredicateBox ann where
+  isAnEdge (PositiveFlowGr flowGr nodeDict) (pBox1, ix1) (pBox2, ix2) =
+    any match (Gr.edges flowGr)
+    where
+    match :: (Gr.Node, Gr.Node) -> Bool
+    match (node1, node2) = matchNode nodeDict (matchPredNode pBox1 ix1) node1
+                        && matchNode nodeDict (matchPredNode pBox2 ix2) node2
+
+instance ( IdentifiableAnn (PredicateAnn ann) a, Ord a
+         , IdentifiableAnn (LiteralAnn   ann) b, Ord b
+         ) => HasEdge (Const Constant) PredicateBox ann where
+  isAnEdge (PositiveFlowGr flowGr nodeDict) (Const constant, _) (pBox2, ix2) =
+    any match (Gr.edges flowGr)
+    where
+    match :: (Gr.Node, Gr.Node) -> Bool
+    match (node1, node2) = matchNode nodeDict (matchConstNode constant) node1
+                        && matchNode nodeDict (matchPredNode pBox2 ix2) node2
+
+matchConstNode :: Constant -> Node ann -> Bool
+matchConstNode constant NConstant{..} = _constant == constant
+matchConstNode _        _             = False
+
+matchPredNode :: IdentifiableAnn (PredicateAnn ann) a => Eq a
+              => PredicateBox ann -> Int -> Node ann -> Bool
+matchPredNode pred ix NPredicate{..} = ix == _paramIndex && peel _predicate == pred
+matchPredNode _    _  _              = False
+
+matchLitNode :: IdentifiableAnn (PredicateAnn ann) a => Eq a
+             => IdentifiableAnn (LiteralAnn   ann) b => Eq b
+             => Literal ann -> Int -> Node ann -> Bool
+matchLitNode lit ix NLiteral{..} = ix == _paramIndex && peel _literal == lit
+matchLitNode _   _  _            = False
+
+matchNode :: IdentifiableAnn (PredicateAnn ann) a => Ord a
+          => IdentifiableAnn (LiteralAnn   ann) b => Ord b
+          => BM.Bimap (Node ann) Gr.Node
+          -> (Node ann -> Bool)
+          -> Gr.Node
+          -> Bool
+matchNode nodeDict f node = maybe False f (node `BM.lookupR` nodeDict)

@@ -162,6 +162,11 @@ instance {-# OVERLAPPABLE #-}
          => PeelableAST (Predicate n (ann a)) where
   peel Predicate{..} = Predicate (peelA annotation) fxSym arity nature
 
+instance {-# OVERLAPPABLE #-}
+            PeelableAnn PredicateAnn ann
+         => PeelableAST (PredicateBox (ann a)) where
+  peel (PredicateBox pred) = PredicateBox $ peel pred
+
 -- Helpers for decorating the tree with an annotation
 type family Decored (ast :: Type) (ann :: AnnType -> AnnType) = (ast' :: Type) | ast' -> ast ann where
   Decored (Program ann) f = Program (f ann)
