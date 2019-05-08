@@ -6,6 +6,7 @@
 
 module Language.Exalog.DataflowRepair
   ( RepairT
+  , RepairResult(..)
   , runRepairT
   , attemptFix
   ) where
@@ -26,49 +27,46 @@ import qualified Language.Exalog.Relation as R
 import           Language.Exalog.SrcLoc
 import qualified Language.Exalog.Tuples as T
 
+data RepairResult =
+    DeadDataPath
+  | NotFixable
+  | Guard (Literal 'ABase) [ Clause 'ABase ] (R.Solution 'ABase)
+
 attemptFix :: Monad m
            => SrcSpan -> FlowSink 'ABase
            -> Var
-           -> RepairT m
-               (Maybe ( Literal 'ABase
-                      , [ Clause 'ABase ]
-                      , R.Solution 'ABase
-                      ))
+           -> RepairT m RepairResult
 attemptFix sp flowSink var = do
   flowGr <- getPositiveFlowGraph
 
   case nearestCoveringPositives flowGr flowSink of
     Just flowSources -> mkGuard sp flowSources var
-    Nothing          -> pure Nothing
+    Nothing          -> pure DeadDataPath
 
 mkGuard :: Monad m
         => SrcSpan
         -> [ FlowSource 'ABase ]
         -> Var
-        -> RepairT m
-           (Maybe ( Literal 'ABase
-                  , [ Clause 'ABase ]
-                  , R.Solution 'ABase
-                  ))
+        -> RepairT m RepairResult
 mkGuard sp flowSources var = do
   guardSym <- getFreshPredSym
 
   let guardPred = mkGuardPredicate guardSym sp
   let guardLit  = mkGuardLiteral guardPred sp (TVar var)
 
-  pure $ do
-    eClausesFacts <- forM flowSources $ \case
-      FSourceLiteral lit ix -> pure $ Left $
-        mkGuardClause sp guardLit (mkGuardBody sp lit var ix)
+  let mGuard = do
+        eClausesFacts <- forM flowSources $ \case
+          FSourceLiteral lit ix -> Just $ Left $
+            mkGuardClause sp guardLit (mkGuardBody sp lit var ix)
 
-      FSourceConstant constant ->
-        case constant of
-          CSym sym -> pure $ Right $ mkGuardFact guardPred sym
-          CWild    -> Nothing
+          FSourceConstant constant ->
+            case constant of
+              CSym sym -> Just $ Right $ mkGuardFact guardPred sym
+              CWild    -> Nothing
 
-    let (clauses, sols) = partitionEithers eClausesFacts
+        pure $ partitionEithers eClausesFacts
 
-    pure (guardLit, clauses, mconcat sols)
+  pure $ maybe NotFixable (uncurry (Guard guardLit) . second mconcat) mGuard
 
 mkGuardFact :: IdentifiableAnn (PredicateAnn ann) a => Ord a
             => Predicate 1 ann -> Sym -> R.Solution ann

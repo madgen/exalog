@@ -74,20 +74,23 @@ fixRangeRestrictionClause :: Clause ('ARename 'ABase)
                              , R.Solution 'ABase
                              )
 fixRangeRestrictionClause cl@Clause{..} = do
-  mGuard <- sequence <$> traverse (uncurry (attemptFix $ span head)) violations
+  repairResults <- traverse (uncurry (attemptFix $ span head)) violations
 
-  case unzip3 <$> mGuard of
-    Just (guardLits, guardClausess, guardSols) ->
-      pure ( Clause
-              { annotation = peelA annotation
-              , head       = peel head
-              , body       = foldr' NE.cons (peel <$> body) guardLits
-              , ..}
-           , join guardClausess
-           , mconcat guardSols
-           )
-    Nothing -> lift $ lift $ scold (Just $ span head)
-      "Not range-restricted and cannot be repaired due to its dataflow."
+  (guardLits, guardClausess, guardSols) <-
+    fmap (unzip3 . catMaybes) $ forM repairResults $ \case
+      Guard gLit gCls gSol -> pure $ Just (gLit, gCls, gSol)
+      DeadDataPath         -> pure Nothing
+      NotFixable           -> lift $ lift $ scold (Just $ span head)
+        "Not range-restricted and cannot be repaired due to its dataflow."
+
+  pure ( Clause
+          { annotation = peelA annotation
+          , head       = peel head
+          , body       = foldr' NE.cons (peel <$> body) guardLits
+          , ..}
+       , join guardClausess
+       , mconcat guardSols
+       )
   where
   violations = rangeRestrictionViolations cl
 
