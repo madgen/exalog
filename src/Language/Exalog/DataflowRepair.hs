@@ -7,7 +7,7 @@
 module Language.Exalog.DataflowRepair
   ( RepairT
   , runRepairT
-  , mkGuard
+  , attemptFix
   ) where
 
 import Protolude hiding (sym, head, pred)
@@ -26,27 +26,38 @@ import qualified Language.Exalog.Relation as R
 import           Language.Exalog.SrcLoc
 import qualified Language.Exalog.Tuples as T
 
+attemptFix :: Monad m
+           => SrcSpan -> FlowSink 'ABase
+           -> Var
+           -> RepairT m
+               (Maybe ( Literal 'ABase
+                      , [ Clause 'ABase ]
+                      , R.Solution 'ABase
+                      ))
+attemptFix sp flowSink var = do
+  flowGr <- getPositiveFlowGraph
+
+  case nearestCoveringPositives flowGr flowSink of
+    Just flowSources -> mkGuard sp flowSources var
+    Nothing          -> pure Nothing
+
 mkGuard :: Monad m
         => SrcSpan
-        -> FlowSink 'ABase
+        -> [ FlowSource 'ABase ]
         -> Var
         -> RepairT m
            (Maybe ( Literal 'ABase
                   , [ Clause 'ABase ]
                   , R.Solution 'ABase
                   ))
-mkGuard sp flowSink var = do
-  flowGr <- getPositiveFlowGraph
-
+mkGuard sp flowSources var = do
   guardSym <- getFreshPredSym
 
   let guardPred = mkGuardPredicate guardSym sp
   let guardLit  = mkGuardLiteral guardPred sp (TVar var)
 
   pure $ do
-    coveringPositives <- nearestCoveringPositives flowGr flowSink
-
-    eClausesFacts <- forM (NE.toList coveringPositives) $ \case
+    eClausesFacts <- forM flowSources $ \case
       FSourceLiteral lit ix -> pure $ Left $
         mkGuardClause sp guardLit (mkGuardBody sp lit var ix)
 

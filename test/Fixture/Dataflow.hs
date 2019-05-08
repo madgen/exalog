@@ -18,7 +18,9 @@ import Fixture.Util hiding (lit)
 
 pred :: Int -> PredicateSymbol -> SNat n -> Nature n -> Predicate n ('ARename 'ABase)
 pred id = Predicate (PredARename (PredicateID id) $ PredABase dummySpan)
+lit :: Int -> Polarity -> Predicate n ('ARename 'ABase) -> V.Vector n Term -> Literal ('ARename 'ABase)
 lit  id = Literal   (LitARename  (LiteralID   id) $ LitABase  dummySpan)
+cl :: Int -> Head ('ARename 'ABase) -> Body ('ARename 'ABase) -> Clause ('ARename 'ABase)
 cl   id = Clause    (ClARename   (ClauseID    id) $ ClABase   dummySpan)
 
 pPred, qPred, sPred, aPred :: Predicate 1 ('ARename 'ABase)
@@ -62,8 +64,8 @@ prConst = Program (ProgARename $ ProgABase dummySpan)
   , cl 200 (query 30)        $ NE.fromList [ p 40 (tsym (1 :: Int)) ]
   ] [ PredicateBox queryPred ]
 
-flowSourcesConst :: Maybe (NE.NonEmpty (FlowSource 'ABase))
-flowSourcesConst = Just (FSourceConstant (CSym (symbol (1 :: Int))) NE.:| [])
+flowSourcesConst :: Maybe [ FlowSource 'ABase ]
+flowSourcesConst = Just [ FSourceConstant (CSym (symbol (1 :: Int))) ]
 
 {-| Dead path
 -
@@ -81,7 +83,7 @@ prDeadPath = Program (ProgARename $ ProgABase dummySpan)
   , cl 300 (s 50 (tvar "X")) $ NE.fromList [ p 60 (tvar "X") ]
   ] [ PredicateBox queryPred ]
 
-flowSourcesDeadPath :: Maybe (NE.NonEmpty (FlowSource 'ABase))
+flowSourcesDeadPath :: Maybe [ FlowSource 'ABase ]
 flowSourcesDeadPath = flowSourcesConst
 
 {-| Dead exposed
@@ -95,7 +97,7 @@ prExposed :: Program ('ARename 'ABase)
 prExposed =
   prConst {queryPreds = [ PredicateBox queryPred, PredicateBox pPred ]}
 
-flowSourcesExposed :: Maybe (NE.NonEmpty (FlowSource 'ABase))
+flowSourcesExposed :: Maybe [ FlowSource 'ABase ]
 flowSourcesExposed = Nothing
 
 {-| Wildcard flow
@@ -109,8 +111,8 @@ prWild = Program (ProgARename $ ProgABase dummySpan)
   , cl 200 (query 30)        $ NE.fromList [ p 40 TWild ]
   ] [ PredicateBox queryPred ]
 
-flowSourcesWild :: Maybe (NE.NonEmpty (FlowSource 'ABase))
-flowSourcesWild = Just (FSourceConstant CWild NE.:| [])
+flowSourcesWild :: Maybe [ FlowSource 'ABase ]
+flowSourcesWild = Just [ FSourceConstant CWild ]
 
 {-| Single open
 -
@@ -123,7 +125,7 @@ prSingleOpen = Program (ProgARename $ ProgABase dummySpan)
   , cl 200 (query 30)        $ NE.fromList [ p 40 (tvar "X") ]
   ] [ PredicateBox queryPred ]
 
-flowSourcesSingleOpen :: Maybe (NE.NonEmpty (FlowSource 'ABase))
+flowSourcesSingleOpen :: Maybe [ FlowSource 'ABase ]
 flowSourcesSingleOpen = Nothing
 
 {-| Multiple closed
@@ -139,9 +141,11 @@ prMultipleClosed = Program (ProgARename $ ProgABase dummySpan)
   , cl 300 (query 60) $ NE.fromList [ p 70 (tsym (1 :: Int)) ]
   ] [ PredicateBox queryPred ]
 
-flowSourcesMultipleClosed :: Maybe (NE.NonEmpty (FlowSource 'ABase))
-flowSourcesMultipleClosed = Just $
-  FSourceLiteral (a 40 (tvar "X")) 0 NE.:| [ FSourceConstant (CSym $ symbol (1 :: Int)) ]
+flowSourcesMultipleClosed :: Maybe [ FlowSource 'ABase ]
+flowSourcesMultipleClosed = Just
+  [ FSourceLiteral (a 40 (tvar "X")) 0
+  , FSourceConstant (CSym $ symbol (1 :: Int))
+  ]
 
 {-| Multiple half-open
 -
@@ -156,7 +160,7 @@ prHalfOpen = Program (ProgARename $ ProgABase dummySpan)
   , cl 300 (query 60) $ NE.fromList [ p 70 (tvar "X") ]
   ] [ PredicateBox queryPred ]
 
-flowSourcesHalfOpen :: Maybe (NE.NonEmpty (FlowSource 'ABase))
+flowSourcesHalfOpen :: Maybe [ FlowSource 'ABase ]
 flowSourcesHalfOpen = Nothing
 
 {-| Alias at head closed
@@ -170,9 +174,11 @@ prAliasHeadClosed = Program (ProgARename $ ProgABase dummySpan)
   , cl 200 (query 30) $ NE.fromList [ a 40 (tvar "X"), r 50 (tvar "X") (tsym (1 :: Int)) ]
   ] [ PredicateBox queryPred ]
 
-flowSourcesAliasHeadClosed :: Maybe (NE.NonEmpty (FlowSource 'ABase))
-flowSourcesAliasHeadClosed = Just $
-  FSourceConstant (CSym $ symbol (1 :: Int)) NE.:| [ FSourceLiteral (a 40 (tvar "X")) 0 ]
+flowSourcesAliasHeadClosed :: Maybe [ FlowSource 'ABase ]
+flowSourcesAliasHeadClosed = Just
+  [ FSourceConstant (CSym $ symbol (1 :: Int))
+  , FSourceLiteral (a 40 (tvar "X")) 0
+  ]
 
 {-| Alias at head open
 -
@@ -185,7 +191,7 @@ prAliasHeadOpen = Program (ProgARename $ ProgABase dummySpan)
   , cl 200 (query 30) $ NE.fromList [ r 40 (tvar "X") (tsym (1 :: Int)) ]
   ] [ PredicateBox queryPred ]
 
-flowSourcesAliasHeadOpen :: Maybe (NE.NonEmpty (FlowSource 'ABase))
+flowSourcesAliasHeadOpen :: Maybe [ FlowSource 'ABase ]
 flowSourcesAliasHeadOpen = Nothing
 
 {-| Alias at body
@@ -197,9 +203,8 @@ prAliasBody = Program (ProgARename $ ProgABase dummySpan)
   [ cl 100 (query 10) $ NE.fromList [ a 20 (tvar "X"), r 98 (tvar "X") (tvar "X") ]
   ] [ PredicateBox queryPred ]
 
-flowSourcesAliasBody :: Maybe (NE.NonEmpty (FlowSource 'ABase))
-flowSourcesAliasBody = Just $
-  FSourceLiteral (a 20 (tvar "X")) 0 NE.:| []
+flowSourcesAliasBody :: Maybe [ FlowSource 'ABase ]
+flowSourcesAliasBody = Just [ FSourceLiteral (a 20 (tvar "X")) 0 ]
 
 {-| Indirection
 -
@@ -214,10 +219,11 @@ prIndirection = Program (ProgARename $ ProgABase dummySpan)
   , cl 300 (query 50) $ NE.fromList [ p 60 (tsym (1 :: Int)), s 70 (tsym (2 :: Int)) ]
   ] [ PredicateBox queryPred ]
 
-flowSourcesIndirection :: Maybe (NE.NonEmpty (FlowSource 'ABase))
-flowSourcesIndirection = Just $
-  FSourceConstant (CSym $ symbol (1 :: Int)) NE.:|
-  [ FSourceConstant (CSym $ symbol (2 :: Int)) ]
+flowSourcesIndirection :: Maybe [ FlowSource 'ABase ]
+flowSourcesIndirection = Just
+  [ FSourceConstant (CSym $ symbol (1 :: Int))
+  , FSourceConstant (CSym $ symbol (2 :: Int))
+  ]
 
 {-| Recursion closed
 -
@@ -232,9 +238,11 @@ prRecClosed = Program (ProgARename $ ProgABase dummySpan)
   , cl 300 (query 60) $ NE.fromList [ p 70 (tsym (1 :: Int)) ]
   ] [ PredicateBox queryPred ]
 
-flowSourcesRecClosed :: Maybe (NE.NonEmpty (FlowSource 'ABase))
-flowSourcesRecClosed = Just $
-  FSourceLiteral (a 40 (tvar "Y")) 0 NE.:| [ FSourceConstant (CSym $ symbol (1 :: Int)) ]
+flowSourcesRecClosed :: Maybe [ FlowSource 'ABase ]
+flowSourcesRecClosed = Just
+  [ FSourceLiteral (a 40 (tvar "Y")) 0
+  , FSourceConstant (CSym $ symbol (1 :: Int))
+  ]
 
 {-| Recursion closed but indifferent
 -
@@ -249,6 +257,6 @@ prRecClosedIndiff = Program (ProgARename $ ProgABase dummySpan)
   , cl 300 (query 50) $ NE.fromList [ p 60 (tsym (1 :: Int)) ]
   ] [ PredicateBox queryPred ]
 
-flowSourcesRecClosedIndiff :: Maybe (NE.NonEmpty (FlowSource 'ABase))
-flowSourcesRecClosedIndiff = Just $
-  FSourceConstant (CSym $ symbol (1 :: Int)) NE.:| []
+flowSourcesRecClosedIndiff :: Maybe [ FlowSource 'ABase ]
+flowSourcesRecClosedIndiff = Just
+  [ FSourceConstant (CSym $ symbol (1 :: Int)) ]

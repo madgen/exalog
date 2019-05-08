@@ -74,7 +74,7 @@ fixRangeRestrictionClause :: Clause ('ARename 'ABase)
                              , R.Solution 'ABase
                              )
 fixRangeRestrictionClause cl@Clause{..} = do
-  mGuard <- sequence <$> traverse (uncurry (mkGuard $ span head)) violations
+  mGuard <- sequence <$> traverse (uncurry (attemptFix $ span head)) violations
 
   case unzip3 <$> mGuard of
     Just (guardLits, guardClausess, guardSols) ->
