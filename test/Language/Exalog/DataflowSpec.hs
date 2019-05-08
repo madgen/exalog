@@ -140,3 +140,15 @@ spec =
         it "indifferent closed recursion dataflow example has proper covers" $ do
           let flowGr = analysePositiveFlow DF.prRecClosedIndiff
           nearestCoveringPositives flowGr DF.flowSinkQ `shouldBe` DF.flowSourcesRecClosedIndiff
+
+        it "exposed query dataflow example has proper covers" $ do
+          let flowGr = analysePositiveFlow DF.prExposed
+          nearestCoveringPositives flowGr DF.flowSinkQ `shouldBe` DF.flowSourcesExposed
+
+        it "exposed query leads to null node" $ do
+          let flowGr = analysePositiveFlow DF.prExposed
+          nearestCoveringPositives flowGr DF.flowSinkQ `shouldBe` DF.flowSourcesExposed
+
+        it "dead path does not lead to null node" $ do
+          let flowGr = analysePositiveFlow DF.prDeadPath
+          nearestCoveringPositives flowGr DF.flowSinkQ `shouldBe` DF.flowSourcesDeadPath

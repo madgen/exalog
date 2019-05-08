@@ -65,6 +65,39 @@ prConst = Program (ProgARename $ ProgABase dummySpan)
 flowSourcesConst :: Maybe (NE.NonEmpty (FlowSource 'ABase))
 flowSourcesConst = Just (FSourceConstant (CSym (symbol (1 :: Int))) NE.:| [])
 
+{-| Dead path
+-
+- Dead dataflow paths won't be evaluated, so we don't care if they lead to
+- a dead end. Here only "query" is a query predicate.
+-
+- p(X) :- q(X).
+- query() :- p(1).
+- s(X) :- p(X).
+|-}
+prDeadPath :: Program ('ARename 'ABase)
+prDeadPath = Program (ProgARename $ ProgABase dummySpan)
+  [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
+  , cl 200 (query 30)        $ NE.fromList [ p 40 (tsym (1 :: Int)) ]
+  , cl 300 (s 50 (tvar "X")) $ NE.fromList [ p 60 (tvar "X") ]
+  ] [ PredicateBox queryPred ]
+
+flowSourcesDeadPath :: Maybe (NE.NonEmpty (FlowSource 'ABase))
+flowSourcesDeadPath = flowSourcesConst
+
+{-| Dead exposed
+-
+- Same as constant flow ficture but p is exposed as a query predicate.
+-
+- p(X) :- q(X).
+- query() :- p(1).
+|-}
+prExposed :: Program ('ARename 'ABase)
+prExposed =
+  prConst {queryPreds = [ PredicateBox queryPred, PredicateBox pPred ]}
+
+flowSourcesExposed :: Maybe (NE.NonEmpty (FlowSource 'ABase))
+flowSourcesExposed = Nothing
+
 {-| Wildcard flow
 -
 - p(X) :- q(X).
