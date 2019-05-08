@@ -87,6 +87,7 @@ nearestCoveringPositives (PositiveFlowGr gr dict) fSink = do
     | node `elem` visitedNodes = Just []
     | context <- Gr.context gr node =
       case Gr.lab' context of
+        NNothing           -> Nothing
         NConstant constant -> Just [ FSourceConstant constant ]
         NLiteral litID ix  -> Just [ FSourceLiteral litID ix ]
         NPredicate _ _     ->
@@ -102,6 +103,7 @@ data Node ann =
     NPredicate { _predicate :: PredicateBox ('ARename ann), _paramIndex :: Int }
   | NLiteral   { _literal   :: Literal      ('ARename ann), _paramIndex :: Int }
   | NConstant  { _constant  :: Constant }
+  | NNothing
 
 deriving instance
   ( Show (PredicateAnn ann)
@@ -158,12 +160,12 @@ handleBodyLiteral lit@Literal{..} = do
 
     case term of
       TVar var -> do
-        mSrc <- getBinder var
+        src <- getBinder var
 
         let litNode = NLiteral lit ix
         when (polarity == Positive) $ updateBinder var litNode
 
-        pure [ (src, dst) | src <- toList mSrc, dst <- litNode : dsts ]
+        pure [ (src, dst) | dst <- litNode : dsts ]
       TSym sym -> pure [ (NConstant (CSym sym), dst) | dst <- dsts ]
       TWild    -> pure [ (NConstant CWild     , dst) | dst <- dsts ]
 
@@ -191,8 +193,8 @@ getPredNode pBox ix = do
   intentionals <- ask
   pure [ NPredicate pBox ix | pBox `S.member` intentionals ]
 
-getBinder :: Var -> Sideways ann (Maybe (Node ann))
-getBinder var = lift $ M.lookup var . _binderMap <$> get
+getBinder :: Var -> Sideways ann (Node ann)
+getBinder var = lift $ M.findWithDefault NNothing var . _binderMap <$> get
 
 updateBinder :: Var -> Node ann -> Sideways ann ()
 updateBinder var binder = lift $
