@@ -1,9 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 
-module Fixture.RangeRestriction
-  ( prSimple
-  , prSimpleRepaired
-  ) where
+module Fixture.RangeRestriction where
 
 import Protolude
 
@@ -63,7 +60,7 @@ q' = Literal (LitARename (LiteralID 9) $ LitABase dummySpan) Positive qPred' (fr
 |-}
 prSimple :: Program ('ARename 'ABase)
 prSimple = Program (ProgARename $ ProgABase dummySpan)
-  [ Clause (ClARename (ClauseID 10)  $ ClABase dummySpan) (p'     (tvar "X")) $ NE.fromList [ q' ]
+  [ Clause (ClARename (ClauseID 10) $ ClABase dummySpan) (p'     (tvar "X")) $ NE.fromList [ q' ]
   , Clause (ClARename (ClauseID 11) $ ClABase dummySpan) (query' (tvar "X")) $ NE.fromList
     [ r' (tvar "X"), p' (tvar "X") ]
   ] [ PredicateBox queryPred' ]
