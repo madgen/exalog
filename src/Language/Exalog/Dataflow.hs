@@ -95,7 +95,7 @@ nearestCoveringPositives (PositiveFlowGr gr dict) fSink = do
     | node `elem` visitedNodes = Just []
     | context <- Gr.context gr node =
       case Gr.lab' context of
-        NNothing           -> Nothing
+        NNull              -> Nothing
         NConstant constant -> Just [ FSourceConstant constant ]
         NLiteral litID ix  -> Just [ FSourceLiteral litID ix ]
         NPredicate _ _     ->
@@ -111,7 +111,7 @@ data Node ann =
     NPredicate { _predicate :: PredicateBox ('ARename ann), _paramIndex :: Int }
   | NLiteral   { _literal   :: Literal      ('ARename ann), _paramIndex :: Int }
   | NConstant  { _constant  :: Constant }
-  | NNothing
+  | NNull
 
 deriving instance
   ( Show (PredicateAnn ann)
@@ -143,7 +143,7 @@ programEdges pr@Program{..} = concatMap mkQueryEdge queryPreds
   where
   intentionals = S.fromList . findIntentionals $ pr
   mkQueryEdge pBox@(PredicateBox Predicate{..}) =
-    (NNothing,) . NPredicate pBox <$> [0..(fromIntegral (fromSing arity) - 1)]
+    (NNull,) . NPredicate pBox <$> [0..(fromIntegral (fromSing arity) - 1)]
 
 clauseEdges :: IdentifiableAnn (PredicateAnn ann) a => Ord a
             => S.Set (PredicateBox ('ARename ann))
@@ -205,7 +205,7 @@ getPredNode pBox ix = do
   pure [ NPredicate pBox ix | pBox `S.member` intentionals ]
 
 getBinders :: Var -> Sideways ann [ Node ann ]
-getBinders var = lift $ M.findWithDefault [ NNothing ] var . _binderMap <$> get
+getBinders var = lift $ M.findWithDefault [ NNull ] var . _binderMap <$> get
 
 addBinder :: Var -> Node ann -> Sideways ann ()
 addBinder var binder = lift $
@@ -321,7 +321,7 @@ instance Pretty Constant where
 instance ( Pretty (Literal      ('ARename ann))
          , Pretty (PredicateBox ('ARename ann))
          ) => Pretty (Node ann) where
-  pretty NNothing              = "Null node"
+  pretty NNull                 = "Null node"
   pretty (NConstant  constant) = pretty constant
   pretty (NPredicate pBox ix)  = pretty pBox PP.<+> "@" PP.<+> pretty ix
   pretty (NLiteral   lit  ix)  = pretty lit  PP.<+> "@" PP.<+> pretty ix
