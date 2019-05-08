@@ -77,19 +77,22 @@ nearestCoveringPositives :: forall ann a b
                          -> Maybe (NE.NonEmpty (FlowSource ann))
 nearestCoveringPositives (PositiveFlowGr gr dict) fSink = do
   context <- mContext
-  nonEmpty . concatMap (go []) . Gr.pre' $ context
+  flowSourcess <- traverse (go []) . Gr.pre' $ context
+  nonEmpty (concat flowSourcess)
   where
   mContext = Gr.context gr <$> toNode fSink `BM.lookup` dict
 
-  go :: [ Gr.Node ] -> Gr.Node -> [ FlowSource ann ]
+  go :: [ Gr.Node ] -> Gr.Node -> Maybe [ FlowSource ann ]
   go visitedNodes node
-    | node `elem` visitedNodes = mempty
+    | node `elem` visitedNodes = Just []
     | context <- Gr.context gr node =
       case Gr.lab' context of
-        NConstant constant -> pure $ FSourceConstant constant
-        NLiteral litID ix  -> pure $ FSourceLiteral litID ix
+        NConstant constant -> Just [ FSourceConstant constant ]
+        NLiteral litID ix  -> Just [ FSourceLiteral litID ix ]
         NPredicate _ _     ->
-          concatMap (go (node : visitedNodes)) . Gr.pre' $ context
+          case Gr.pre' context of
+            []    -> Nothing
+            nodes -> concat <$> traverse (go (node : visitedNodes)) nodes
 
 --------------------------------------------------------------------------------
 -- Internal data types
