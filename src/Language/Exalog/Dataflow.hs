@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -23,15 +24,16 @@ import Protolude hiding (head, sym, pred)
 import qualified Text.PrettyPrint as PP
 import           Text.Show (Show(..))
 
+import qualified Data.Bimap as BM
 import qualified Data.Graph.Inductive.Graph as Gr
 import qualified Data.Graph.Inductive.PatriciaTree as P
 import           Data.List (nub)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as M
-import qualified Data.Bimap as BM
-import qualified Data.Set as S
-import qualified Data.Vector.Sized as V
 import           Data.Text (unpack)
+import qualified Data.Set as S
+import           Data.Singletons (fromSing)
+import qualified Data.Vector.Sized as V
 
 import Language.Exalog.Core
 import Language.Exalog.Renamer ()
@@ -136,9 +138,12 @@ toNode (FSinkPredicate pBox ix) = NPredicate pBox ix
 
 programEdges :: IdentifiableAnn (PredicateAnn ann) a => Ord a
              => Program ('ARename ann) -> [ Edge ann ]
-programEdges pr@Program{..} = concatMap (clauseEdges intentionals) clauses
+programEdges pr@Program{..} = concatMap mkQueryEdge queryPreds
+                           <> concatMap (clauseEdges intentionals) clauses
   where
   intentionals = S.fromList . findIntentionals $ pr
+  mkQueryEdge pBox@(PredicateBox Predicate{..}) =
+    (NNothing,) . NPredicate pBox <$> [0..(fromIntegral (fromSing arity) - 1)]
 
 clauseEdges :: IdentifiableAnn (PredicateAnn ann) a => Ord a
             => S.Set (PredicateBox ('ARename ann))
