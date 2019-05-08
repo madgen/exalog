@@ -27,7 +27,7 @@ qPred = pred 1 "q" SNat Logical
 sPred = pred 2 "s" SNat Logical
 aPred = pred 3 "a" SNat Logical
 
-rPred :: Predicate 0 ('ARename 'ABase)
+rPred :: Predicate 2 ('ARename 'ABase)
 rPred = pred 4 "r" SNat Logical
 
 queryPred :: Predicate 0 ('ARename 'ABase)
