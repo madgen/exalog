@@ -139,7 +139,7 @@ prAliasHeadClosed = Program (ProgARename $ ProgABase dummySpan)
 
 flowSourcesAliasHeadClosed :: Maybe (NE.NonEmpty (FlowSource 'ABase))
 flowSourcesAliasHeadClosed = Just $
-  FSourceLiteral (a 40 (tvar "X")) 0 NE.:| [ FSourceConstant (CSym $ symbol (1 :: Int)) ]
+  FSourceConstant (CSym $ symbol (1 :: Int)) NE.:| [ FSourceLiteral (a 40 (tvar "X")) 0 ]
 
 {-| Alias at head open
 -
