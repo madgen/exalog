@@ -14,7 +14,7 @@ import Protolude hiding (diff, head, pred, sym)
 
 import Control.Arrow ((&&&))
 
-import           Data.List ((\\), unzip3)
+import           Data.List ((\\))
 import qualified Data.List.NonEmpty as NE
 
 import           Language.Exalog.Core
@@ -55,44 +55,9 @@ instance SpannableAnn (ClauseAnn ann) => RangeRestriction (Clause ann) where
 
 fixRangeRestriction :: (Program ('ARename 'ABase), R.Solution ('ARename 'ABase))
                     -> Logger (Program 'ABase, R.Solution 'ABase)
-fixRangeRestriction (pr@Program{..}, sol) = runRepairT pr $ do
-  (originalClauses, guardClausess, guardSols) <- unzip3 <$>
-    traverse fixRangeRestrictionClause clauses
-
-  pure ( Program
-          { annotation = peelA annotation
-          , clauses    = originalClauses <> join guardClausess
-          , queryPreds = (PredicateBox . peel $$) <$> queryPreds
-          , ..}
-       , mconcat (R.rename peel sol : guardSols)
-       )
-
-fixRangeRestrictionClause :: Clause ('ARename 'ABase)
-                          -> RepairT Logger
-                             ( Clause 'ABase
-                             , [ Clause 'ABase ]
-                             , R.Solution 'ABase
-                             )
-fixRangeRestrictionClause cl@Clause{..} = do
-  repairResults <- traverse (uncurry (attemptFix $ span head)) violations
-
-  (guardLits, guardClausess, guardSols) <-
-    fmap (unzip3 . catMaybes) $ forM repairResults $ \case
-      Guard gLit gCls gSol -> pure $ Just (gLit, gCls, gSol)
-      DeadDataPath         -> pure Nothing
-      NotFixable           -> lift $ lift $ scold (Just $ span head)
-        "Not range-restricted and cannot be repaired due to its dataflow."
-
-  pure ( Clause
-          { annotation = peelA annotation
-          , head       = peel head
-          , body       = foldr' NE.cons (peel <$> body) guardLits
-          , ..}
-       , join guardClausess
-       , mconcat guardSols
-       )
-  where
-  violations = rangeRestrictionViolations cl
+fixRangeRestriction =
+  fixDataflow (pure <$> rangeRestrictionViolations)
+              "Not range-restricted and cannot be repaired due to its dataflow."
 
 rangeRestrictionViolations :: Clause ('ARename ann) -> [ (FlowSink ann, Var) ]
 rangeRestrictionViolations Clause{..} = map (genSink . fst &&& snd)

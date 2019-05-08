@@ -12,9 +12,7 @@ module Language.Exalog.WellModing
 
 import Protolude hiding (head)
 
-import           Data.List (unzip3)
 import           Data.Finite (getFinite)
-import qualified Data.List.NonEmpty as NE
 import           Data.Singletons (fromSing)
 import qualified Data.Vector.Sized as V
 
@@ -71,40 +69,9 @@ instance SpannableAnn (LiteralAnn ann)
 
 fixModing :: (Program ('ARename 'ABase), R.Solution ('ARename 'ABase))
           -> Logger (Program 'ABase, R.Solution 'ABase)
-fixModing (pr@Program{..}, sol) = runRepairT pr $ do
-  (originalClauses, guardClausess, guardSols) <- unzip3 <$>
-    traverse fixModingClause clauses
-
-  pure ( Program
-          { annotation = peelA annotation
-          , clauses    = originalClauses <> join guardClausess
-          , queryPreds = (PredicateBox . peel $$) <$> queryPreds
-          , ..}
-       , mconcat (R.rename peel sol : guardSols)
-       )
-
-fixModingClause :: Clause ('ARename 'ABase)
-                -> RepairT Logger
-                    (Clause 'ABase, [ Clause 'ABase ], R.Solution 'ABase)
-fixModingClause cl@Clause{..} = do
-  violations <- modingViolations cl
-  repairResults <- traverse (uncurry (attemptFix $ span head)) violations
-
-  (guardLits, guardClausess, guardSols) <-
-    fmap (unzip3 . catMaybes) $ forM repairResults $ \case
-      Guard gLit gCls gSol -> pure $ Just (gLit, gCls, gSol)
-      DeadDataPath         -> pure Nothing
-      NotFixable           -> lift $ lift $ scold (Just $ span head)
-        "Not well-moded and cannot be repaired due to its dataflow."
-
-  pure ( Clause
-          { annotation = peelA annotation
-          , head       = peel head
-          , body       = foldr' NE.cons (peel <$> body) guardLits
-          , ..}
-       , join guardClausess
-       , mconcat guardSols
-       )
+fixModing =
+  fixDataflow modingViolations
+              "Not well-moded and cannot be repaired due to its dataflow."
 
 modingViolations :: Monad m
                  => Clause ('ARename 'ABase)

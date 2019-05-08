@@ -5,15 +5,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Language.Exalog.DataflowRepair
-  ( RepairT
-  , RepairResult(..)
-  , runRepairT
-  , attemptFix
+  ( fixDataflow
+  , RepairT
   , getPositiveFlowGraph
   ) where
 
 import Protolude hiding (sym, head, pred)
 
+import           Data.List (unzip3)
 import           Data.Singletons (sing, fromSing)
 import           Data.Singletons.TypeLits (SNat)
 import           Data.Singletons.Decide (Decision(..), (%~))
@@ -25,6 +24,7 @@ import           Language.Exalog.Dataflow
 import           Language.Exalog.Fresh
 import           Language.Exalog.Renamer ()
 import qualified Language.Exalog.Relation as R
+import           Language.Exalog.Logger
 import           Language.Exalog.SrcLoc
 import qualified Language.Exalog.Tuples as T
 
@@ -32,6 +32,47 @@ data RepairResult =
     DeadDataPath
   | NotFixable
   | Guard (Literal 'ABase) [ Clause 'ABase ] (R.Solution 'ABase)
+
+type Repair = RepairT Logger
+
+fixDataflow :: (Clause ('ARename 'ABase) -> Repair [ (FlowSink 'ABase, Var) ])
+            -> Text
+            -> (Program ('ARename 'ABase), R.Solution ('ARename 'ABase))
+            -> Logger (Program 'ABase, R.Solution 'ABase)
+fixDataflow violationFinder errMsg (pr@Program{..}, sol) = runRepairT pr $ do
+  (originalClauses, guardClausess, guardSols) <- unzip3 <$>
+    traverse (fixDataflowClause violationFinder errMsg) clauses
+
+  pure ( Program
+          { annotation = peelA annotation
+          , clauses    = originalClauses <> join guardClausess
+          , queryPreds = (PredicateBox . peel $$) <$> queryPreds
+          , ..}
+       , mconcat (R.rename peel sol : guardSols)
+       )
+
+fixDataflowClause :: (Clause ('ARename 'ABase) -> Repair [ (FlowSink 'ABase, Var) ])
+                  -> Text
+                  -> Clause ('ARename 'ABase)
+                  -> Repair (Clause 'ABase, [ Clause 'ABase ], R.Solution 'ABase)
+fixDataflowClause violationFinder errMsg cl@Clause{..} = do
+  violations <- violationFinder cl
+  repairResults <- traverse (uncurry (attemptFix $ span head)) violations
+
+  (guardLits, guardClausess, guardSols) <-
+    fmap (unzip3 . catMaybes) $ forM repairResults $ \case
+      Guard gLit gCls gSol -> pure $ Just (gLit, gCls, gSol)
+      DeadDataPath         -> pure Nothing
+      NotFixable           -> lift $ lift $ scold (Just $ span head) errMsg
+
+  pure ( Clause
+          { annotation = peelA annotation
+          , head       = peel head
+          , body       = foldr' NE.cons (peel <$> body) guardLits
+          , ..}
+       , join guardClausess
+       , mconcat guardSols
+       )
 
 attemptFix :: Monad m
            => SrcSpan -> FlowSink 'ABase
