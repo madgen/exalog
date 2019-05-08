@@ -91,7 +91,6 @@ spec =
 
           -- v(Y) doesn't flow into r(Z,Y) because the second argument of
           -- the t preceding r(Z,Y) is free.
-          let sources2 = FSourceLiteral ((frs !! 4) (Neg.v (tvar "Y"))) 0 NE.:| []
           let sink2    = FSinkLiteral ((frs !! 3) (Neg.r (tvar "Z") (tvar "Y"))) 1
           nearestCoveringPositives negGr sink2 `shouldBe` Nothing
 
