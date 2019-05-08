@@ -23,9 +23,10 @@ import qualified Data.Bimap as BM
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as S
 
-import Language.Exalog.Core
-import Language.Exalog.Logger
-import Language.Exalog.SrcLoc
+import           Language.Exalog.Core
+import           Language.Exalog.Logger
+import qualified Language.Exalog.Relation as R
+import           Language.Exalog.SrcLoc
 
 newtype PredicateID = PredicateID Int deriving (Eq, Ord, Show)
 newtype LiteralID   = LiteralID   Int deriving (Eq, Ord, Show)
@@ -67,13 +68,21 @@ instance HasClauseID (Clause    ('ARename ann)) where clauseID Clause{..}    = _
 rename :: SpannableAnn (PredicateAnn ann)
        => IdentifiableAnn (PredicateAnn ann) b
        => Ord b
-       => Program ann
-       -> Logger (Program ('ARename ann))
-rename pr = evalRename (S.fromList $ predicates pr) . renameProgram $ pr
+       => (Program ann, R.Solution ann)
+       -> Logger (Program ('ARename ann), R.Solution ('ARename ann))
+rename (pr,sol) = evalRename (S.fromList $ predicates pr) $
+  (,) <$> renameProgram pr <*> renameSolution sol
+
+renameSolution :: SpannableAnn (PredicateAnn ann)
+               => IdentifiableAnn (PredicateAnn ann) a
+               => Ord a
+               => R.Solution ann
+               -> Rename ann (R.Solution ('ARename ann))
+renameSolution = R.renameM renamePredicate
 
 renameProgram :: SpannableAnn (PredicateAnn ann)
-              => IdentifiableAnn (PredicateAnn ann) b
-              => Ord b
+              => IdentifiableAnn (PredicateAnn ann) a
+              => Ord a
               => Program ann
               -> Rename ann (Program ('ARename ann))
 renameProgram Program{..} = do
