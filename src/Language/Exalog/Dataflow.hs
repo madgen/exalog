@@ -153,7 +153,7 @@ handleHeadLiteral :: IdentifiableAnn (PredicateAnn ann) a => Ord a
                   => Literal ('ARename ann) -> Sideways ann ()
 handleHeadLiteral Literal{..} =
   forM_ (zip [0..] $ V.toList terms) $ \case
-    (ix, TVar var) -> updateBinder var (NPredicate (PredicateBox predicate) ix)
+    (ix, TVar var) -> addBinder var (NPredicate (PredicateBox predicate) ix)
     _              -> pure ()
 
 handleBodyLiteral :: IdentifiableAnn (PredicateAnn ann) a => Ord a
@@ -166,12 +166,12 @@ handleBodyLiteral lit@Literal{..} = do
 
     case term of
       TVar var -> do
-        src <- getBinder var
+        srcs <- getBinders var
 
         let litNode = NLiteral lit ix
-        when (polarity == Positive) $ updateBinder var litNode
+        when (polarity == Positive) $ updateBinders var [ litNode ]
 
-        pure [ (src, dst) | dst <- litNode : dsts ]
+        pure [ (src, dst) | src <- srcs, dst <- litNode : dsts ]
       TSym sym -> pure [ (NConstant (CSym sym), dst) | dst <- dsts ]
       TWild    -> pure [ (NConstant CWild     , dst) | dst <- dsts ]
 
@@ -181,7 +181,7 @@ handleBodyLiteral lit@Literal{..} = do
 -- Monadic actions
 --------------------------------------------------------------------------------
 
-newtype SidewaysSt ann = SidewaysSt { _binderMap :: M.Map Var (Node ann) }
+newtype SidewaysSt ann = SidewaysSt { _binderMap :: M.Map Var [ Node ann ] }
 
 type Sideways ann =
   ReaderT (S.Set (PredicateBox ('ARename ann))) (State (SidewaysSt ann))
@@ -199,12 +199,16 @@ getPredNode pBox ix = do
   intentionals <- ask
   pure [ NPredicate pBox ix | pBox `S.member` intentionals ]
 
-getBinder :: Var -> Sideways ann (Node ann)
-getBinder var = lift $ M.findWithDefault NNothing var . _binderMap <$> get
+getBinders :: Var -> Sideways ann [ Node ann ]
+getBinders var = lift $ M.findWithDefault [ NNothing ] var . _binderMap <$> get
 
-updateBinder :: Var -> Node ann -> Sideways ann ()
-updateBinder var binder = lift $
-  modify (\st -> st {_binderMap = M.insert var binder $ _binderMap st})
+addBinder :: Var -> Node ann -> Sideways ann ()
+addBinder var binder = lift $
+  modify (\st -> st {_binderMap = M.insertWith (++) var [ binder ] $ _binderMap st})
+
+updateBinders :: Var -> [ Node ann ] -> Sideways ann ()
+updateBinders var binders = lift $
+  modify (\st -> st {_binderMap = M.insert var binders $ _binderMap st})
 
 --------------------------------------------------------------------------------
 -- Useful for testing
