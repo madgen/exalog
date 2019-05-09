@@ -70,8 +70,10 @@ rename :: SpannableAnn (PredicateAnn ann)
        => Ord b
        => (Program ann, R.Solution ann)
        -> Logger (Program ('ARename ann), R.Solution ('ARename ann))
-rename (pr,sol) = evalRename (S.fromList $ predicates pr) $
+rename (pr,sol) = evalRename preds $
   (,) <$> renameProgram pr <*> renameSolution sol
+  where
+  preds = S.fromList $ predicates pr <> R.predicates sol
 
 renameSolution :: SpannableAnn (PredicateAnn ann)
                => IdentifiableAnn (PredicateAnn ann) a

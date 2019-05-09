@@ -17,6 +17,7 @@ module Language.Exalog.Relation
   , findTuples
   , filter
   , partition
+  , predicates
     -- * Update
   , add
   , merge
@@ -36,7 +37,7 @@ import qualified Data.Set as S
 import           Data.Singletons (fromSing)
 import           Data.Singletons.Decide (Decision(..))
 
-import           Language.Exalog.Core
+import           Language.Exalog.Core hiding (predicates)
 import qualified Language.Exalog.Tuples as T
 
 data Relation a = forall n. Relation (Predicate n a) (T.Tuples n)
@@ -100,6 +101,9 @@ add' rel@(Relation p ts) (rel'@(Relation p' ts') : sol)
 partition :: (Relation a -> Bool) -> Solution a -> (Solution a, Solution a)
 partition p (Solution rs)
   | (xs, ys) <- L.partition p rs = (Solution xs, Solution ys)
+
+predicates :: Solution ann -> [ PredicateBox ann ]
+predicates (Solution rs) = map (\(Relation p _) -> PredicateBox p) rs
 
 filter :: (Relation a -> Bool) -> Solution a -> Solution a
 filter p (Solution rs) = Solution $ L.filter p rs
