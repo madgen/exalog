@@ -84,7 +84,7 @@ modingViolations Clause{body = body} = do
       case term of
         TVar var ->
           let ix = fromInteger $ getFinite fin
-          in if isPredPredicate flowGr lit ix
+          in if polarity == Negative && isPredPredicate flowGr lit ix
                then Just (FSinkLiteral lit ix, var)
                else Nothing
         _ -> Nothing
