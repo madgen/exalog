@@ -80,11 +80,10 @@ modingViolations Clause{body = body} = do
   flowGr <- getPositiveFlowGraph
 
   pure $ sconcat $ (<$> body) $ \lit@Literal{..} ->
-    catMaybes . V.toList $ (`V.imap` terms) $ \fin term ->
-      case term of
-        TVar var ->
-          let ix = fromInteger $ getFinite fin
-          in if polarity == Negative && isPredPredicate flowGr lit ix
-               then Just (FSinkLiteral lit ix, var)
-               else Nothing
-        _ -> Nothing
+    catMaybes . V.toList $ (`V.imap` terms) $ \fin -> \case
+      TVar var ->
+        let ix = fromInteger $ getFinite fin
+        in if polarity == Negative && isPredPredicate flowGr lit ix
+             then Just (FSinkLiteral lit ix, var)
+             else Nothing
+      _ -> Nothing
