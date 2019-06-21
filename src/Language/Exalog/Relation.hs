@@ -15,6 +15,7 @@ module Language.Exalog.Relation
   , toList
     -- * Search
   , findTuples
+  , findTuplesByPredSym
   , filter
   , partition
   , predicates
@@ -125,14 +126,26 @@ renameM renamer (Solution rs) = Solution <$>
 findTuples :: forall a b n
             . IdentifiableAnn (PredicateAnn a) b => Ord b
            => Predicate n a -> Solution a -> T.Tuples n
-findTuples p (Solution rs) = findTuples' p rs
+findTuples p (Solution rs) = go rs
   where
-  findTuples' :: Predicate n a -> [ Relation a ] -> T.Tuples n
-  findTuples' _ [] = T.fromList []
-  findTuples' p' (Relation p'' ts : s)
-    | Proved Refl <- sameArity p' p''
-    , p' == p'' = ts
-    | otherwise = findTuples' p' s
+  go :: [ Relation a ] -> T.Tuples n
+  go [] = T.fromList []
+  go (Relation p' ts : s)
+    | Proved Refl <- sameArity p p'
+    , p == p' = ts
+    | otherwise = go s
+
+findTuplesByPredSym :: PredicateSymbol
+                    -> Solution a
+                    -> (forall n. T.Tuples n -> IO ())
+                    -> IO ()
+findTuplesByPredSym predSym (Solution rs) action = go rs
+  where
+  go :: [ Relation a ] -> IO ()
+  go [] = pure ()
+  go (Relation p ts : s)
+    | predSym == fxSym p = action ts
+    | otherwise        = go s
 
 atEach :: (forall n. (Predicate n a, T.Tuples n) -> T.Tuples n)
        -> Solution a
