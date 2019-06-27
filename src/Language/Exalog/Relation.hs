@@ -38,6 +38,8 @@ import qualified Data.Set as S
 import           Data.Singletons (fromSing)
 import           Data.Singletons.Decide (Decision(..))
 
+import qualified GHC.Show as Show
+
 import           Language.Exalog.Core hiding (predicates)
 import qualified Language.Exalog.Tuples as T
 
@@ -74,7 +76,10 @@ deriving instance ( IdentifiableAnn (PredicateAnn a) b
 instance Ord (Relation a) => Eq (Solution a) where
   Solution rels == Solution rels' = S.fromList rels == S.fromList rels'
 
-deriving instance Show (PredicateAnn a) => Show (Solution a)
+instance ( IdentifiableAnn (PredicateAnn a) b, Ord b
+         , Show (PredicateAnn a)
+         ) => Show (Solution a) where
+  show (Solution rels) = show . S.fromList $ rels
 
 isEmpty :: Solution a -> Bool
 isEmpty (Solution xs) = null xs
