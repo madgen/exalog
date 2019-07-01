@@ -17,7 +17,7 @@ module Language.Exalog.Delta
   , elimDecor
   , mkDeltaPredicate
   , mkDeltaLiteral
-  , mkDeltaProgram
+  , mkDeltaStratum
   , mkDeltaSolution
   , cleanDeltaSolution
   ) where
@@ -111,16 +111,12 @@ instance PeelableAnn PredicateAnn 'ADelta where
 --
 -- It eliminates all clauses that does not have any intensional predicates
 -- in its body.
-mkDeltaProgram :: forall a. Eq (PredicateBox a)
-               => Program a -> Program ('ADelta a)
-mkDeltaProgram pr@(Program ann cs qpds) =
-  Program
-    { annotation = decorA ann
-    , clauses = concatMap mkCls cs
-    , queryPreds = ((PredicateBox . mkDeltaPredicate Normal) $$) <$> qpds
-    }
+mkDeltaStratum :: forall a b. Eq (PredicateBox a)
+               => IdentifiableAnn (PredicateAnn a) b => Ord b
+               => [ Clause a ] -> [ Clause ('ADelta a) ]
+mkDeltaStratum stratum = concatMap mkCls stratum
   where
-  intentionals = findIntentionals pr
+  intentionalPreds = intentionals stratum
 
   mkCls :: Clause a -> [ Clause ('ADelta a) ]
   mkCls Clause{..} =
@@ -133,13 +129,13 @@ mkDeltaProgram pr@(Program ann cs qpds) =
   processBody :: LZ.Zipper (Literal a)
               -> Maybe (LZ.Zipper (Literal ('ADelta a)))
   processBody lits
-    | (`elem` intentionals) . predicateBox . LZ.focus $ lits = Just
+    | (`elem` intentionalPreds) . predicateBox . LZ.focus $ lits = Just
       . LZ.threeWayMap (mkPrev Prev) (mkDeltaLiteral Delta) (mkPrev PrevX2) $ lits
     | otherwise = Nothing
 
   mkPrev :: Decor -> Literal a -> Literal ('ADelta a)
   mkPrev deco lit
-    | predicateBox lit `elem` intentionals = mkDeltaLiteral deco lit
+    | predicateBox lit `elem` intentionalPreds = mkDeltaLiteral deco lit
     | otherwise = mkDeltaLiteral Normal lit
 
 mkDeltaLiteral :: Decor -> Literal a -> Literal ('ADelta a)
@@ -154,12 +150,12 @@ mkDeltaPredicate deco Predicate{..} = Predicate
   , ..}
 
 mkDeltaSolution :: Identifiable (PredicateAnn a) b
-                => Program a -> R.Solution a -> R.Solution ('ADelta a)
-mkDeltaSolution pr sol = intDeltas `R.merge` intPrevs `R.merge` extNormals
+                => [ PredicateBox a ] -> R.Solution a -> R.Solution ('ADelta a)
+mkDeltaSolution intentionalPreds sol =
+  intDeltas `R.merge` intPrevs `R.merge` extNormals
   where
-  intentionals = findIntentionals pr
   (intentionalSol, extensionalSol) =
-    R.partition (\(R.Relation p _) -> PredicateBox p `elem` intentionals) sol
+    R.partition (\(R.Relation p _) -> PredicateBox p `elem` intentionalPreds) sol
 
   intDeltas  = R.rename (mkDeltaPredicate Delta ) intentionalSol
   intPrevs   = R.rename (mkDeltaPredicate Prev  ) intentionalSol

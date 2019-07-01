@@ -60,8 +60,9 @@ flowSinkR = FSinkLiteral (r 98 (tvar "X") (tvar "X")) 0
 |-}
 prConst :: Program ('ARename 'ABase)
 prConst = Program (ProgARename $ ProgABase dummySpan)
-  [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
-  , cl 200 (query 30)        $ NE.fromList [ p 40 (tsym (1 :: Int)) ]
+  [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
+    , cl 200 (query 30)        $ NE.fromList [ p 40 (tsym (1 :: Int)) ]
+    ]
   ] [ PredicateBox queryPred ]
 
 flowSourcesConst :: Maybe [ FlowSource 'ABase ]
@@ -78,9 +79,10 @@ flowSourcesConst = Just [ FSourceConstant (CSym (symbol (1 :: Int))) ]
 |-}
 prDeadPath :: Program ('ARename 'ABase)
 prDeadPath = Program (ProgARename $ ProgABase dummySpan)
-  [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
-  , cl 200 (query 30)        $ NE.fromList [ p 40 (tsym (1 :: Int)) ]
-  , cl 300 (s 50 (tvar "X")) $ NE.fromList [ p 60 (tvar "X") ]
+  [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
+    , cl 200 (query 30)        $ NE.fromList [ p 40 (tsym (1 :: Int)) ]
+    , cl 300 (s 50 (tvar "X")) $ NE.fromList [ p 60 (tvar "X") ]
+    ]
   ] [ PredicateBox queryPred ]
 
 flowSourcesDeadPath :: Maybe [ FlowSource 'ABase ]
@@ -107,8 +109,9 @@ flowSourcesExposed = Nothing
 |-}
 prWild :: Program ('ARename 'ABase)
 prWild = Program (ProgARename $ ProgABase dummySpan)
-  [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
-  , cl 200 (query 30)        $ NE.fromList [ p 40 TWild ]
+  [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
+    , cl 200 (query 30)        $ NE.fromList [ p 40 TWild ]
+    ]
   ] [ PredicateBox queryPred ]
 
 flowSourcesWild :: Maybe [ FlowSource 'ABase ]
@@ -121,8 +124,9 @@ flowSourcesWild = Just [ FSourceConstant CWild ]
 |-}
 prSingleOpen :: Program ('ARename 'ABase)
 prSingleOpen = Program (ProgARename $ ProgABase dummySpan)
-  [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
-  , cl 200 (query 30)        $ NE.fromList [ p 40 (tvar "X") ]
+  [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
+    , cl 200 (query 30)        $ NE.fromList [ p 40 (tvar "X") ]
+    ]
   ] [ PredicateBox queryPred ]
 
 flowSourcesSingleOpen :: Maybe [ FlowSource 'ABase ]
@@ -136,9 +140,10 @@ flowSourcesSingleOpen = Nothing
 |-}
 prMultipleClosed :: Program ('ARename 'ABase)
 prMultipleClosed = Program (ProgARename $ ProgABase dummySpan)
-  [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
-  , cl 200 (query 30) $ NE.fromList [ a 40 (tvar "X"), p 50 (tvar "X") ]
-  , cl 300 (query 60) $ NE.fromList [ p 70 (tsym (1 :: Int)) ]
+  [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
+    , cl 200 (query 30) $ NE.fromList [ a 40 (tvar "X"), p 50 (tvar "X") ]
+    , cl 300 (query 60) $ NE.fromList [ p 70 (tsym (1 :: Int)) ]
+    ]
   ] [ PredicateBox queryPred ]
 
 flowSourcesMultipleClosed :: Maybe [ FlowSource 'ABase ]
@@ -155,9 +160,10 @@ flowSourcesMultipleClosed = Just
 |-}
 prHalfOpen :: Program ('ARename 'ABase)
 prHalfOpen = Program (ProgARename $ ProgABase dummySpan)
-  [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
-  , cl 200 (query 30) $ NE.fromList [ a 40 (tvar "X"), p 50 (tvar "X") ]
-  , cl 300 (query 60) $ NE.fromList [ p 70 (tvar "X") ]
+  [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
+    , cl 200 (query 30) $ NE.fromList [ a 40 (tvar "X"), p 50 (tvar "X") ]
+    , cl 300 (query 60) $ NE.fromList [ p 70 (tvar "X") ]
+    ]
   ] [ PredicateBox queryPred ]
 
 flowSourcesHalfOpen :: Maybe [ FlowSource 'ABase ]
@@ -170,8 +176,9 @@ flowSourcesHalfOpen = Nothing
 |-}
 prAliasHeadClosed :: Program ('ARename 'ABase)
 prAliasHeadClosed = Program (ProgARename $ ProgABase dummySpan)
-  [ cl 100 (r 10 (tvar "X") (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
-  , cl 200 (query 30) $ NE.fromList [ a 40 (tvar "X"), r 50 (tvar "X") (tsym (1 :: Int)) ]
+  [ [ cl 100 (r 10 (tvar "X") (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
+    , cl 200 (query 30) $ NE.fromList [ a 40 (tvar "X"), r 50 (tvar "X") (tsym (1 :: Int)) ]
+    ]
   ] [ PredicateBox queryPred ]
 
 flowSourcesAliasHeadClosed :: Maybe [ FlowSource 'ABase ]
@@ -187,8 +194,9 @@ flowSourcesAliasHeadClosed = Just
 |-}
 prAliasHeadOpen :: Program ('ARename 'ABase)
 prAliasHeadOpen = Program (ProgARename $ ProgABase dummySpan)
-  [ cl 100 (r 10 (tvar "X") (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
-  , cl 200 (query 30) $ NE.fromList [ r 40 (tvar "X") (tsym (1 :: Int)) ]
+  [ [ cl 100 (r 10 (tvar "X") (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
+    , cl 200 (query 30) $ NE.fromList [ r 40 (tvar "X") (tsym (1 :: Int)) ]
+    ]
   ] [ PredicateBox queryPred ]
 
 flowSourcesAliasHeadOpen :: Maybe [ FlowSource 'ABase ]
@@ -200,7 +208,8 @@ flowSourcesAliasHeadOpen = Nothing
 |-}
 prAliasBody :: Program ('ARename 'ABase)
 prAliasBody = Program (ProgARename $ ProgABase dummySpan)
-  [ cl 100 (query 10) $ NE.fromList [ a 20 (tvar "X"), r 98 (tvar "X") (tvar "X") ]
+  [ [ cl 100 (query 10) $ NE.fromList [ a 20 (tvar "X"), r 98 (tvar "X") (tvar "X") ]
+    ]
   ] [ PredicateBox queryPred ]
 
 flowSourcesAliasBody :: Maybe [ FlowSource 'ABase ]
@@ -214,9 +223,10 @@ flowSourcesAliasBody = Just [ FSourceLiteral (a 20 (tvar "X")) 0 ]
 |-}
 prIndirection :: Program ('ARename 'ABase)
 prIndirection = Program (ProgARename $ ProgABase dummySpan)
-  [ cl 100 (s 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
-  , cl 200 (p 30 (tvar "X")) $ NE.fromList [ s 40 (tvar "X") ]
-  , cl 300 (query 50) $ NE.fromList [ p 60 (tsym (1 :: Int)), s 70 (tsym (2 :: Int)) ]
+  [ [ cl 100 (s 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
+    , cl 200 (p 30 (tvar "X")) $ NE.fromList [ s 40 (tvar "X") ]
+    , cl 300 (query 50) $ NE.fromList [ p 60 (tsym (1 :: Int)), s 70 (tsym (2 :: Int)) ]
+    ]
   ] [ PredicateBox queryPred ]
 
 flowSourcesIndirection :: Maybe [ FlowSource 'ABase ]
@@ -233,9 +243,10 @@ flowSourcesIndirection = Just
 |-}
 prRecClosed :: Program ('ARename 'ABase)
 prRecClosed = Program (ProgARename $ ProgABase dummySpan)
-  [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
-  , cl 200 (p 30 (tsym (1 :: Int))) $ NE.fromList [ a 40 (tvar "Y"), p 50 (tvar "Y") ]
-  , cl 300 (query 60) $ NE.fromList [ p 70 (tsym (1 :: Int)) ]
+  [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
+    , cl 200 (p 30 (tsym (1 :: Int))) $ NE.fromList [ a 40 (tvar "Y"), p 50 (tvar "Y") ]
+    , cl 300 (query 60) $ NE.fromList [ p 70 (tsym (1 :: Int)) ]
+    ]
   ] [ PredicateBox queryPred ]
 
 flowSourcesRecClosed :: Maybe [ FlowSource 'ABase ]
@@ -252,9 +263,10 @@ flowSourcesRecClosed = Just
 |-}
 prRecClosedIndiff :: Program ('ARename 'ABase)
 prRecClosedIndiff = Program (ProgARename $ ProgABase dummySpan)
-  [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
-  , cl 200 (p 30 (tvar "X")) $ NE.fromList [ p 40 (tvar "X") ]
-  , cl 300 (query 50) $ NE.fromList [ p 60 (tsym (1 :: Int)) ]
+  [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
+    , cl 200 (p 30 (tvar "X")) $ NE.fromList [ p 40 (tvar "X") ]
+    , cl 300 (query 50) $ NE.fromList [ p 60 (tsym (1 :: Int)) ]
+    ]
   ] [ PredicateBox queryPred ]
 
 flowSourcesRecClosedIndiff :: Maybe [ FlowSource 'ABase ]

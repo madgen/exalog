@@ -41,11 +41,12 @@ q t t' = lit qPred $ fromJust $ V.fromList [ t, t' ]
 |-}
 program :: Program 'ABase
 program = Program (ProgABase dummySpan)
-  [ Clause (ClABase dummySpan) (p (tsym (1 :: Int))) $ NE.fromList [ q TWild TWild ]
-  , Clause (ClABase dummySpan) (p (tvar "X"))
-    $ NE.fromList
-      [ q (tvar "X") TWild
-      , not $ q TWild      (tvar "X")]
+  [ [ Clause (ClABase dummySpan) (p (tsym (1 :: Int))) $ NE.fromList [ q TWild TWild ]
+    , Clause (ClABase dummySpan) (p (tvar "X"))
+      $ NE.fromList
+        [ q (tvar "X") TWild
+        , not $ q TWild      (tvar "X")]
+    ]
   ] [ PredicateBox pPred ]
 
 qTuples :: [ V.Vector 2 Int ]

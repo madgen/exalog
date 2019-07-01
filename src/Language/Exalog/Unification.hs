@@ -17,7 +17,7 @@ import qualified Data.Vector.Sized as V
 
 import Language.Exalog.Core
 
-newtype Unifier = Unifier [ (Var, Sym) ] deriving (Eq)
+newtype Unifier = Unifier [ (Var, Sym) ] deriving (Eq, Show)
 
 empty :: Unifier
 empty = Unifier []

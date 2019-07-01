@@ -32,8 +32,9 @@ r t t' = lit rPred $ fromJust $ V.fromList [ t, t' ]
 -}
 programGood :: Program 'ABase
 programGood = Program (ProgABase dummySpan)
-  [ Clause (ClABase dummySpan) (r  (tvar "X") (tvar "Y")) $
-      NE.fromList [ c (tvar "X") (tvar "Y") ]
+  [ [ Clause (ClABase dummySpan) (r  (tvar "X") (tvar "Y")) $
+        NE.fromList [ c (tvar "X") (tvar "Y") ]
+    ]
   ] []
 
 {-
@@ -41,8 +42,9 @@ programGood = Program (ProgABase dummySpan)
 -}
 programBad1 :: Program 'ABase
 programBad1 = Program (ProgABase dummySpan)
-  [ Clause (ClABase dummySpan) (r  (tvar "X") (tvar "Y")) $
-      NE.fromList [ c (tvar "X") (tvar "X") ]
+  [ [ Clause (ClABase dummySpan) (r  (tvar "X") (tvar "Y")) $
+        NE.fromList [ c (tvar "X") (tvar "X") ]
+    ]
   ] []
 
 {-
@@ -50,6 +52,7 @@ programBad1 = Program (ProgABase dummySpan)
 -}
 programBad2 :: Program 'ABase
 programBad2 = Program (ProgABase dummySpan)
-  [ Clause (ClABase dummySpan) (r  (tvar "X") (tvar "Y")) $
-      NE.fromList [ c (tsym ("a" :: Text)) (tsym ("b" :: Text)) ]
+  [ [ Clause (ClABase dummySpan) (r  (tvar "X") (tvar "Y")) $
+        NE.fromList [ c (tsym ("a" :: Text)) (tsym ("b" :: Text)) ]
+    ]
   ] []

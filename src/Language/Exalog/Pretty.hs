@@ -73,7 +73,11 @@ instance ( Identifiable (PredicateAnn ann) a
          , Identifiable (Ann Literal ann) b
          , Identifiable (Ann Clause ann) c
          ) => Pretty (Program ann) where
-  pretty Program{..} = vcat . prettyC $ clauses
+  pretty Program{..} = vcat . punctuate "\n"
+                     $ prettyStratum <$> zip [(0 :: Int)..] strata
+    where
+    prettyStratum (i, clauses) =
+      vcat $ "Stratum #" <> pretty i <> ":" : prettyC clauses
 
 -- Annotation instances
 

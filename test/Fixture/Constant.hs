@@ -39,16 +39,17 @@ r t t' = lit rPred $ fromJust $ V.fromList [ t, t' ]
 -}
 program :: Program 'ABase
 program = Program (ProgABase dummySpan)
-  [ Clause (ClABase dummySpan) (r (tsym ("c" :: Text)) (tsym ("1" :: Text))) $ NE.fromList [ c (tsym ("a" :: Text)) (tsym ("b" :: Text)) ]
-  , Clause (ClABase dummySpan) (r (tvar "X") (tsym ("2" :: Text))) $ NE.fromList [ c (tsym ("a" :: Text)) (tvar "X") ]
-  , Clause (ClABase dummySpan) (r (tsym ("c" :: Text)) (tsym ("3" :: Text))) $ NE.fromList [ c (tsym ("q" :: Text)) (tsym ("b" :: Text)) ]
-  , Clause (ClABase dummySpan) (r (tsym ("e" :: Text)) (tsym ("4" :: Text))) $ NE.fromList
-    [ r (tvar "X") (tvar "Y")
-    , c (tsym ("a" :: Text)) (tvar "X") ]
-  , Clause (ClABase dummySpan) (r (tsym ("f" :: Text)) (tsym ("5" :: Text))) $ NE.fromList
-    [ c (tsym ("a" :: Text)) (tvar "X")
-    , r (tvar "X") (tvar "Y") ]
-  ] []
+  [ [ Clause (ClABase dummySpan) (r (tsym ("c" :: Text)) (tsym ("1" :: Text))) $ NE.fromList [ c (tsym ("a" :: Text)) (tsym ("b" :: Text)) ]
+    , Clause (ClABase dummySpan) (r (tvar "X") (tsym ("2" :: Text))) $ NE.fromList [ c (tsym ("a" :: Text)) (tvar "X") ]
+    , Clause (ClABase dummySpan) (r (tsym ("c" :: Text)) (tsym ("3" :: Text))) $ NE.fromList [ c (tsym ("q" :: Text)) (tsym ("b" :: Text)) ]
+    , Clause (ClABase dummySpan) (r (tsym ("e" :: Text)) (tsym ("4" :: Text))) $ NE.fromList
+      [ r (tvar "X") (tvar "Y")
+      , c (tsym ("a" :: Text)) (tvar "X") ]
+    , Clause (ClABase dummySpan) (r (tsym ("f" :: Text)) (tsym ("5" :: Text))) $ NE.fromList
+      [ c (tsym ("a" :: Text)) (tvar "X")
+      , r (tvar "X") (tvar "Y") ]
+    ]
+  ] [ PredicateBox rPred ]
 
 cTuples :: [ V.Vector 2 Text ]
 cTuples = fromJust . V.fromList <$>

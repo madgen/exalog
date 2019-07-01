@@ -31,8 +31,8 @@ class WellModed ast where
 instance ( SpannableAnn (LiteralAnn ann)
          , Moded (Program ('AAdornment ann))
          ) => WellModed (Program ann) where
-  checkWellModedness Program{..} = traverse_ checkWellModedness clauses
-  isWellModed        Program{..} = all isWellModed clauses
+  checkWellModedness Program{..} = traverse_ checkWellModedness (join strata)
+  isWellModed        Program{..} = all isWellModed $ join strata
 
 instance ( SpannableAnn (LiteralAnn ann)
          , Moded (Clause ('AAdornment ann))
@@ -50,8 +50,8 @@ class Moded ast where
 
 instance SpannableAnn (LiteralAnn ann)
     => Moded (Program ('AAdornment ann)) where
-  checkWellModability Program{..} = traverse_ checkWellModability clauses
-  isWellModable       Program{..} = all isWellModable clauses
+  checkWellModability Program{..} = traverse_ checkWellModability $ join strata
+  isWellModable       Program{..} = all isWellModable $ join strata
 
 instance SpannableAnn (LiteralAnn ann) => Moded (Clause ('AAdornment ann)) where
   checkWellModability Clause{..} = traverse_ checkWellModability body

@@ -3,7 +3,7 @@
 module Fixture.Ancestor.NonLinearAncestor
   ( program
   , programSwapped
-  , deltaProgram
+  , deltaStratum
   , adornedProgram
   , adornedProgramSwapped
   ) where
@@ -27,10 +27,11 @@ import Fixture.Util
 |-}
 program :: Program 'ABase
 program = Program (ProgABase dummySpan)
-  [ Clause (ClABase dummySpan) (anc (tvar "X") (tvar "Z")) $ NE.fromList
-      [ anc (tvar "X") (tvar "Y"), anc (tvar "Y") (tvar "Z") ]
-  , Clause (ClABase dummySpan) (anc (tvar "X") (tvar "Y")) $ NE.fromList
-      [ par (tvar "X") (tvar "Y") ]
+  [ [ Clause (ClABase dummySpan) (anc (tvar "X") (tvar "Z")) $ NE.fromList
+        [ anc (tvar "X") (tvar "Y"), anc (tvar "Y") (tvar "Z") ]
+    , Clause (ClABase dummySpan) (anc (tvar "X") (tvar "Y")) $ NE.fromList
+        [ par (tvar "X") (tvar "Y") ]
+    ]
   ]
   [ PredicateBox ancPred
   , PredicateBox parPred
@@ -41,8 +42,8 @@ program = Program (ProgABase dummySpan)
 - delta_{i+1}_anc(X,Z) :- delta_i_anc(X,Y), anc_{i-1}(Y,Z).
 - delta_{i+1}_anc(X,Z) :- anc_i(X,Y), delta_i_anc(Y,Z).
 |-}
-deltaProgram :: Program ('ADelta 'ABase)
-deltaProgram = Program (decorA (ProgABase dummySpan))
+deltaStratum :: [ Clause ('ADelta 'ABase) ]
+deltaStratum =
   [ Clause (decorA (ClABase dummySpan)) (mkDeltaLiteral Delta $ anc (tvar "X") (tvar "Z"))
       $ NE.fromList
         [ mkDeltaLiteral Delta  $ anc (tvar "X") (tvar "Y")
@@ -51,9 +52,6 @@ deltaProgram = Program (decorA (ProgABase dummySpan))
       $ NE.fromList
         [ mkDeltaLiteral Prev   $ anc (tvar "X") (tvar "Y")
         , mkDeltaLiteral Delta  $ anc (tvar "Y") (tvar "Z") ]
-  ]
-  [ PredicateBox . mkDeltaPredicate Normal $ ancPred
-  , PredicateBox . mkDeltaPredicate Normal $ parPred
   ]
 
 {-| Non-linear ancestor program adorned:
@@ -65,22 +63,23 @@ deltaProgram = Program (decorA (ProgABase dummySpan))
 |-}
 adornedProgram :: Program ('AAdornment 'ABase)
 adornedProgram = Program (decorA (ProgABase dummySpan))
-  [ Clause (decorA (ClABase dummySpan)) (adornLiteral [Free, Free] $ anc (tvar "X") (tvar "Z"))
-      $ NE.fromList
-        [ adornLiteral [Free,  Free] $ anc (tvar "X") (tvar "Y")
-        , adornLiteral [Bound, Free] $ anc (tvar "Y") (tvar "Z") ]
-  , Clause (decorA (ClABase dummySpan)) (adornLiteral [Bound, Free] $ anc (tvar "X") (tvar "Z"))
-      $ NE.fromList
-        [ adornLiteral [Bound, Free]   $ anc (tvar "X") (tvar "Y")
-        , adornLiteral [Bound, Free]  $ anc (tvar "Y") (tvar "Z") ]
-  , Clause (decorA (ClABase dummySpan))
-      (adornLiteral [Free, Free] $ anc (tvar "X") (tvar "Y"))
-      $ NE.fromList
-        [ adornLiteral [Free, Free] $ par (tvar "X") (tvar "Y") ]
-  , Clause (decorA (ClABase dummySpan))
-      (adornLiteral [Bound, Free] $ anc (tvar "X") (tvar "Y"))
-      $ NE.fromList
-        [ adornLiteral [Bound, Free] $ par (tvar "X") (tvar "Y") ]
+  [ [ Clause (decorA (ClABase dummySpan)) (adornLiteral [Free, Free] $ anc (tvar "X") (tvar "Z"))
+        $ NE.fromList
+          [ adornLiteral [Free,  Free] $ anc (tvar "X") (tvar "Y")
+          , adornLiteral [Bound, Free] $ anc (tvar "Y") (tvar "Z") ]
+    , Clause (decorA (ClABase dummySpan)) (adornLiteral [Bound, Free] $ anc (tvar "X") (tvar "Z"))
+        $ NE.fromList
+          [ adornLiteral [Bound, Free]   $ anc (tvar "X") (tvar "Y")
+          , adornLiteral [Bound, Free]  $ anc (tvar "Y") (tvar "Z") ]
+    , Clause (decorA (ClABase dummySpan))
+        (adornLiteral [Free, Free] $ anc (tvar "X") (tvar "Y"))
+        $ NE.fromList
+          [ adornLiteral [Free, Free] $ par (tvar "X") (tvar "Y") ]
+    , Clause (decorA (ClABase dummySpan))
+        (adornLiteral [Bound, Free] $ anc (tvar "X") (tvar "Y"))
+        $ NE.fromList
+          [ adornLiteral [Bound, Free] $ par (tvar "X") (tvar "Y") ]
+    ]
   ]
   [ PredicateBox . decorate $ ancPred
   , PredicateBox . decorate $ parPred
@@ -93,8 +92,9 @@ adornedProgram = Program (decorA (ProgABase dummySpan))
 |-}
 programSwapped :: Program 'ABase
 programSwapped = Program (ProgABase dummySpan)
-  [ Clause (ClABase dummySpan) (anc (tvar "X") (tvar "Z")) $ NE.fromList
-      [ anc (tvar "Y") (tvar "Z"), anc (tvar "X") (tvar "Y") ]
+  [ [ Clause (ClABase dummySpan) (anc (tvar "X") (tvar "Z")) $ NE.fromList
+        [ anc (tvar "Y") (tvar "Z"), anc (tvar "X") (tvar "Y") ]
+    ]
   ]
   [ PredicateBox ancPred
   , PredicateBox parPred
@@ -107,16 +107,17 @@ programSwapped = Program (ProgABase dummySpan)
 |-}
 adornedProgramSwapped :: Program ('AAdornment 'ABase)
 adornedProgramSwapped = Program (decorA $ ProgABase dummySpan)
-  [ Clause (decorA $ ClABase dummySpan)
-      (adornLiteral [Free, Free] $ anc (tvar "X") (tvar "Z"))
-      $ NE.fromList
-        [ adornLiteral [ Free, Free  ] $ anc (tvar "Y") (tvar "Z")
-        , adornLiteral [ Free, Bound ] $ anc (tvar "X") (tvar "Y") ]
-  , Clause (decorA $ ClABase dummySpan)
-      (adornLiteral [Free, Bound] $ anc (tvar "X") (tvar "Z"))
-      $ NE.fromList
-        [ adornLiteral [ Free, Bound ] $ anc (tvar "Y") (tvar "Z")
-        , adornLiteral [ Free, Bound ] $ anc (tvar "X") (tvar "Y") ]
+  [ [ Clause (decorA $ ClABase dummySpan)
+        (adornLiteral [Free, Free] $ anc (tvar "X") (tvar "Z"))
+        $ NE.fromList
+          [ adornLiteral [ Free, Free  ] $ anc (tvar "Y") (tvar "Z")
+          , adornLiteral [ Free, Bound ] $ anc (tvar "X") (tvar "Y") ]
+    , Clause (decorA $ ClABase dummySpan)
+        (adornLiteral [Free, Bound] $ anc (tvar "X") (tvar "Z"))
+        $ NE.fromList
+          [ adornLiteral [ Free, Bound ] $ anc (tvar "Y") (tvar "Z")
+          , adornLiteral [ Free, Bound ] $ anc (tvar "X") (tvar "Y") ]
+    ]
   ]
   [ PredicateBox . decorate $ ancPred
   , PredicateBox . decorate $ parPred

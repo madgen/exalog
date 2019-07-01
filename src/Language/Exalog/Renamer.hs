@@ -88,11 +88,11 @@ renameProgram :: SpannableAnn (PredicateAnn ann)
               => Program ann
               -> Rename ann (Program ('ARename ann))
 renameProgram Program{..} = do
-  renamedClauses    <- traverse renameClause clauses
+  renamedStrata     <- traverse (traverse renameClause) strata
   renamedQueryPreds <- traverse (\(PredicateBox pred) -> PredicateBox <$> renamePredicate pred) queryPreds
   pure Program
     { annotation = ProgARename annotation
-    , clauses    = renamedClauses
+    , strata     = renamedStrata
     , queryPreds = renamedQueryPreds
     , ..}
 
@@ -153,7 +153,7 @@ mkLiteralMap Program{..} = BM.fromList
                          $ fmap (\lit@Literal{..} -> (lit, literalID annotation))
                          . join
                          $ NE.toList . literals
-                       <$> clauses
+                       <$> join strata
 
 mkClauseMap :: IdentifiableAnn (PredicateAnn ann) a
             => IdentifiableAnn (LiteralAnn ann) b
@@ -161,7 +161,7 @@ mkClauseMap :: IdentifiableAnn (PredicateAnn ann) a
             => Ord a => Ord b => Ord c
             => Program ('ARename ann)
             -> ClauseIDMap ann
-mkClauseMap Program{..} = BM.fromList $ (<$> clauses) $
+mkClauseMap Program{..} = BM.fromList $ (<$> join strata) $
   \cl@Clause{..} -> (cl, clauseID annotation)
 
 --------------------------------------------------------------------------------

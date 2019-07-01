@@ -11,6 +11,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE ExistentialQuantification #-}
 
@@ -40,12 +41,12 @@ module Language.Exalog.Core
   , PeelableAST(..)
   , SpannableAST
   , Formula(..)
+  , HasIntentionals(..)
   -- * Helper functions
   , literals
   , sameArity
   , ($$)
   , search
-  , findIntentionals
   ) where
 
 import Protolude hiding (head)
@@ -122,7 +123,7 @@ data Clause a = Clause
 -- |A set of clauses
 data Program a = Program
   { annotation :: ProgramAnn a
-  , clauses    :: [ Clause a ]
+  , strata     :: [ [ Clause a ] ]
   , queryPreds :: [ PredicateBox a ]
   }
 
@@ -149,7 +150,7 @@ instance {-# OVERLAPPABLE #-}
          , PeelableAST (PredicateBox (ann a))
          ) => PeelableAST (Program (ann a)) where
   peel Program{..} =
-    Program (peelA annotation) (fmap peel clauses) (map peel queryPreds)
+    Program (peelA annotation) (map peel <$> strata) (map peel queryPreds)
 
 instance {-# OVERLAPPABLE #-}
          ( PeelableAnn (Ann Clause) ann
@@ -184,7 +185,7 @@ instance {-# OVERLAPPABLE #-}
          , DecorableAST (PredicateBox a) ann
          ) => DecorableAST (Program a) ann  where
   decorate Program{..} =
-    Program (decorA annotation) (fmap decorate clauses) (map decorate queryPreds)
+    Program (decorA annotation) (fmap decorate <$> strata) (map decorate queryPreds)
 
 instance {-# OVERLAPPABLE #-}
          ( DecorableAnn (Ann Clause) ann
@@ -238,7 +239,7 @@ instance ( IdentifiableAnn (PredicateAnn a) b
 
   variables = panic "Obtaining variables of a program is meaningless."
 
-  predicates (Program _ clss _) = nub $ concatMap predicates clss
+  predicates (Program _ strata _) = nub $ concatMap predicates (join strata)
 
 -- Instances for standard type classes like Eq, Ord, Show
 
@@ -348,10 +349,10 @@ instance ( IdentifiableAnn (ProgramAnn a) b
          , Ord (PredicateBox a)
          , Ord (Clause a)
          ) => Eq (Program a) where
-  Program{annotation = ann, clauses = clss, queryPreds = qPreds} ==
-    Program{annotation = ann', clauses = clss', queryPreds = qPreds'} =
+  Program{annotation = ann, strata = strat, queryPreds = qPreds} ==
+    Program{annotation = ann', strata = strat', queryPreds = qPreds'} =
     idFragment ann == idFragment ann' &&
-    S.fromList clss == S.fromList clss' &&
+    S.fromList (map S.fromList strat) == S.fromList (map S.fromList strat') &&
     S.fromList qPreds == S.fromList qPreds'
 
 deriving instance
@@ -393,15 +394,24 @@ literals Clause{..} = head `NE.cons` body
 sameArity :: Predicate n ann -> Predicate m ann -> Decision (n :~: m)
 sameArity p p' = arity p %~ arity p'
 
--- | Find the intentional predicates of a program
-findIntentionals :: Program a -> [ PredicateBox a ]
-findIntentionals Program{clauses = clauses} =
-  flip map (map head clauses) $ \case
-    Literal{predicate = p} -> PredicateBox p
+class HasIntentionals ast ann | ast -> ann where
+  intentionals :: ast -> [ PredicateBox ann ]
+
+instance ( IdentifiableAnn (PredicateAnn ann) b, Ord b
+         ) => HasIntentionals [ Clause ann ] ann where
+  intentionals stratum = nub $
+    (\Literal{predicate = p} -> PredicateBox p) <$> map head stratum
+
+instance ( IdentifiableAnn (PredicateAnn ann) b, Ord b
+         ) => HasIntentionals (Program ann) ann where
+  -- No need to $nub$ because different strata can't have the same
+  -- intentional predicates.
+  intentionals Program{strata = strata} = mconcat $ map intentionals strata
 
 -- | Search for clauses that has the given head predicate
 search :: Identifiable (PredicateAnn a) b
        => Program a -> PredicateBox a -> [ Clause a ]
 search pr predBox =
-  [ cl | cl@Clause{head = Literal{predicate = p}} <- clauses pr
+  [ cl | stratum <- strata pr
+       , cl@Clause{head = Literal{predicate = p}} <- stratum
        , PredicateBox p == predBox ]

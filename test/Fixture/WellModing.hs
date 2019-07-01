@@ -46,8 +46,9 @@ query id = lit id Positive queryPred (fromJust $ V.fromList [ ])
 |-}
 prSimple :: Program ('ARename 'ABase)
 prSimple = Program (ProgARename $ ProgABase dummySpan)
-  [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ notq 99 (tvar "X") ]
-  , cl 200 (query 20)        $ NE.fromList [ a 30 (tvar "X"), p 40 (tvar "X") ]
+  [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ notq 99 (tvar "X") ]
+    , cl 200 (query 20)        $ NE.fromList [ a 30 (tvar "X"), p 40 (tvar "X") ]
+    ]
   ] [ PredicateBox queryPred ]
 
 {-|
@@ -56,7 +57,8 @@ prSimple = Program (ProgARename $ ProgABase dummySpan)
 |-}
 prSimpleRepaired :: Program 'ABase
 prSimpleRepaired = peel $ Program (ProgARename $ ProgABase dummySpan)
-  [ cl 100 (p 10 (tvar "X"))  $ NE.fromList [ guard 50 (tvar "X"), notq 99 (tvar "X") ]
-  , cl 200 (query 20)         $ NE.fromList [ a 30 (tvar "X")    , p 40 (tvar "X") ]
-  , cl 300 (guard 70 (tvar "X")) $ NE.fromList [ a 60 (tvar "X") ]
+  [ [ cl 100 (p 10 (tvar "X"))  $ NE.fromList [ guard 50 (tvar "X"), notq 99 (tvar "X") ]
+    , cl 200 (query 20)         $ NE.fromList [ a 30 (tvar "X")    , p 40 (tvar "X") ]
+    , cl 300 (guard 70 (tvar "X")) $ NE.fromList [ a 60 (tvar "X") ]
+    ]
   ] [ PredicateBox queryPred ]

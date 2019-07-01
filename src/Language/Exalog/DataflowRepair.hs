@@ -39,17 +39,20 @@ fixDataflow :: (Clause ('ARename 'ABase) -> Repair [ (FlowSink 'ABase, Var) ])
             -> Text
             -> (Program ('ARename 'ABase), R.Solution ('ARename 'ABase))
             -> Logger (Program 'ABase, R.Solution 'ABase)
-fixDataflow violationFinder errMsg (pr@Program{..}, sol) = runRepairT pr $ do
-  (originalClauses, guardClausess, guardSols) <- unzip3 <$>
-    traverse (fixDataflowClause violationFinder errMsg) clauses
+fixDataflow violationFinder errMsg (pr@Program{..}, sol)
+  | [ clauses ] <- strata = runRepairT pr $ do
+    (originalClauses, guardClausess, guardSols) <- unzip3 <$>
+      traverse (fixDataflowClause violationFinder errMsg) clauses
 
-  pure ( Program
-          { annotation = peelA annotation
-          , clauses    = originalClauses <> join guardClausess
-          , queryPreds = (PredicateBox . peel $$) <$> queryPreds
-          , ..}
-       , mconcat (R.rename peel sol : guardSols)
-       )
+    pure ( Program
+            { annotation = peelA annotation
+            , strata     = [ originalClauses <> join guardClausess ]
+            , queryPreds = (PredicateBox . peel $$) <$> queryPreds
+            , ..}
+         , mconcat (R.rename peel sol : guardSols)
+         )
+  | otherwise = scream Nothing
+    "Dataflow repair can only be performed prior to stratification."
 
 fixDataflowClause :: (Clause ('ARename 'ABase) -> Repair [ (FlowSink 'ABase, Var) ])
                   -> Text

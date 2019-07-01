@@ -59,9 +59,10 @@ q' = Literal (LitARename (LiteralID 9) $ LitABase dummySpan) Positive qPred' (fr
 |-}
 prSimple :: Program ('ARename 'ABase)
 prSimple = Program (ProgARename $ ProgABase dummySpan)
-  [ Clause (ClARename (ClauseID 10) $ ClABase dummySpan) (p'     (tvar "X")) $ NE.fromList [ q' ]
-  , Clause (ClARename (ClauseID 11) $ ClABase dummySpan) (query' (tvar "X")) $ NE.fromList
-    [ r' (tvar "X"), p' (tvar "X") ]
+  [ [ Clause (ClARename (ClauseID 10) $ ClABase dummySpan) (p'     (tvar "X")) $ NE.fromList [ q' ]
+    , Clause (ClARename (ClauseID 11) $ ClABase dummySpan) (query' (tvar "X")) $ NE.fromList
+      [ r' (tvar "X"), p' (tvar "X") ]
+    ]
   ] [ PredicateBox queryPred' ]
 
 {-|
@@ -71,12 +72,13 @@ prSimple = Program (ProgARename $ ProgABase dummySpan)
 |-}
 prSimpleRepaired :: Program 'ABase
 prSimpleRepaired = Program (ProgABase dummySpan)
-  [ Clause (ClABase dummySpan) (p (tvar "X")) $NE.fromList
-    [ guard0 (tvar "X"), q ]
-  , Clause (ClABase dummySpan) (query (tvar "X")) $ NE.fromList
-    [ r (tvar "X"), p (tvar "X") ]
-  , Clause (ClABase dummySpan) (guard0 (tvar "X")) $ NE.fromList
-    [ r (tvar "X") ]
+  [ [ Clause (ClABase dummySpan) (p (tvar "X")) $NE.fromList
+      [ guard0 (tvar "X"), q ]
+    , Clause (ClABase dummySpan) (query (tvar "X")) $ NE.fromList
+      [ r (tvar "X"), p (tvar "X") ]
+    , Clause (ClABase dummySpan) (guard0 (tvar "X")) $ NE.fromList
+      [ r (tvar "X") ]
+    ]
   ] [ PredicateBox queryPred ]
 
 guard0Tuples :: [ V.Vector 1 Int ]

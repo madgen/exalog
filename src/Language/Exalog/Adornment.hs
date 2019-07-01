@@ -108,11 +108,13 @@ adornProgram :: ( Identifiable (PredicateAnn ann) b
              => Program ann -> Program ('AAdornment ann)
 adornProgram Program{..} = Program
   { annotation = decorA annotation
-  , clauses    = nub adornedClauses
+  , strata     = adornedStrata
   , queryPreds = (PredicateBox . decorate $$) <$> queryPreds
   , ..}
   where
-  adornedClauses = (`adornClauses` clauses) =<< queryPreds
+  adornedStrata = do
+    stratum <- strata
+    pure $ nub $ (`adornClauses` stratum) =<< queryPreds
 
 --------------------------------------------------------------------------------
 -- Multiple clause adornment with an entry point

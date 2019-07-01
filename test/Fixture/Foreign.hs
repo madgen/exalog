@@ -67,10 +67,11 @@ leq100 t = lit leq100Pred $ fromJust $ V.fromList [ t ]
 -}
 programLeq100 :: Program 'ABase
 programLeq100 = Program (ProgABase dummySpan)
-  [ Clause (ClABase dummySpan) (leq100 (tvar "X")) $ NE.fromList
-    [ src (tvar "X")
-    , leq (tvar "X") (tsym (100 :: Int)) ]
-  ] []
+  [ [ Clause (ClABase dummySpan) (leq100 (tvar "X")) $ NE.fromList
+      [ src (tvar "X")
+      , leq (tvar "X") (tsym (100 :: Int)) ]
+    ]
+  ] [ PredicateBox leq100Pred ]
 
 srcTuples :: [ V.Vector 1 Int ]
 srcTuples = fromJust . V.fromList <$>
@@ -118,11 +119,12 @@ prefixOf t t' = lit prefixOfPred $ fromJust $ V.fromList [ t, t' ]
 -}
 programPrefixOf :: Program 'ABase
 programPrefixOf = Program (ProgABase dummySpan)
-  [ Clause (ClABase dummySpan) (prefixOf (tvar "X") (tvar "Y")) $ NE.fromList
-    [ src2 (tvar "X")
-    , src2 (tvar "Y")
-    , isPrefixOf (tvar "X") (tvar "Y") ]
-  ] []
+  [ [ Clause (ClABase dummySpan) (prefixOf (tvar "X") (tvar "Y")) $ NE.fromList
+      [ src2 (tvar "X")
+      , src2 (tvar "Y")
+      , isPrefixOf (tvar "X") (tvar "Y") ]
+    ]
+  ] [ PredicateBox prefixOfPred ]
 
 src2Tuples :: [ V.Vector 1 Text ]
 src2Tuples = fromJust . V.fromList <$>
@@ -169,9 +171,10 @@ cartesian23 t t' = lit cartesian23Pred $ fromJust $ V.fromList [ t, t' ]
 -}
 programCartesian23 :: Program 'ABase
 programCartesian23 = Program (ProgABase dummySpan)
-  [ Clause (ClABase dummySpan) (cartesian23 (tvar "X") (tvar "Y")) $ NE.fromList
-    [ cartesian (tsym (2 :: Int)) (tsym (3 :: Int)) (tvar "X") (tvar "Y") ]
-  ] []
+  [ [ Clause (ClABase dummySpan) (cartesian23 (tvar "X") (tvar "Y")) $ NE.fromList
+      [ cartesian (tsym (2 :: Int)) (tsym (3 :: Int)) (tvar "X") (tvar "Y") ]
+    ]
+  ] [ PredicateBox cartesian23Pred ]
 
 initCartesian23EDB :: Solution 'ABase
 initCartesian23EDB = fromList [ ]

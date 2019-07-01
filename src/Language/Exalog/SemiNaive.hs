@@ -13,6 +13,7 @@ module Language.Exalog.SemiNaive
   ( semiNaive
   , SemiNaive
   , evalSemiNaiveT
+  , evalClauses
   ) where
 
 import Protolude hiding (head, pred, sym)
@@ -37,40 +38,20 @@ type SemiNaive  ann = SemiNaiveT ann (LoggerT IO)
 evalSemiNaiveT :: SemiNaiveT ann m a -> R.Solution ann -> m a
 evalSemiNaiveT = runReaderT
 
-withDifferentEnvironment :: Monad m
-                         => (r -> s) -> ReaderT s m a -> ReaderT r m a
-withDifferentEnvironment envMap (ReaderT f) =
-  ReaderT $ f . envMap
-
 semiNaive :: forall a b. (SpannableAST a, Identifiable (PredicateAnn a) b)
-          => Program a -> SemiNaive a (R.Solution a)
-semiNaive pr = do
-  initEDB <- initEDBM
-  local (const initEDB) $
-    withDifferentEnvironment (mkDeltaSolution revPr) $ do
-      initEDB <- ask
-      (`fix` initEDB) $ \f sol -> do
-        betterSol <- local (const sol) step
-        if areAllDeltaEmpty betterSol
-          then return . cleanDeltaSolution $ betterSol
-          else f betterSol
+          => [ Clause ('ADelta a) ]
+          -> SemiNaive ('ADelta a) (R.Solution ('ADelta a))
+semiNaive clss = do
+  initEDB <- ask
+
+  (`fix` initEDB) $ \f edb -> do
+    betterEDB <- local (const edb) step
+    if areAllDeltaEmpty betterEDB
+      then return betterEDB
+      else f betterEDB
   where
-  revPr = reverseClauses pr
-
-  -- A simple clause is one without references to IDB predicates in its body.
-  simpleClss = flip filter (clauses revPr) $ \Clause{body = body} ->
-    not . any ((`elem` intentionals) . predicateBox) $ body
-
-  -- Simple clauses can be executed without the need for fixpoint
-  -- computation.
-  initEDBM :: SemiNaive a (R.Solution a)
-  initEDBM = evalClauses simpleClss
-
-  intentionals :: [ PredicateBox a ]
-  intentionals = findIntentionals revPr
-
-  deltaPr :: Program ('ADelta a)
-  deltaPr = mkDeltaProgram revPr
+  intentionalPreds :: [ PredicateBox a ]
+  intentionalPreds = map peel $ intentionals clss
 
   areAllDeltaEmpty :: R.Solution ('ADelta a) -> Bool
   areAllDeltaEmpty =
@@ -80,7 +61,7 @@ semiNaive pr = do
   -- Adds the current deltas to the normal version of the relation.
   -- Basicall S_{i+1} = S_i \cup delta S_i
   updateFromDelta :: R.Solution ('ADelta a) -> R.Solution ('ADelta a)
-  updateFromDelta edb = foldr updateFromDelta' edb intentionals
+  updateFromDelta edb = foldr' updateFromDelta' edb intentionalPreds
 
   updateFromDelta' :: PredicateBox a
                    -> R.Solution ('ADelta a)
@@ -94,7 +75,7 @@ semiNaive pr = do
   shiftPrevs :: R.Solution ('ADelta a) -> R.Solution ('ADelta a)
   shiftPrevs edb = (`R.rename` edb) $ \p ->
     -- This is stupidly inefficient
-    if PredicateBox (peel p) `elem` intentionals
+    if PredicateBox (peel p) `elem` intentionalPreds
       then
         case decor p of
           Normal -> updateDecor Prev   p
@@ -111,7 +92,7 @@ semiNaive pr = do
 
   step :: SemiNaive ('ADelta a) (R.Solution ('ADelta a))
   step = do
-    let evalClauses' = evalClauses (clauses deltaPr)
+    let evalClauses' = evalClauses clss
     let maintenance = updateFromDelta . shiftPrevs . elimDecor PrevX2
     axeDeltaRedundancies <$> local maintenance evalClauses'
 
@@ -120,11 +101,11 @@ evalClauses :: (SpannableAST a, Identifiable (PredicateAnn a) b)
 evalClauses clss = do
   rels <- mapM evalClause clss
   edb <- ask
-  return $ foldr R.add edb rels
+  return $ foldr' R.add edb rels
 
 evalClause :: forall a b. (SpannableAST a, Identifiable (PredicateAnn a) b)
            => Clause a -> SemiNaive a (R.Relation a)
-evalClause cl@Clause{..} = deriveHead =<< foldrM walkBody [ U.empty ] body
+evalClause cl@Clause{..} = deriveHead =<< foldM walkBody [ U.empty ] body
   where
   deriveHead :: [ U.Unifier ] -> SemiNaive a (R.Relation a)
   deriveHead unifiers
@@ -133,8 +114,8 @@ evalClause cl@Clause{..} = deriveHead =<< foldrM walkBody [ U.empty ] body
       tuples <- lift $ traverse extractHeadTuple preTuples
       pure $ R.Relation pred . T.fromList $ tuples
 
-  walkBody :: Literal a -> [ U.Unifier ] -> SemiNaive a [ U.Unifier ]
-  walkBody lit unifiers = fmap (catMaybes . concat) $ sequence $ do
+  walkBody :: [ U.Unifier ] -> Literal a -> SemiNaive a [ U.Unifier ]
+  walkBody unifiers lit = fmap (catMaybes . concat) $ sequence $ do
     unifier <- unifiers
     return $ fmap (`U.extend` unifier)
          <$> execLiteral (unifier `U.substitute` lit)
@@ -165,9 +146,3 @@ execLiteral lit@Literal{predicate = p@Predicate{nature = nature}, ..}
 
   tuplesToUnifiers :: V.Vector n Term -> [ V.Vector n Sym ] -> [ U.Unifier ]
   tuplesToUnifiers terms = mapMaybe (U.unify terms)
-
-reverseClauses :: Program a -> Program a
-reverseClauses pr = pr { clauses = map reverseClause . clauses $ pr}
-  where
-  reverseClause :: Clause a -> Clause a
-  reverseClause cl = cl { body = NE.reverse . body $ cl }

@@ -21,30 +21,24 @@ import           Language.Exalog.Logger
 -- |Returns a stratified program in the form of a list to be executed in
 -- order.
 stratify :: forall a b. Identifiable (PredicateAnn a) b
-         => Program ('ADependency a) -> Logger [ Program a ]
-stratify pr@Program{annotation = ann} = sequence $ do
-  comp <- sccs
-  let polarities = sccPolarities comp
-  if Negative `elem` polarities
-    then pure $
-      scold Nothing "Stratification failed due to cyclic use of negation."
-    else do
-      let peeledPr = peel pr
-      let cls = concatMap (search $ peeledPr) . findPreds depGrDict $ comp
-      guard (not . null $ cls)
-      pure $ pure $
-        Program (peelA ann) cls (queries cls (queryPreds peeledPr))
+         => Program ('ADependency a) -> Logger (Program a)
+stratify pr@Program{annotation = ann} = do
+  strata <- sequence $ do
+      comp <- sccs
+      let polarities = sccPolarities comp
+      if Negative `elem` polarities
+        then pure $
+          scold Nothing "Stratification failed due to cyclic use of negation."
+        else do
+          let cls = concatMap (search $ peeledPr) . findPreds depGrDict $ comp
+          guard (not . null $ cls)
+          pure $ pure $ cls
+  pure $ peeledPr {strata = strata}
   where
   depGr = dependencyGr pr
   depGrDict = G.labNodes depGr
 
-  queries :: [ Clause a ] -> [ PredicateBox a ] -> [ PredicateBox a ]
-  queries cls qps
-    -- A query must be alone in its SCC
-    | [ Clause{head = lit} ] <- cls
-    , pbox <- predicateBox lit
-    , pbox `elem` qps = [ pbox ]
-    | otherwise = []
+  peeledPr = peel pr
 
   -- Find SCCs like `Data.Graph.Inductive.Query.DFS.scc` but in topological
   -- order.

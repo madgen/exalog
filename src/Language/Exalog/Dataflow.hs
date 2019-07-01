@@ -150,9 +150,9 @@ toNode (FSinkPredicate pBox ix) = NPredicate pBox ix
 programEdges :: IdentifiableAnn (PredicateAnn ann) a => Ord a
              => Program ('ARename ann) -> [ Edge ann ]
 programEdges pr@Program{..} = concatMap mkQueryEdge queryPreds
-                           <> concatMap (clauseEdges intentionals) clauses
+                           <> concatMap (clauseEdges intentionalPreds) (join strata)
   where
-  intentionals = S.fromList . findIntentionals $ pr
+  intentionalPreds = S.fromList . intentionals $ pr
   mkQueryEdge pBox@(PredicateBox Predicate{..}) =
     (NNull,) . NPredicate pBox <$> [0..(fromIntegral (fromSing arity) - 1)]
 

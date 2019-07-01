@@ -88,7 +88,7 @@ instance {-# OVERLAPPING #-}
       => DecorableAST (Program a) 'ADependency where
   decorate pr@Program{..} =
     Program { annotation = ProgADependency (mkDependencyGr pr) annotation
-            , clauses    = map decorate clauses
+            , strata     = map decorate <$> strata
             , queryPreds = map decorate queryPreds
             }
 
@@ -110,7 +110,7 @@ mkDependencyGr pr@Program{..} = G.mkGraph nodes (nub edges)
 
   edges :: [ G.LEdge Polarity ]
   edges = do
-    Clause{head = Literal{predicate = headPred}, body = body} <- clauses
+    Clause{head = Literal{predicate = headPred}, body = body} <- join strata
     Literal{polarity = pol, predicate = bodyPred} <- NE.toList body
     case bimap findID findID (bodyPred, headPred) of
       (Just src, Just dst) -> return (src, dst, pol)

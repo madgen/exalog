@@ -12,7 +12,7 @@ import Language.Exalog.Adornment
 import Language.Exalog.Core (decorate)
 import Language.Exalog.Relation
 
-import Language.Exalog.SemiNaiveSpec (execSemiNaive)
+import Language.Exalog.SolverSpec (execSolver)
 
 spec :: Spec
 spec =
@@ -28,10 +28,10 @@ spec =
       it "adorns swapped non-linear ancestor correctly" $
         adornProgram NLAnc.programSwapped `shouldBe` NLAnc.adornedProgramSwapped
 
-      finalEDB <- execSemiNaive NLAnc.adornedProgram (rename decorate AncEDB.initEDB)
+      finalEDB <- execSolver NLAnc.adornedProgram (rename decorate AncEDB.initEDB)
       it "adornment preserves non-linear ancestor solutions" $
         finalEDB `shouldBe` Just (rename decorate AncEDB.finalEDB)
 
-      finalEDB <- execSemiNaive LAnc.adornedProgram (rename decorate AncEDB.initEDB)
+      finalEDB <- execSolver LAnc.adornedProgram (rename decorate AncEDB.initEDB)
       it "adornment preserves linear ancestor solutions" $
         finalEDB `shouldBe` Just (rename decorate AncEDB.finalEDB)

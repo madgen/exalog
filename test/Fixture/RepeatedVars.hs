@@ -40,7 +40,8 @@ q t t' = lit qPred $ fromJust $ V.fromList [ t, t' ]
 |-}
 program :: Program 'ABase
 program = Program (ProgABase dummySpan)
-  [ Clause (ClABase dummySpan) (p (tvar "X")) $ NE.fromList [ q (tvar "X") (tvar "X") ]
+  [ [ Clause (ClABase dummySpan) (p (tvar "X")) $ NE.fromList [ q (tvar "X") (tvar "X") ]
+    ]
   ] [ PredicateBox pPred ]
 
 qTuples :: [ V.Vector 2 Int ]
