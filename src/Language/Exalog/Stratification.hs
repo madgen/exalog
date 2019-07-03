@@ -23,7 +23,7 @@ import           Language.Exalog.Logger
 stratify :: forall a b. Identifiable (PredicateAnn a) b
          => Program ('ADependency a) -> Logger (Program a)
 stratify pr@Program{annotation = ann} = do
-  strata <- sequence $ do
+  strat <- sequence $ do
       comp <- sccs
       let polarities = sccPolarities comp
       if Negative `elem` polarities
@@ -33,7 +33,7 @@ stratify pr@Program{annotation = ann} = do
           let cls = concatMap (search $ peeledPr) . findPreds depGrDict $ comp
           guard (not . null $ cls)
           pure $ pure $ cls
-  pure $ peeledPr {strata = strata}
+  pure $ peeledPr {strata = Stratum <$> strat}
   where
   depGr = dependencyGr pr
   depGrDict = G.labNodes depGr

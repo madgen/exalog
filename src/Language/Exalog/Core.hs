@@ -14,6 +14,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Language.Exalog.Core
   ( module Language.Exalog.Annotation
@@ -31,6 +32,8 @@ module Language.Exalog.Core
   -- ** Clause
   , Clause(..)
   , Head, Body
+  -- ** Stratum
+  , Stratum(..)
   -- ** Whole program
   , Program(..)
   -- * Existentially boxing data types
@@ -47,9 +50,14 @@ module Language.Exalog.Core
   , sameArity
   , ($$)
   , search
+  , stratumOver
+  , stratumOverF
+  , stratumOverA_
   ) where
 
 import Protolude hiding (head)
+
+import GHC.Base (coerce)
 
 import           Data.Kind (Type)
 import           Data.List (nub)
@@ -120,10 +128,21 @@ data Clause a = Clause
   , body       :: Body a
   }
 
+stratumOverF :: Functor f => ([ Clause a ] -> f [ Clause b ]) -> Stratum a -> f (Stratum b)
+stratumOverF f stratum = Stratum <$> f (coerce stratum)
+
+stratumOverA_ :: Applicative f => ([ Clause a ] -> f ()) -> Stratum a -> f ()
+stratumOverA_ f = f . coerce
+
+stratumOver :: ([ Clause a ] -> [ Clause b ]) -> Stratum a -> Stratum b
+stratumOver = coerce
+
+newtype Stratum a = Stratum { _unStratum :: [ Clause a ] }
+
 -- |A set of clauses
 data Program a = Program
   { annotation :: ProgramAnn a
-  , strata     :: [ [ Clause a ] ]
+  , strata     :: [ Stratum a ]
   , queryPreds :: [ PredicateBox a ]
   }
 
@@ -150,7 +169,7 @@ instance {-# OVERLAPPABLE #-}
          , PeelableAST (PredicateBox (ann a))
          ) => PeelableAST (Program (ann a)) where
   peel Program{..} =
-    Program (peelA annotation) (map peel <$> strata) (map peel queryPreds)
+    Program (peelA annotation) (stratumOver (map peel) <$> strata) (map peel queryPreds)
 
 instance {-# OVERLAPPABLE #-}
          ( PeelableAnn (Ann Clause) ann
@@ -185,7 +204,9 @@ instance {-# OVERLAPPABLE #-}
          , DecorableAST (PredicateBox a) ann
          ) => DecorableAST (Program a) ann  where
   decorate Program{..} =
-    Program (decorA annotation) (fmap decorate <$> strata) (map decorate queryPreds)
+    Program (decorA annotation)
+            (stratumOver (decorate <$>) <$> strata)
+            (map decorate queryPreds)
 
 instance {-# OVERLAPPABLE #-}
          ( DecorableAnn (Ann Clause) ann
@@ -239,7 +260,7 @@ instance ( IdentifiableAnn (PredicateAnn a) b
 
   variables = panic "Obtaining variables of a program is meaningless."
 
-  predicates (Program _ strata _) = nub $ concatMap predicates (join strata)
+  predicates (Program _ strata _) = nub $ concatMap predicates (join $ map _unStratum strata)
 
 -- Instances for standard type classes like Eq, Ord, Show
 
@@ -342,17 +363,23 @@ instance ( IdentifiableAnn (ClauseAnn a) b
 
 deriving instance (Show (ClauseAnn a), Show (Literal a)) => Show (Clause a)
 
+-- Stratum
+instance Ord (Clause a) => Eq (Stratum a) where
+  Stratum clss == Stratum clss' = S.fromList clss == S.fromList clss'
+
+deriving instance Ord (Clause a)  => Ord (Stratum a)
+deriving instance Show (Clause a) => Show (Stratum a)
+
 -- Program
-instance ( IdentifiableAnn (ProgramAnn a) b
+instance ( IdentifiableAnn (ProgramAnn a) b, Eq b
          , IdentifiableAnn (PredicateAnn a) c
-         , Eq b
          , Ord (PredicateBox a)
          , Ord (Clause a)
          ) => Eq (Program a) where
   Program{annotation = ann, strata = strat, queryPreds = qPreds} ==
     Program{annotation = ann', strata = strat', queryPreds = qPreds'} =
     idFragment ann == idFragment ann' &&
-    S.fromList (map S.fromList strat) == S.fromList (map S.fromList strat') &&
+    S.fromList strat == S.fromList strat' &&
     S.fromList qPreds == S.fromList qPreds'
 
 deriving instance
@@ -397,13 +424,11 @@ sameArity p p' = arity p %~ arity p'
 class HasIntentionals ast ann | ast -> ann where
   intentionals :: ast -> [ PredicateBox ann ]
 
-instance ( IdentifiableAnn (PredicateAnn ann) b, Ord b
-         ) => HasIntentionals [ Clause ann ] ann where
+instance (Ord (PredicateBox ann)) => HasIntentionals (Stratum ann) ann where
   intentionals stratum = nub $
-    (\Literal{predicate = p} -> PredicateBox p) <$> map head stratum
+    (\Literal{predicate = p} -> PredicateBox p) <$> map head (_unStratum stratum)
 
-instance ( IdentifiableAnn (PredicateAnn ann) b, Ord b
-         ) => HasIntentionals (Program ann) ann where
+instance (Ord (PredicateBox ann)) => HasIntentionals (Program ann) ann where
   -- No need to $nub$ because different strata can't have the same
   -- intentional predicates.
   intentionals Program{strata = strata} = mconcat $ map intentionals strata
@@ -412,6 +437,6 @@ instance ( IdentifiableAnn (PredicateAnn ann) b, Ord b
 search :: Identifiable (PredicateAnn a) b
        => Program a -> PredicateBox a -> [ Clause a ]
 search pr predBox =
-  [ cl | stratum <- strata pr
-       , cl@Clause{head = Literal{predicate = p}} <- stratum
+  [ cl | Stratum cls <- strata pr
+       , cl@Clause{head = Literal{predicate = p}} <- cls
        , PredicateBox p == predBox ]

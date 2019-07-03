@@ -38,10 +38,12 @@ r' t = lit rPred' $ fromJust $ V.fromList [ t ]
 -}
 program :: Program 'ABase
 program = Program (ProgABase dummySpan)
-  [ [ Clause (ClABase dummySpan) (r  (tsym ("a" :: Text))) $ NE.fromList [ c (tsym ("1" :: Text)) ]
-    , Clause (ClABase dummySpan) (r' (tsym ("b" :: Text))) $ NE.fromList [ c (tsym ("2" :: Text)) ]
-    ]
-  ] [ PredicateBox rPred ]
+  (Stratum <$>
+    [ [ Clause (ClABase dummySpan) (r  (tsym ("a" :: Text))) $ NE.fromList [ c (tsym ("1" :: Text)) ]
+      , Clause (ClABase dummySpan) (r' (tsym ("b" :: Text))) $ NE.fromList [ c (tsym ("2" :: Text)) ]
+      ]
+    ])
+  [ PredicateBox rPred ]
 
 cTuples :: [ V.Vector 1 Text ]
 cTuples = fromJust . V.fromList <$>

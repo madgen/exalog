@@ -55,20 +55,21 @@ compute = do
   pure $ R.filter (\(R.Relation p _) -> PredicateBox p `elem` qPreds) finalEDB
 
 evalStratum :: forall a b. SpannableAST a => Identifiable (PredicateAnn a) b
-            => [ Clause a ] -> SemiNaive a (R.Solution a)
-evalStratum stratum = do
-  simpleEDB <- evalClauses simpleClss
+            => Stratum a -> SemiNaive a (R.Solution a)
+evalStratum stratum@(Stratum cls) = do
+  simpleEDB <- evalClauses simpleClauses
 
   deltaEDB  <- local (const simpleEDB)
              $ withDifferentEnvironment envMap
-             $ semiNaive deltaClss
+             $ semiNaive
+             $ deltaStratum
 
   pure $ simpleEDB <> cleanDeltaSolution deltaEDB
   where
-  (simpleClss, complexClss) = partitionBySimplicity stratum
-  deltaClss                 = mkDeltaStratum complexClss
+  (simpleClauses, complexStratum) = second Stratum $ partitionBySimplicity cls
+  deltaStratum                    = mkDeltaStratum complexStratum
 
-  envMap = mkDeltaSolution (intentionals complexClss)
+  envMap = mkDeltaSolution (intentionals complexStratum)
 
   intentionalPreds = intentionals stratum
 

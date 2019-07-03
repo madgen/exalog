@@ -63,21 +63,19 @@ instance ( Identifiable (PredicateAnn ann) a
    <> ("LA" <> colon) <?> pretty (idFragment annotation)
    <> (parens . csep . prettyC $ terms)
 
-instance ( Identifiable (PredicateAnn ann) a
-         , Identifiable (Ann Literal ann) b
-         ) => Pretty (Clause ann) where
+instance Pretty (Literal ann) => Pretty (Clause ann) where
   pretty Clause{..} =
     pretty head <+> ":-" <+> (csep . prettyC $ body) <> "."
 
-instance ( Identifiable (PredicateAnn ann) a
-         , Identifiable (Ann Literal ann) b
-         , Identifiable (Ann Clause ann) c
-         ) => Pretty (Program ann) where
+instance Pretty (Clause ann) => Pretty (Stratum ann) where
+  pretty (Stratum cls) = vcat $ prettyC cls
+
+instance Pretty (Stratum ann) => Pretty (Program ann) where
   pretty Program{..} = vcat . punctuate "\n"
                      $ prettyStratum <$> zip [(0 :: Int)..] strata
     where
-    prettyStratum (i, clauses) =
-      vcat $ "Stratum #" <> pretty i <> ":" : prettyC clauses
+    prettyStratum (i, stratum) =
+      vcat [ "Stratum #" <> pretty i <> ":", pretty stratum ]
 
 -- Annotation instances
 

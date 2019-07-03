@@ -40,13 +40,13 @@ fixDataflow :: (Clause ('ARename 'ABase) -> Repair [ (FlowSink 'ABase, Var) ])
             -> (Program ('ARename 'ABase), R.Solution ('ARename 'ABase))
             -> Logger (Program 'ABase, R.Solution 'ABase)
 fixDataflow violationFinder errMsg (pr@Program{..}, sol)
-  | [ clauses ] <- strata = runRepairT pr $ do
+  | [ Stratum clauses ] <- strata = runRepairT pr $ do
     (originalClauses, guardClausess, guardSols) <- unzip3 <$>
       traverse (fixDataflowClause violationFinder errMsg) clauses
 
     pure ( Program
             { annotation = peelA annotation
-            , strata     = [ originalClauses <> join guardClausess ]
+            , strata     = [ Stratum $ originalClauses <> join guardClausess ]
             , queryPreds = (PredicateBox . peel $$) <$> queryPreds
             , ..}
          , mconcat (R.rename peel sol : guardSols)

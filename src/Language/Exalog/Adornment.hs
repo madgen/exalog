@@ -113,8 +113,8 @@ adornProgram Program{..} = Program
   , ..}
   where
   adornedStrata = do
-    stratum <- strata
-    pure $ nub $ (`adornClauses` stratum) =<< queryPreds
+    Stratum cls <- strata
+    pure $ Stratum . nub $ (`adornClauses` cls) =<< queryPreds
 
 --------------------------------------------------------------------------------
 -- Multiple clause adornment with an entry point

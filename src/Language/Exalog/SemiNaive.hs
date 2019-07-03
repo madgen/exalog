@@ -39,9 +39,9 @@ evalSemiNaiveT :: SemiNaiveT ann m a -> R.Solution ann -> m a
 evalSemiNaiveT = runReaderT
 
 semiNaive :: forall a b. (SpannableAST a, Identifiable (PredicateAnn a) b)
-          => [ Clause ('ADelta a) ]
+          => Stratum ('ADelta a)
           -> SemiNaive ('ADelta a) (R.Solution ('ADelta a))
-semiNaive clss = do
+semiNaive stratum@(Stratum clss) = do
   initEDB <- ask
 
   (`fix` initEDB) $ \f edb -> do
@@ -51,7 +51,7 @@ semiNaive clss = do
       else f betterEDB
   where
   intentionalPreds :: [ PredicateBox a ]
-  intentionalPreds = map peel $ intentionals clss
+  intentionalPreds = map peel $ intentionals stratum
 
   areAllDeltaEmpty :: R.Solution ('ADelta a) -> Bool
   areAllDeltaEmpty =

@@ -42,8 +42,8 @@ class RangeRestriction ast where
   isRangeRestricted          :: ast -> Bool
 
 instance SpannableAnn (ClauseAnn ann) => RangeRestriction (Program ann) where
-  checkRangeRestriction Program{..} = traverse_ checkRangeRestriction (join strata)
-  isRangeRestricted Program{..} = all isRangeRestricted (join strata)
+  checkRangeRestriction Program{..} = traverse_ checkRangeRestriction (join $ map _unStratum strata)
+  isRangeRestricted Program{..} = all isRangeRestricted (join $ map _unStratum strata)
 
 instance SpannableAnn (ClauseAnn ann) => RangeRestriction (Clause ann) where
   checkRangeRestriction cl =

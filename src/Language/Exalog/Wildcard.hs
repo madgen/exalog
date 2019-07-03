@@ -12,7 +12,8 @@ import Language.Exalog.SrcLoc (Spannable(span))
 
 -- |Clause heads cannot contain wildcards
 checkWildcards :: Spannable (Clause ann) => Program ann -> Logger ()
-checkWildcards Program{..} = traverse_ (traverse_ checkWildcardsInClause) strata
+checkWildcards Program{..} =
+  traverse_ (stratumOverA_ $ traverse_ checkWildcardsInClause) strata
 
 checkWildcardsInClause :: Spannable (Clause ann) => Clause ann -> Logger ()
 checkWildcardsInClause cl@Clause{head = Literal{..}} =

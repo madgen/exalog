@@ -82,7 +82,8 @@ spec =
       describe "Nearest covering positives" $ do
         it "negation fixture has expected covers" $ do
           let prs = findRenamedPred $ predicates renamedNegPr
-          let frs = (\cl -> findRenamedLit (NE.toList . literals $ cl)) <$> join (strata renamedNegPr)
+          let frs = (\cl -> findRenamedLit (NE.toList . literals $ cl))
+                <$> join (map _unStratum $ strata renamedNegPr)
 
           -- v(Y) doesn't flow into r(Z,Y) because the second argument of
           -- the t preceding r(Z,Y) is free.

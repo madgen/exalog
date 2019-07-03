@@ -113,8 +113,8 @@ instance PeelableAnn PredicateAnn 'ADelta where
 -- in its body.
 mkDeltaStratum :: forall a b. Eq (PredicateBox a)
                => IdentifiableAnn (PredicateAnn a) b => Ord b
-               => [ Clause a ] -> [ Clause ('ADelta a) ]
-mkDeltaStratum stratum = concatMap mkCls stratum
+               => Stratum a -> Stratum ('ADelta a)
+mkDeltaStratum stratum@(Stratum cls) = Stratum $ concatMap mkCls cls
   where
   intentionalPreds = intentionals stratum
 
