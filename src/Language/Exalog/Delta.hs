@@ -31,13 +31,14 @@ import           Language.Exalog.Core
 import qualified Language.Exalog.Relation as R
 import qualified Language.Exalog.Util.List.Zipper as LZ
 
-data Decor = Normal | Delta | Prev | PrevX2 deriving (Eq, Ord, Show)
+data Decor = Constant | Current | Delta | Prev | PrevX2 deriving (Eq, Ord, Show)
 
 instance Pretty Decor where
-  pretty Normal = "Norm"
-  pretty Delta  = "Δ"
-  pretty Prev   = "-1"
-  pretty PrevX2 = "-2"
+  pretty Constant = "Const"
+  pretty Current  = "Norm"
+  pretty Delta    = "Δ"
+  pretty Prev     = "-1"
+  pretty PrevX2   = "-2"
 
 instance Pretty b => Pretty (Decor, b) where
   pretty (dec, b) = pretty dec <> "_" <> pretty b
@@ -136,7 +137,7 @@ mkDeltaStratum stratum@(Stratum cls) = Stratum $ concatMap mkCls cls
   mkPrev :: Decor -> Literal a -> Literal ('ADelta a)
   mkPrev deco lit
     | predicateBox lit `elem` intentionalPreds = mkDeltaLiteral deco lit
-    | otherwise = mkDeltaLiteral Normal lit
+    | otherwise = mkDeltaLiteral Constant lit
 
 mkDeltaLiteral :: Decor -> Literal a -> Literal ('ADelta a)
 mkDeltaLiteral deco Literal{..} = Literal
@@ -152,15 +153,15 @@ mkDeltaPredicate deco Predicate{..} = Predicate
 mkDeltaSolution :: Identifiable (PredicateAnn a) b
                 => [ PredicateBox a ] -> R.Solution a -> R.Solution ('ADelta a)
 mkDeltaSolution intentionalPreds sol =
-  intDeltas `R.merge` intPrevs `R.merge` extNormals
+  intDeltas `R.merge` intPrevs `R.merge` extCurrents
   where
   (intentionalSol, extensionalSol) =
     R.partition (\(R.Relation p _) -> PredicateBox p `elem` intentionalPreds) sol
 
-  intDeltas  = R.rename (mkDeltaPredicate Delta ) intentionalSol
-  intPrevs   = R.rename (mkDeltaPredicate Prev  ) intentionalSol
-  extNormals = R.rename (mkDeltaPredicate Normal) extensionalSol
+  intDeltas  = R.rename (mkDeltaPredicate Delta   ) intentionalSol
+  intPrevs   = R.rename (mkDeltaPredicate Prev    ) intentionalSol
+  extCurrents = R.rename (mkDeltaPredicate Constant) extensionalSol
 
 cleanDeltaSolution :: R.Solution ('ADelta a) -> R.Solution a
-cleanDeltaSolution =
-  R.rename peel . R.filter (\(R.Relation p _) -> decor p == Normal)
+cleanDeltaSolution = R.rename peel
+                   . R.filter (\(R.Relation p _) -> decor p `elem` [ Current, Constant ])

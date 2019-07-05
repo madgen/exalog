@@ -69,25 +69,25 @@ semiNaive stratum@(Stratum clss) = do
   updateFromDelta' (PredicateBox p) edb =
     let ts = R.findTuples (mkDeltaPredicate Delta p) edb
         tsPrev = R.findTuples (mkDeltaPredicate Prev p) edb
-    in R.add (R.Relation (mkDeltaPredicate Normal p) (ts <> tsPrev)) edb
+    in R.add (R.Relation (mkDeltaPredicate Current p) (ts <> tsPrev)) edb
 
-  -- Sets Prev to PrevX2, Normal to Prev
+  -- Sets Prev to PrevX2, Current to Prev
   shiftPrevs :: R.Solution ('ADelta a) -> R.Solution ('ADelta a)
   shiftPrevs edb = (`R.rename` edb) $ \p ->
     -- This is stupidly inefficient
     if PredicateBox (peel p) `elem` intentionalPreds
       then
         case decor p of
-          Normal -> updateDecor Prev   p
-          Prev   -> updateDecor PrevX2 p
-          _      -> p
+          Current -> updateDecor Prev   p
+          Prev    -> updateDecor PrevX2 p
+          _       -> p
       else
         p
 
   axeDeltaRedundancies :: R.Solution ('ADelta a) -> R.Solution ('ADelta a)
   axeDeltaRedundancies edb = (`R.atEach` edb) $ \(p, ts) ->
     case decor p of
-      Delta -> ts `T.difference` R.findTuples (updateDecor Normal p) edb
+      Delta -> ts `T.difference` R.findTuples (updateDecor Current p) edb
       _ -> ts
 
   step :: SemiNaive ('ADelta a) (R.Solution ('ADelta a))

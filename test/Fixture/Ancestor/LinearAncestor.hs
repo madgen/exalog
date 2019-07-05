@@ -42,7 +42,7 @@ deltaStratum :: Stratum ('ADelta 'ABase)
 deltaStratum = Stratum
   [ Clause (decorA (ClABase dummySpan)) (mkDeltaLiteral Delta $ anc (tvar "X") (tvar "Z"))
       $ NE.fromList
-        [ mkDeltaLiteral Normal $ par (tvar "X") (tvar "Y")
+        [ mkDeltaLiteral Constant $ par (tvar "X") (tvar "Y")
         , mkDeltaLiteral Delta $ anc (tvar "Y") (tvar "Z") ]
   ]
 
