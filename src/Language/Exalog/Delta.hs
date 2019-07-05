@@ -34,8 +34,8 @@ import qualified Language.Exalog.Util.List.Zipper as LZ
 data Decor = Constant | Current | Delta | Prev | PrevX2 deriving (Eq, Ord, Show)
 
 instance Pretty Decor where
-  pretty Constant = "Const"
-  pretty Current  = "Norm"
+  pretty Constant = "Constant"
+  pretty Current  = "Current"
   pretty Delta    = "Δ"
   pretty Prev     = "-1"
   pretty PrevX2   = "-2"
