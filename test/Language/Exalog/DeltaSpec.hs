@@ -1,8 +1,8 @@
 module Language.Exalog.DeltaSpec (spec) where
 
-import Protolude
+import Protolude hiding (head)
 
-import Data.List ((!!))
+import Data.List (head)
 
 import Test.Hspec
 
@@ -18,7 +18,7 @@ spec =
     parallel $ describe "Ancestor" $ do
 
       it "deltaifies linear ancestor correctly" $
-        mkDeltaStratum (strata LAnc.program !! 0) `shouldBe` LAnc.deltaStratum
+        mkDeltaStratum (head $ strata LAnc.program) `shouldBe` LAnc.deltaStratum
 
       it "deltaifies non-linear ancestor correctly" $
-        mkDeltaStratum (strata NLAnc.program !! 0) `shouldBe` NLAnc.deltaStratum
+        mkDeltaStratum (head $ strata NLAnc.program) `shouldBe` NLAnc.deltaStratum

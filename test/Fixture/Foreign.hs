@@ -125,7 +125,7 @@ programPrefixOf = Program (ProgABase dummySpan)
     [ [ Clause (ClABase dummySpan) (prefixOf (tvar "X") (tvar "Y")) $ NE.fromList
         [ src2 (tvar "X")
         , src2 (tvar "Y")
-        , isPrefixOf (tvar "X") (tvar "Y") ]
+        , tvar "X" `isPrefixOf` tvar "Y" ]
       ]
     ])
   [ PredicateBox prefixOfPred ]

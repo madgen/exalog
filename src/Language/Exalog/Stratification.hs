@@ -30,9 +30,9 @@ stratify pr@Program{annotation = ann} = do
         then pure $
           scold Nothing "Stratification failed due to cyclic use of negation."
         else do
-          let cls = concatMap (search $ peeledPr) . findPreds depGrDict $ comp
+          let cls = concatMap (search peeledPr) . findPreds depGrDict $ comp
           guard (not . null $ cls)
-          pure $ pure $ cls
+          pure $ pure cls
   pure $ peeledPr {strata = Stratum <$> strat}
   where
   depGr = dependencyGr pr
