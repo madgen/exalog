@@ -57,14 +57,21 @@ compute = do
 evalStratum :: forall a b. SpannableAST a => Identifiable (PredicateAnn a) b
             => Stratum a -> SemiNaive a (R.Solution a)
 evalStratum stratum@(Stratum cls) = do
-  simpleEDB <- evalClauses simpleClauses
+  traceShowM $ length simpleClauses
+  traceShowM $ length (_unStratum complexStratum)
 
-  deltaEDB  <- local (const simpleEDB)
-             $ withDifferentEnvironment envMap
-             $ semiNaive
-             $ deltaStratum
+  simpleEDB <-
+    if null simpleClauses
+      then ask
+      else evalClauses simpleClauses
 
-  pure $ simpleEDB <> cleanDeltaSolution deltaEDB
+  local (const simpleEDB) $
+    if null (_unStratum complexStratum)
+      then ask
+      else cleanDeltaSolution <$>
+        (withDifferentEnvironment envMap
+         . semiNaive
+         $ deltaStratum)
   where
   (simpleClauses, complexStratum) = second Stratum $ partitionBySimplicity cls
   deltaStratum                    = mkDeltaStratum complexStratum
