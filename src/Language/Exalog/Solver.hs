@@ -57,9 +57,6 @@ compute = do
 evalStratum :: forall a b. SpannableAST a => Identifiable (PredicateAnn a) b
             => Stratum a -> SemiNaive a (R.Solution a)
 evalStratum stratum@(Stratum cls) = do
-  traceShowM $ length simpleClauses
-  traceShowM $ length (_unStratum complexStratum)
-
   simpleEDB <-
     if null simpleClauses
       then ask
