@@ -47,12 +47,12 @@ deltaStratum :: Stratum ('ADelta 'ABase)
 deltaStratum = Stratum
   [ Clause (decorA (ClABase dummySpan)) (mkDeltaLiteral Delta $ anc (tvar "X") (tvar "Z"))
       $ NE.fromList
-        [ mkDeltaLiteral Delta  $ anc (tvar "X") (tvar "Y")
-        , mkDeltaLiteral PrevX2 $ anc (tvar "Y") (tvar "Z") ]
+        [ mkDeltaLiteral Delta $ anc (tvar "X") (tvar "Y")
+        , mkDeltaLiteral Prev  $ anc (tvar "Y") (tvar "Z") ]
   , Clause (decorA (ClABase dummySpan)) (mkDeltaLiteral Delta $ anc (tvar "X") (tvar "Z"))
       $ NE.fromList
-        [ mkDeltaLiteral Prev   $ anc (tvar "X") (tvar "Y")
-        , mkDeltaLiteral Delta  $ anc (tvar "Y") (tvar "Z") ]
+        [ mkDeltaLiteral Current $ anc (tvar "X") (tvar "Y")
+        , mkDeltaLiteral Delta   $ anc (tvar "Y") (tvar "Z") ]
   ]
 
 {-| Non-linear ancestor program adorned:

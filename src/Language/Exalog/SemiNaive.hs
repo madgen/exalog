@@ -71,18 +71,12 @@ semiNaive stratum@(Stratum clss) = do
         tsPrev = R.findTuples (mkDeltaPredicate Prev p) edb
     in R.add (R.Relation (mkDeltaPredicate Current p) (ts <> tsPrev)) edb
 
-  -- Sets Prev to PrevX2, Current to Prev
+  -- Current to Prev
   shiftPrevs :: R.Solution ('ADelta a) -> R.Solution ('ADelta a)
   shiftPrevs edb = (`R.rename` edb) $ \p ->
-    -- This is stupidly inefficient
-    if PredicateBox (peel p) `elem` intentionalPreds
-      then
-        case decor p of
-          Current -> updateDecor Prev   p
-          Prev    -> updateDecor PrevX2 p
-          _       -> p
-      else
-        p
+    case decor p of
+      Current -> updateDecor Prev p
+      _       -> p
 
   axeDeltaRedundancies :: R.Solution ('ADelta a) -> R.Solution ('ADelta a)
   axeDeltaRedundancies edb = (`R.atEach` edb) $ \(p, ts) ->
@@ -93,7 +87,7 @@ semiNaive stratum@(Stratum clss) = do
   step :: SemiNaive ('ADelta a) (R.Solution ('ADelta a))
   step = do
     let evalClauses' = evalClauses clss
-    let maintenance = updateFromDelta . shiftPrevs . elimDecor PrevX2
+    let maintenance = updateFromDelta . shiftPrevs . elimDecor Prev
     axeDeltaRedundancies <$> local maintenance evalClauses'
 
 evalClauses :: (SpannableAST a, Identifiable (PredicateAnn a) b)

@@ -31,14 +31,13 @@ import           Language.Exalog.Core
 import qualified Language.Exalog.Relation as R
 import qualified Language.Exalog.Util.List.Zipper as LZ
 
-data Decor = Constant | Current | Delta | Prev | PrevX2 deriving (Eq, Ord, Show)
+data Decor = Constant | Current | Delta | Prev deriving (Eq, Ord, Show)
 
 instance Pretty Decor where
   pretty Constant = "Constant"
   pretty Current  = "Current"
   pretty Delta    = "Δ"
   pretty Prev     = "-1"
-  pretty PrevX2   = "-2"
 
 instance Pretty b => Pretty (Decor, b) where
   pretty (dec, b) = pretty dec <> "_" <> pretty b
@@ -131,7 +130,7 @@ mkDeltaStratum stratum@(Stratum cls) = Stratum $ concatMap mkCls cls
               -> Maybe (LZ.Zipper (Literal ('ADelta a)))
   processBody lits
     | (`elem` intentionalPreds) . predicateBox . LZ.focus $ lits = Just
-      . LZ.threeWayMap (mkPrev Prev) (mkDeltaLiteral Delta) (mkPrev PrevX2) $ lits
+      . LZ.threeWayMap (mkPrev Current) (mkDeltaLiteral Delta) (mkPrev Prev) $ lits
     | otherwise = Nothing
 
   mkPrev :: Decor -> Literal a -> Literal ('ADelta a)
