@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -17,7 +19,7 @@ module Language.Exalog.Renamer
   , HasPredicateID(..), HasLiteralID(..), HasClauseID(..)
   ) where
 
-import Protolude
+import Protolude hiding (head)
 
 import qualified Data.Bimap as BM
 import qualified Data.List.NonEmpty as NE
@@ -49,7 +51,7 @@ class    HasPredicateID a                             where predicateID :: a -> 
 instance HasPredicateID (PredicateAnn ('ARename ann)) where predicateID PredARename{..} = _predicateID
 instance HasPredicateID (Predicate n  ('ARename ann)) where predicateID Predicate{..}   = _predicateID annotation
 
-instance HasPredicateID (PredicateBox ('ARename ann)) where predicateID (PredicateBox pred) = predicateID pred
+instance HasPredicateID (PredicateBox ('ARename ann)) where predicateID (PredicateBox p) = predicateID p
 
 instance HasPredicateID (Literal      ('ARename ann)) where predicateID Literal{..} = predicateID predicate
 
@@ -89,7 +91,7 @@ renameProgram :: SpannableAnn (PredicateAnn ann)
               -> Rename ann (Program ('ARename ann))
 renameProgram Program{..} = do
   renamedStrata     <- traverse (stratumOverF $ traverse renameClause) strata
-  renamedQueryPreds <- traverse (\(PredicateBox pred) -> PredicateBox <$> renamePredicate pred) queryPreds
+  renamedQueryPreds <- traverse (\(PredicateBox p) -> PredicateBox <$> renamePredicate p) queryPreds
   pure Program
     { annotation = ProgARename annotation
     , strata     = renamedStrata
@@ -129,12 +131,12 @@ renamePredicate :: SpannableAnn (PredicateAnn ann)
                 => Ord b
                 => Predicate n ann
                 -> Rename ann (Predicate n ('ARename ann))
-renamePredicate pred@Predicate{..} = do
+renamePredicate p@Predicate{..} = do
   preds <- ask
-  case PredicateBox pred `S.lookupIndex` preds of
+  case PredicateBox p `S.lookupIndex` preds of
     Just ix -> pure $
       Predicate{annotation = PredARename (PredicateID ix) annotation,..}
-    Nothing -> lift $ lift $ scream (Just $ span pred)
+    Nothing -> lift $ lift $ scream (Just $ span p)
       "Impossible happened! Renamed predicate is not a predicate of the program."
 
 mkPredicateMap :: IdentifiableAnn (PredicateAnn ann) a
@@ -149,11 +151,11 @@ mkLiteralMap :: IdentifiableAnn (PredicateAnn ann) a
              => Ord a => Ord b
              => Program ('ARename ann)
              -> LiteralIDMap ann
-mkLiteralMap Program{..} = BM.fromList
-                         $ fmap (\lit@Literal{..} -> (lit, literalID annotation))
-                         . join
-                         $ NE.toList . literals
-                       <$> join (map _unStratum strata)
+mkLiteralMap Program{strata = strata} =
+  BM.fromList $ fmap (\lit@Literal{..} -> (lit, literalID annotation))
+              . join
+              $ NE.toList . literals
+            <$> join (map _unStratum strata)
 
 mkClauseMap :: IdentifiableAnn (PredicateAnn ann) a
             => IdentifiableAnn (LiteralAnn ann) b
@@ -161,8 +163,9 @@ mkClauseMap :: IdentifiableAnn (PredicateAnn ann) a
             => Ord a => Ord b => Ord c
             => Program ('ARename ann)
             -> ClauseIDMap ann
-mkClauseMap Program{..} = BM.fromList $ (<$> join (map _unStratum strata)) $
-  \cl@Clause{..} -> (cl, clauseID annotation)
+mkClauseMap Program{strata = strata} =
+  BM.fromList $ (<$> join (map _unStratum strata))
+              $ \cl@Clause{..} -> (cl, clauseID annotation)
 
 --------------------------------------------------------------------------------
 -- Monadic actions for renaming
@@ -209,13 +212,13 @@ instance SpannableAnn (ProgramAnn a)   => SpannableAnn (ProgramAnn   ('ARename a
   annSpan (ProgARename   ann) = annSpan ann
 
 instance IdentifiableAnn (PredicateAnn ann) b => IdentifiableAnn (PredicateAnn ('ARename ann)) Int where
-  idFragment (PredARename (PredicateID id) rest) = id
+  idFragment (PredARename (PredicateID id) _) = id
 instance IdentifiableAnn (LiteralAnn   ann) b => IdentifiableAnn (LiteralAnn   ('ARename ann)) Int where
-  idFragment (LitARename  (LiteralID   id) rest) = id
+  idFragment (LitARename  (LiteralID   id) _) = id
 instance IdentifiableAnn (ClauseAnn    ann) b => IdentifiableAnn (ClauseAnn    ('ARename ann)) Int where
-  idFragment (ClARename   (ClauseID id)    rest) = id
+  idFragment (ClARename   (ClauseID id)    _) = id
 instance IdentifiableAnn (ProgramAnn   ann) b => IdentifiableAnn (ProgramAnn   ('ARename ann)) b where
-  idFragment (ProgARename                  rest) = idFragment rest
+  idFragment (ProgARename               rest) = idFragment rest
 
 instance PeelableAnn PredicateAnn 'ARename where peelA (PredARename _ prevAnn) = prevAnn
 instance PeelableAnn LiteralAnn   'ARename where peelA (LitARename  _ prevAnn) = prevAnn

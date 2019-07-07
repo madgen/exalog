@@ -1,6 +1,11 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
+
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE GADTs #-}
 
 module Language.Exalog.SolverSpec (spec, execSolver) where
 
@@ -89,6 +94,7 @@ spec =
       finalEDB <- execSolver SpanIrr.program SpanIrr.initEDB
       it "evaluates correctly with different spans" $
         R.findTuples SpanIrr.rPred <$> finalEDB `shouldBe` Just SpanIrr.rTuples
+
 
 -- Arbitrary instances for solution
 instance Arbitrary Sym where

@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -22,7 +24,7 @@ import           Language.Exalog.Logger
 -- order.
 stratify :: forall a b. Identifiable (PredicateAnn a) b
          => Program ('ADependency a) -> Logger (Program a)
-stratify pr@Program{annotation = ann} = do
+stratify pr@Program{} = do
   strat <- sequence $ do
       comp <- sccs
       let polarities = sccPolarities comp

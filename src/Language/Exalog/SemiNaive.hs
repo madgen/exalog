@@ -20,7 +20,6 @@ import Protolude hiding (head, pred, sym)
 
 import Control.Monad.Trans.Reader (ReaderT)
 
-import qualified Data.List.NonEmpty as NE
 import           Data.Maybe (mapMaybe, catMaybes)
 import qualified Data.Vector.Sized as V
 

@@ -149,8 +149,9 @@ toNode (FSinkPredicate pBox ix) = NPredicate pBox ix
 
 programEdges :: IdentifiableAnn (PredicateAnn ann) a => Ord a
              => Program ('ARename ann) -> [ Edge ann ]
-programEdges pr@Program{..} = concatMap mkQueryEdge queryPreds
-                           <> concatMap (clauseEdges intentionalPreds) (join $ map _unStratum strata)
+programEdges pr@Program{queryPreds = queryPreds, strata = strata} =
+     concatMap mkQueryEdge queryPreds
+  <> concatMap (clauseEdges intentionalPreds) (join $ map _unStratum strata)
   where
   intentionalPreds = S.fromList . intentionals $ pr
   mkQueryEdge pBox@(PredicateBox Predicate{..}) =
@@ -160,7 +161,8 @@ clauseEdges :: IdentifiableAnn (PredicateAnn ann) a => Ord a
             => S.Set (PredicateBox ('ARename ann))
             -> Clause ('ARename ann)
             -> [ Edge ann ]
-clauseEdges intentionals Clause{..} = join . evalSideways intentionals $ do
+clauseEdges intensionalPreds Clause{..} = join
+                                        . evalSideways intensionalPreds $ do
   handleHeadLiteral head
 
   traverse handleBodyLiteral (NE.toList body)
@@ -206,14 +208,14 @@ initSidewaysSt :: SidewaysSt ann
 initSidewaysSt = SidewaysSt M.empty
 
 evalSideways :: S.Set (PredicateBox ('ARename ann)) -> Sideways ann a -> a
-evalSideways intentionals = (`evalState` initSidewaysSt)
-                          . (`runReaderT` intentionals)
+evalSideways intensionalPreds = (`evalState` initSidewaysSt)
+                              . (`runReaderT` intensionalPreds)
 
 getPredNode :: IdentifiableAnn (PredicateAnn ann) a => Ord a
             => PredicateBox ('ARename ann) -> Int -> Sideways ann [ Node ann ]
 getPredNode pBox ix = do
-  intentionals <- ask
-  pure [ NPredicate pBox ix | pBox `S.member` intentionals ]
+  intensionalPreds <- ask
+  pure [ NPredicate pBox ix | pBox `S.member` intensionalPreds ]
 
 getBinders :: Var -> Sideways ann [ Node ann ]
 getBinders var = lift $ M.findWithDefault [ NNull ] var . _binderMap <$> get

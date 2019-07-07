@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
+
 module Language.Exalog.AdornmentSpec (spec) where
 
 import Protolude

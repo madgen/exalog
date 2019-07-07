@@ -1,3 +1,4 @@
+{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -25,8 +26,8 @@ import           Language.Exalog.SemiNaive ( SemiNaive
 import qualified Language.Exalog.Relation as R
 
 data SolverSt ann = SolverSt
-    { program :: Program ann
-    , initEDB :: R.Solution ann
+    { _program :: Program ann
+    , _initEDB :: R.Solution ann
     }
 
 type Solver ann = StateT (SolverSt ann) (SemiNaive ann)
@@ -42,8 +43,8 @@ evalSolver action pr sol = evalSemiNaiveT (evalStateT action (SolverSt pr sol)) 
 compute :: SpannableAST a => Identifiable (PredicateAnn a) b
         => Solver a (R.Solution a)
 compute = do
-  pr      <- program <$> get
-  initEDB <- initEDB <$> get
+  pr      <- _program <$> get
+  initEDB <- _initEDB <$> get
   let strat = strata pr
 
   finalEDB <- lift $

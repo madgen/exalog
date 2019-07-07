@@ -184,7 +184,7 @@ instance {-# OVERLAPPABLE #-}
 instance {-# OVERLAPPABLE #-}
             PeelableAnn PredicateAnn ann
          => PeelableAST (PredicateBox (ann a)) where
-  peel (PredicateBox pred) = PredicateBox $ peel pred
+  peel (PredicateBox p) = PredicateBox $ peel p
 
 -- Helpers for decorating the tree with an annotation
 type family Decored (ast :: Type) (ann :: AnnType -> AnnType) = (ast' :: Type) | ast' -> ast ann where

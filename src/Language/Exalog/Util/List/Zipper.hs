@@ -23,8 +23,10 @@ fromNonEmptyList :: NE.NonEmpty a -> Zipper a
 fromNonEmptyList (a NE.:| as) = Zipper [] a as
 
 toNonEmptyList :: Zipper a -> NE.NonEmpty a
-toNonEmptyList (Zipper [] a rs) = a NE.:| rs
-toNonEmptyList (Zipper ls a rs) | (x:xs) <- reverse ls = x NE.:| xs ++ a : rs
+toNonEmptyList (Zipper ls a rs) =
+  case reverse ls of
+    []     -> a NE.:| rs
+    (x:xs) -> x NE.:| xs ++ a : rs
 
 toList :: Zipper a -> [ a ]
 toList (Zipper ls a rs) = reverse ls ++ a : rs

@@ -25,12 +25,12 @@ vPred :: Predicate 1 'ABase
 vPred = Predicate (PredABase dummySpan) "v" SNat Logical
 
 r, t, tc :: Term -> Term -> Literal 'ABase
-r t t' = lit rPred $ fromJust $ V.fromList [ t, t' ]
-t t t' = lit tPred $ fromJust $ V.fromList [ t, t' ]
-tc t t' = lit tcPred $ fromJust $ V.fromList [ t, t' ]
+r  term term' = lit rPred $ fromJust  $ V.fromList [ term, term' ]
+t  term term' = lit tPred $ fromJust  $ V.fromList [ term, term' ]
+tc term term' = lit tcPred $ fromJust $ V.fromList [ term, term' ]
 
 v :: Term -> Literal 'ABase
-v t = lit vPred $ fromJust $ V.fromList [ t ]
+v term = lit vPred $ fromJust $ V.fromList [ term ]
 
 {- Compute complement of transitive closure of a graph
 -
