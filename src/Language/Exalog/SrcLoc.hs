@@ -25,9 +25,9 @@ import Language.Exalog.Pretty.Helper
 
 data SrcLoc =
     SrcLoc
-      { file :: !FilePath
-      , line :: !Int
-      , col  :: !Int
+      { _file :: !FilePath
+      , _line :: !Int
+      , _col  :: !Int
       }
   | SrcDummy
   deriving (Eq, Ord, Show)
@@ -39,10 +39,10 @@ dummySpan = SrcSpan SrcDummy SrcDummy
 
 isBefore :: SrcLoc -> SrcLoc -> Bool
 isBefore loc@SrcLoc{} loc'@SrcLoc{} =
-  file loc == file loc' && -- In the same file
-  ( line loc < line loc' || -- line number of loc precedes loc'
-    ( line loc == line loc' &&
-      col loc < col loc')) -- or on the same line but loc is at a preceding col.
+  _file loc == _file loc' && -- In the same file
+  ( _line loc < _line loc' || -- line number of loc precedes loc'
+    ( _line loc == _line loc' &&
+      _col loc < _col loc')) -- or on the same line but loc at a preceding col.
 isBefore _ _ = False
 
 transSpan :: SrcSpan -> SrcSpan -> SrcSpan
@@ -81,10 +81,10 @@ printSpan (SrcSpan loc1 loc2)
   | loc1 == SrcDummy || loc2 == SrcDummy = pure ()
   | otherwise = liftIO $ do
     putStrLn . render . nest 2 $ "Context:"
-    if file loc1 == file loc2
+    if _file loc1 == _file loc2
       then do
-        contents <- zip [(1 :: Int)..] . lines <$> readFile (file loc1)
-        let contextLines = take nOfLines $ drop (line loc1 - 1) contents
+        contents <- zip [(1 :: Int)..] . lines <$> readFile (_file loc1)
+        let contextLines = take nOfLines $ drop (_line loc1 - 1) contents
 
         traverse_
           (putStrLn . render . nest 2 .
@@ -93,13 +93,13 @@ printSpan (SrcSpan loc1 loc2)
 
         when (nOfLines == 1) $
           putStrLn . render . nest 2 $
-            justifyLeft' 6 " " <> hcat (replicate (col loc1 - 1) " ") <>
+            justifyLeft' 6 " " <> hcat (replicate (_col loc1 - 1) " ") <>
             hcat (replicate nOfCols "^")
       else putStrLn $ render . nest 2 $
         "The error occurred across multiple files. I can't print the context."
   where
-  nOfLines = line loc2 - line loc1 + 1
-  nOfCols  = col  loc2 - col  loc1 + 1
+  nOfLines = _line loc2 - _line loc1 + 1
+  nOfCols  = _col  loc2 - _col  loc1 + 1
 
   justifyLeft' n = text . unpack . justifyLeft n ' '
 
@@ -108,7 +108,7 @@ printSpan (SrcSpan loc1 loc2)
 --------------------------------------------------------------------------------
 
 instance Pretty SrcLoc where
-  pretty SrcLoc{..} = int line <> colon <> int col <> " in " <> text file
+  pretty SrcLoc{..} = int _line <> colon <> int _col <> " in " <> text _file
   pretty SrcDummy   = empty
 
 -- |This is really ought to be better.
