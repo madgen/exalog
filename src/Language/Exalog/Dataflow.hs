@@ -149,13 +149,13 @@ toNode (FSinkPredicate pBox ix) = NPredicate pBox ix
 
 programEdges :: IdentifiableAnn (PredicateAnn ann) a => Ord a
              => Program ('ARename ann) -> [ Edge ann ]
-programEdges pr@Program{queryPreds = queryPreds, strata = strata} =
+programEdges pr@Program{_queries = queryPreds, _strata = strata} =
      concatMap mkQueryEdge queryPreds
   <> concatMap (clauseEdges intentionalPreds) (join $ map _unStratum strata)
   where
   intentionalPreds = S.fromList . intentionals $ pr
   mkQueryEdge pBox@(PredicateBox Predicate{..}) =
-    (NNull,) . NPredicate pBox <$> [0..(fromIntegral (fromSing arity) - 1)]
+    (NNull,) . NPredicate pBox <$> [0..(fromIntegral (fromSing _arity) - 1)]
 
 clauseEdges :: IdentifiableAnn (PredicateAnn ann) a => Ord a
             => S.Set (PredicateBox ('ARename ann))
@@ -163,31 +163,31 @@ clauseEdges :: IdentifiableAnn (PredicateAnn ann) a => Ord a
             -> [ Edge ann ]
 clauseEdges intensionalPreds Clause{..} = join
                                         . evalSideways intensionalPreds $ do
-  handleHeadLiteral head
+  handleHeadLiteral _head
 
-  traverse handleBodyLiteral (NE.toList body)
+  traverse handleBodyLiteral (NE.toList _body)
 
 handleHeadLiteral :: IdentifiableAnn (PredicateAnn ann) a => Ord a
                   => Literal ('ARename ann) -> Sideways ann ()
 handleHeadLiteral Literal{..} =
-  forM_ (zip [0..] $ V.toList terms) $ \case
-    (ix, TVar var) -> addBinder var (NPredicate (PredicateBox predicate) ix)
+  forM_ (zip [0..] $ V.toList _terms) $ \case
+    (ix, TVar var) -> addBinder var (NPredicate (PredicateBox _predicate) ix)
     _              -> pure ()
 
 handleBodyLiteral :: IdentifiableAnn (PredicateAnn ann) a => Ord a
                   => Literal ('ARename ann) -> Sideways ann [ Edge ann ]
 handleBodyLiteral lit@Literal{..} = do
-  edgess <- forM (zip [0..] $ V.toList terms) $ \(ix, term) -> do
+  edgess <- forM (zip [0..] $ V.toList _terms) $ \(ix, term) -> do
     -- Bother with predicate node as a destination only if it is
     -- intentional.
-    dsts <- getPredNode (PredicateBox predicate) ix
+    dsts <- getPredNode (PredicateBox _predicate) ix
 
     case term of
       TVar var -> do
         srcs <- getBinders var
 
         let litNode = NLiteral lit ix
-        when (polarity == Positive) $ updateBinders var [ litNode ]
+        when (_polarity == Positive) $ updateBinders var [ litNode ]
 
         pure [ (src, dst) | src <- srcs, dst <- litNode : dsts ]
       TSym sym -> pure [ (NConstant (CSym sym), dst) | dst <- dsts ]

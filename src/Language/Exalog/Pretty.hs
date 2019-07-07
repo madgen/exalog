@@ -30,12 +30,12 @@ instance Pretty PredicateSymbol where
 instance Identifiable (Ann (Predicate n) ann) b
     => Pretty (Predicate n ann) where
   pretty Predicate{..} =
-      pretty fxSym
+      pretty _predSym
    <> "_" <>
-      case nature of
+      case _nature of
         Logical{}    -> char 'L'
         Extralogical{} -> char 'E'
-   <> ("PA" <> colon) <?> pretty (idFragment annotation)
+   <> ("PA" <> colon) <?> pretty (idFragment _annotation)
 
 instance Pretty Sym where
   pretty (SymText   t) = doubleQuotes $ pretty t
@@ -58,21 +58,21 @@ instance ( Identifiable (PredicateAnn ann) a
          , Identifiable (Ann Literal ann) b
          ) => Pretty (Literal ann) where
   pretty Literal{..} =
-       cond (polarity == Negative) (text "not" <> space)
-   <+> pretty predicate
-   <> ("LA" <> colon) <?> pretty (idFragment annotation)
-   <> (parens . csep . prettyC $ terms)
+       cond (_polarity == Negative) (text "not" <> space)
+   <+> pretty _predicate
+   <> ("LA" <> colon) <?> pretty (idFragment _annotation)
+   <> (parens . csep . prettyC $ _terms)
 
 instance Pretty (Literal ann) => Pretty (Clause ann) where
   pretty Clause{..} =
-    pretty head <+> ":-" <+> (csep . prettyC $ body) <> "."
+    pretty _head <+> ":-" <+> (csep . prettyC $ _body) <> "."
 
 instance Pretty (Clause ann) => Pretty (Stratum ann) where
   pretty (Stratum cls) = vcat $ prettyC cls
 
 instance Pretty (Stratum ann) => Pretty (Program ann) where
   pretty Program{..} = vcat . punctuate "\n"
-                     $ prettyStratum <$> zip [(0 :: Int)..] strata
+                     $ prettyStratum <$> zip [(0 :: Int)..] _strata
     where
     prettyStratum (i, stratum) =
       vcat [ "Stratum #" <> pretty i <> ":", pretty stratum ]

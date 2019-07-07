@@ -101,7 +101,7 @@ flowSourcesDeadPath = flowSourcesConst
 |-}
 prExposed :: Program ('ARename 'ABase)
 prExposed =
-  prConst {queryPreds = [ PredicateBox queryPred, PredicateBox pPred ]}
+  prConst {_queries = [ PredicateBox queryPred, PredicateBox pPred ]}
 
 flowSourcesExposed :: Maybe [ FlowSource 'ABase ]
 flowSourcesExposed = Nothing

@@ -59,4 +59,4 @@ instance Substitutable (V.Vector n Term) where
 
 instance Substitutable (Literal a) where
   substitute unifier Literal{..} =
-    Literal {terms = unifier `substitute` terms, ..}
+    Literal {_terms = unifier `substitute` _terms, ..}

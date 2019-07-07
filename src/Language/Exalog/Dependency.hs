@@ -14,7 +14,7 @@ module Language.Exalog.Dependency
   , dependencyGr
   ) where
 
-import Protolude
+import Protolude hiding (pred)
 
 import           Data.Bifunctor (bimap)
 import qualified Data.Graph.Inductive.Graph as G
@@ -66,11 +66,11 @@ instance PeelableAnn ProgramAnn 'ADependency where
 
 instance PeelableAST (Literal ('ADependency a)) where
   peel Literal{..} =
-    Literal { annotation = peelA annotation
-            , predicate = peel predicate
+    Literal { _annotation = peelA _annotation
+            , _predicate  = peel  _predicate
             , ..}
 instance PeelableAST (PredicateBox ('ADependency a)) where
-  peel (PredicateBox p) = PredicateBox $ peel p
+  peel (PredicateBox pred) = PredicateBox $ peel pred
 
 instance DecorableAnn PredicateAnn 'ADependency where
   decorA = PredADependency
@@ -81,21 +81,21 @@ instance DecorableAnn ClauseAnn 'ADependency where
 
 instance DecorableAST (Literal a) 'ADependency where
   decorate Literal{..} =
-    Literal { annotation = decorA annotation
-            , predicate = decorate predicate
+    Literal { _annotation = decorA   _annotation
+            , _predicate  = decorate _predicate
             , ..}
 
 instance {-# OVERLAPPING #-}
          Identifiable (PredicateAnn a) b
       => DecorableAST (Program a) 'ADependency where
   decorate pr@Program{..} =
-    Program { annotation = ProgADependency (mkDependencyGr pr) annotation
-            , strata     = stratumOver (map decorate) <$> strata
-            , queryPreds = map decorate queryPreds
+    Program { _annotation = ProgADependency (mkDependencyGr pr) _annotation
+            , _strata     = stratumOver (map decorate) <$> _strata
+            , _queries    = map decorate _queries
             }
 
 dependencyGr :: Program ('ADependency a) -> DependencyGr a
-dependencyGr Program{annotation = ProgADependency gr _} = gr
+dependencyGr Program{_annotation = ProgADependency gr _} = gr
 
 mkDependencyGr :: forall a b. Identifiable (PredicateAnn a) b
                => Program a -> DependencyGr a
@@ -112,9 +112,9 @@ mkDependencyGr pr@Program{..} = G.mkGraph nodes (nub edges)
 
   edges :: [ G.LEdge Polarity ]
   edges = do
-    Clause{head = Literal{predicate = headPred}, body = body}
-      <- concatMap _unStratum strata
-    Literal{polarity = pol, predicate = bodyPred} <- NE.toList body
+    Clause{_head = Literal{_predicate = headPred}, _body = body}
+      <- concatMap _unStratum _strata
+    Literal{_polarity = pol, _predicate = bodyPred} <- NE.toList body
     case bimap findID findID (bodyPred, headPred) of
       (Just src, Just dst) -> return (src, dst, pol)
       _ -> panic "Impossible: predicate is not in the program."

@@ -48,9 +48,9 @@ data Relation a = forall n. Relation (Predicate n a) (T.Tuples n)
 deriving instance Show (PredicateAnn a) => Show (Relation a)
 
 instance (IdentifiableAnn (PredicateAnn a) b, Ord b) => Ord (Relation a) where
-  Relation p ts `compare` Relation p' ts'
-    | Proved Refl <- sameArity p p' =  (p,ts) `compare` (p',ts')
-    | otherwise = fromSing (arity p) `compare` fromSing (arity p')
+  Relation pred terms `compare` Relation pred' terms'
+    | Proved Refl <- sameArity pred pred' = (pred,terms) `compare` (pred',terms')
+    | otherwise = fromSing (_arity pred) `compare` fromSing (_arity pred')
 
 instance Eq (Relation a) where
   Relation p ts == Relation p' ts'
@@ -149,7 +149,7 @@ findTuplesByPredSym predSym (Solution rs) action = go rs
   go :: [ Relation a ] -> IO ()
   go [] = pure ()
   go (Relation p ts : s)
-    | predSym == fxSym p = action ts
+    | predSym == _predSym p = action ts
     | otherwise        = go s
 
 atEach :: (forall n. (Predicate n a, T.Tuples n) -> T.Tuples n)

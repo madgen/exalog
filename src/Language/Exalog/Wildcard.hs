@@ -14,9 +14,9 @@ import Language.Exalog.SrcLoc (Spannable(span))
 -- |Clause heads cannot contain wildcards
 checkWildcards :: Spannable (Clause ann) => Program ann -> Logger ()
 checkWildcards Program{..} =
-  traverse_ (stratumOverA_ $ traverse_ checkWildcardsInClause) strata
+  traverse_ (stratumOverA_ $ traverse_ checkWildcardsInClause) _strata
 
 checkWildcardsInClause :: Spannable (Clause ann) => Clause ann -> Logger ()
-checkWildcardsInClause cl@Clause{head = Literal{..}} =
-  when (TWild `elem` terms) $
+checkWildcardsInClause cl@Clause{_head = Literal{..}} =
+  when (TWild `elem` _terms) $
     scold (Just $ span cl) "Clause heads cannot have wildcards."

@@ -45,13 +45,13 @@ compute :: SpannableAST a => Identifiable (PredicateAnn a) b
 compute = do
   pr      <- _program <$> get
   initEDB <- _initEDB <$> get
-  let strat = strata pr
+  let strat = _strata pr
 
   finalEDB <- lift $
     foldM (\edb -> local (const edb) . evalStratum) initEDB strat
 
   -- Filter out non-query solutions
-  let qPreds = queryPreds pr
+  let qPreds = _queries pr
   pure $ R.filter (\(R.Relation p _) -> PredicateBox p `elem` qPreds) finalEDB
 
 evalStratum :: forall a b. SpannableAST a => Identifiable (PredicateAnn a) b
@@ -79,7 +79,7 @@ evalStratum stratum@(Stratum cls) = do
 
   partitionBySimplicity :: [ Clause a ] -> ([ Clause a ], [ Clause a ])
   partitionBySimplicity =
-    partition (all ((`notElem` intentionalPreds) . predicateBox) . body)
+    partition (all ((`notElem` intentionalPreds) . predicateBox) . _body)
 
 withDifferentEnvironment :: Monad m
                          => (r -> s) -> ReaderT s m a -> ReaderT r m a

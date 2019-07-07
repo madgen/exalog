@@ -87,14 +87,14 @@ instance IdentifiableAnn (ProgramAnn ann) b
   idFragment (ProgADelta rest) = idFragment rest
 
 updateDecor :: Decor -> Predicate n ('ADelta a) -> Predicate n ('ADelta a)
-updateDecor dec p@Predicate{annotation = PredADelta _ prevAnn} =
-  p {annotation = PredADelta dec prevAnn}
+updateDecor dec p@Predicate{_annotation = PredADelta _ prevAnn} =
+  p {_annotation = PredADelta dec prevAnn}
 
 elimDecor :: Decor -> R.Solution ('ADelta a) -> R.Solution ('ADelta a)
 elimDecor d sol = (`R.filter` sol) $ \(R.Relation p _) -> decor p /= d
 
 decor :: Predicate n ('ADelta a) -> Decor
-decor Predicate{annotation = PredADelta dec _} = dec
+decor Predicate{_annotation = PredADelta dec _} = dec
 
 instance DecorableAnn LiteralAnn 'ADelta where decorA = LitADelta
 instance DecorableAnn ClauseAnn  'ADelta where decorA = ClADelta
@@ -122,11 +122,11 @@ mkDeltaStratum stratum@(Stratum cls) = Stratum $ concatMap mkCls cls
 
   mkCls :: Clause a -> [ Clause ('ADelta a) ]
   mkCls Clause{..} =
-      fmap (Clause (decorA annotation) (mkDeltaLiteral Delta head) . LZ.toNonEmptyList)
+      fmap (Clause (decorA _annotation) (mkDeltaLiteral Delta _head) . LZ.toNonEmptyList)
     . mapMaybe processBody
     . LZ.toList
     . duplicate
-    . LZ.fromNonEmptyList $ body
+    . LZ.fromNonEmptyList $ _body
 
   processBody :: LZ.Zipper (Literal a)
               -> Maybe (LZ.Zipper (Literal ('ADelta a)))
@@ -142,13 +142,13 @@ mkDeltaStratum stratum@(Stratum cls) = Stratum $ concatMap mkCls cls
 
 mkDeltaLiteral :: Decor -> Literal a -> Literal ('ADelta a)
 mkDeltaLiteral deco Literal{..} = Literal
-  { annotation = decorA annotation
-  , predicate  = mkDeltaPredicate deco predicate
+  { _annotation = decorA _annotation
+  , _predicate  = mkDeltaPredicate deco _predicate
   , ..}
 
 mkDeltaPredicate :: Decor -> Predicate n a -> Predicate n ('ADelta a)
 mkDeltaPredicate deco Predicate{..} = Predicate
-  { annotation = PredADelta deco annotation
+  { _annotation = PredADelta deco _annotation
   , ..}
 
 mkDeltaSolution :: Identifiable (PredicateAnn a) b

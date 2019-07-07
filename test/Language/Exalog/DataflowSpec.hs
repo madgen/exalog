@@ -15,7 +15,7 @@ import qualified Fixture.Negation as Neg
 import qualified Fixture.Dataflow as DF
 import           Fixture.Util
 
-import Language.Exalog.Core hiding (head)
+import Language.Exalog.Core
 import Language.Exalog.Dataflow
 import Language.Exalog.Renamer
 import Language.Exalog.Logger
@@ -83,7 +83,7 @@ spec =
         it "negation fixture has expected covers" $ do
           let prs = findRenamedPred $ predicates renamedNegPr
           let frs = (\cl -> findRenamedLit (NE.toList . literals $ cl))
-                <$> join (map _unStratum $ strata renamedNegPr)
+                <$> join (map _unStratum $ _strata renamedNegPr)
 
           -- v(Y) doesn't flow into r(Z,Y) because the second argument of
           -- the t preceding r(Z,Y) is free.

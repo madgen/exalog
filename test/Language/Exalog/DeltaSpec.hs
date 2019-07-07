@@ -18,7 +18,7 @@ spec =
     parallel $ describe "Ancestor" $ do
 
       it "deltaifies linear ancestor correctly" $
-        mkDeltaStratum (head $ strata LAnc.program) `shouldBe` LAnc.deltaStratum
+        mkDeltaStratum (head $ _strata LAnc.program) `shouldBe` LAnc.deltaStratum
 
       it "deltaifies non-linear ancestor correctly" $
-        mkDeltaStratum (head $ strata NLAnc.program) `shouldBe` NLAnc.deltaStratum
+        mkDeltaStratum (head $ _strata NLAnc.program) `shouldBe` NLAnc.deltaStratum

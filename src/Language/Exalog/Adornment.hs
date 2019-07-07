@@ -97,7 +97,7 @@ instance SpannableAnn (ProgramAnn a) => SpannableAnn (ProgramAnn ('AAdornment a)
 --------------------------------------------------------------------------------
 
 adornment :: Literal ('AAdornment ann) -> [ Adornment ]
-adornment Literal{annotation = LitAAdornment ads _} = ads
+adornment Literal{_annotation = LitAAdornment ads _} = ads
 
 --------------------------------------------------------------------------------
 -- Program adornment
@@ -109,14 +109,14 @@ adornProgram :: ( Identifiable (PredicateAnn ann) b
                 )
              => Program ann -> Program ('AAdornment ann)
 adornProgram Program{..} = Program
-  { annotation = decorA annotation
-  , strata     = adornedStrata
-  , queryPreds = (PredicateBox . decorate $$) <$> queryPreds
+  { _annotation = decorA _annotation
+  , _strata     = adornedStrata
+  , _queries    = (PredicateBox . decorate $$) <$> _queries
   , ..}
   where
   adornedStrata = do
-    Stratum cls <- strata
-    pure $ Stratum . nub $ (`adornClauses` cls) =<< queryPreds
+    Stratum cls <- _strata
+    pure $ Stratum . nub $ (`adornClauses` cls) =<< _queries
 
 --------------------------------------------------------------------------------
 -- Multiple clause adornment with an entry point
@@ -144,7 +144,7 @@ pollToAdorn = do
 addAdornedClauses :: Identifiable (PredicateAnn ann) b
                   => [ Clause ('AAdornment ann) ] -> Adorn ann ()
 addAdornedClauses clauses = do
-  let targets = map target . join $ NE.toList . body <$> clauses
+  let targets = map target . join $ NE.toList . _body <$> clauses
 
   modify (\s -> s { _adornedClauses = clauses <> _adornedClauses s
                   , _toAdorn        =
@@ -152,8 +152,8 @@ addAdornedClauses clauses = do
                   })
   where
   target :: Literal ('AAdornment ann) -> (PredicateBox ann, [ Adornment ])
-  target l@Literal{annotation = LitAAdornment ads _} =
-    (PredicateBox . peel $$ predicateBox l, ads)
+  target lit@Literal{_annotation = LitAAdornment ads _} =
+    (PredicateBox . peel $$ predicateBox lit, ads)
 
 execAdorn :: Adorn ann a
           -> PredicateBox ann
@@ -169,7 +169,7 @@ adornClauses :: Identifiable (PredicateAnn ann) b
 adornClauses pBox@(PredicateBox p) clauses =
   execAdorn (adornClausesM clauses) pBox allFreeBinding
   where
-  allFreeBinding = replicate (fromIntegral . fromSing . arity $ p) Free
+  allFreeBinding = replicate (fromIntegral . fromSing . _arity $ p) Free
 
 adornClausesM :: forall ann b. Identifiable (PredicateAnn ann) b
               => [ Clause ann ] -> Adorn ann ()
@@ -182,7 +182,7 @@ adornClausesM clauses = go
     case mToAdorn of
       Just (pBox, ads) -> do
         let clausesToAdorn =
-              [ cl | cl@Clause{head = lit} <- clauses
+              [ cl | cl@Clause{_head = lit} <- clauses
                    , predicateBox lit == pBox ]
 
         let adornedClauses = map (adornClause ads) clausesToAdorn
@@ -211,21 +211,21 @@ adornClause :: [ Adornment ] -> Clause ann -> Clause ('AAdornment ann)
 adornClause ads cl@Clause{..} =
   runAdornClause (adornClauseM cl) boundVars
   where
-  boundVars = boundVariables ads head
+  boundVars = boundVariables ads _head
 
 adornClauseM :: Clause ann -> AdornClause (Clause ('AAdornment ann))
 adornClauseM Clause{..} = do
-  aHead <- adornLiteralM head
+  aHead <- adornLiteralM _head
 
   aBody <-traverse
-    (\lit -> adornLiteralM lit <* addBoundVariables (variables lit)) body
+    (\lit -> adornLiteralM lit <* addBoundVariables (variables lit)) _body
 
-  pure $ Clause{head = aHead, body = aBody, annotation = decorA annotation}
+  pure $ Clause{_head = aHead, _body = aBody, _annotation = decorA _annotation}
 
 -- Bound variables of a literal wrt a binding pattern
 boundVariables :: [ Adornment ] -> Literal ann -> [ Var ]
 boundVariables ads Literal{..} =
-  (`mapMaybe` zip (V.toList terms) ads) $ \case
+  (`mapMaybe` zip (V.toList _terms) ads) $ \case
     (TVar v, Bound) -> Just v
     _               -> Nothing
 
@@ -236,8 +236,8 @@ boundVariables ads Literal{..} =
 -- Given a binding pattern adorn a literal
 adornLiteral :: [ Adornment ] -> Literal ann -> Literal ('AAdornment ann)
 adornLiteral ads Literal{..} = Literal
-  { annotation = LitAAdornment ads annotation
-  , predicate = decorate predicate
+  { _annotation = LitAAdornment ads _annotation
+  , _predicate  = decorate _predicate
   , ..}
 
 adornLiteralM :: Literal ann -> AdornClause (Literal ('AAdornment ann))
@@ -252,7 +252,7 @@ adornLiteralM lit@Literal{..} = do
 -- literal's terms
 deriveAdornment :: Literal ann -> [ Var ] -> [ Adornment ]
 deriveAdornment Literal{..} boundVars =
-  (`map` V.toList terms) $ \case
+  (`map` V.toList _terms) $ \case
     TSym{} -> Bound
     TWild  -> Free
     TVar v -> if v `elem` boundVars then Bound else Free

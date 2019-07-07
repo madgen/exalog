@@ -54,7 +54,7 @@ module Language.Exalog.Core
   , stratumOverA_
   ) where
 
-import Protolude hiding (head)
+import Protolude hiding (head, pred)
 
 import GHC.Base (coerce)
 
@@ -88,10 +88,10 @@ newtype PredicateSymbol = PredicateSymbol Text deriving (Eq, Ord, Show)
 
 -- |A predicate is a predicate symbol and an arity
 data Predicate (n :: Nat) a = Predicate
-  { annotation :: PredicateAnn a
-  , fxSym      :: PredicateSymbol
-  , arity      :: SNat n
-  , nature     :: Nature n
+  { _annotation :: PredicateAnn a
+  , _predSym    :: PredicateSymbol
+  , _arity      :: SNat n
+  , _nature     :: Nature n
   }
 
 -- |Polarity indicates whether a literal has negation in front of it
@@ -111,10 +111,10 @@ data Term = TVar Var | TSym Sym | TWild deriving (Eq, Ord, Show)
 -- |If p is a predicate with arity n and (x_1,...,x_n) is a tuple of terms,
 -- p(x_1,...,x_n) and neg p(x_1,...,x_n) are literals.
 data Literal a = forall n . Literal
-  { annotation :: LiteralAnn a
-  , polarity   :: Polarity
-  , predicate  :: Predicate n a
-  , terms      :: V.Vector n Term
+  { _annotation :: LiteralAnn a
+  , _polarity   :: Polarity
+  , _predicate  :: Predicate n a
+  , _terms      :: V.Vector n Term
   }
 
 type Head a = Literal a
@@ -122,9 +122,9 @@ type Body a = NE.NonEmpty (Literal a)
 
 -- |A clause of the form p(...) :- q_1(...),...,q_k(...)
 data Clause a = Clause
-  { annotation :: ClauseAnn a
-  , head       :: Head a
-  , body       :: Body a
+  { _annotation :: ClauseAnn a
+  , _head       :: Head a
+  , _body       :: Body a
   }
 
 stratumOverF :: Functor f => ([ Clause a ] -> f [ Clause b ]) -> Stratum a -> f (Stratum b)
@@ -140,9 +140,9 @@ newtype Stratum a = Stratum { _unStratum :: [ Clause a ] }
 
 -- |A set of clauses
 data Program a = Program
-  { annotation :: ProgramAnn a
-  , strata     :: [ Stratum a ]
-  , queryPreds :: [ PredicateBox a ]
+  { _annotation :: ProgramAnn a
+  , _strata     :: [ Stratum a ]
+  , _queries    :: [ PredicateBox a ]
   }
 
 -- Map data types to correct type families for annotations
@@ -168,18 +168,18 @@ instance {-# OVERLAPPABLE #-}
          , PeelableAST (PredicateBox (ann a))
          ) => PeelableAST (Program (ann a)) where
   peel Program{..} =
-    Program (peelA annotation) (stratumOver (map peel) <$> strata) (map peel queryPreds)
+    Program (peelA _annotation) (stratumOver (map peel) <$> _strata) (map peel _queries)
 
 instance {-# OVERLAPPABLE #-}
          ( PeelableAnn (Ann Clause) ann
          , PeelableAST (Literal (ann a))
          ) => PeelableAST (Clause (ann a)) where
-  peel Clause{..} = Clause (peelA annotation) (peel head) (fmap peel body)
+  peel Clause{..} = Clause (peelA _annotation) (peel _head) (fmap peel _body)
 
 instance {-# OVERLAPPABLE #-}
             PeelableAnn PredicateAnn ann
          => PeelableAST (Predicate n (ann a)) where
-  peel Predicate{..} = Predicate (peelA annotation) fxSym arity nature
+  peel Predicate{..} = Predicate (peelA _annotation) _predSym _arity _nature
 
 instance {-# OVERLAPPABLE #-}
             PeelableAnn PredicateAnn ann
@@ -203,16 +203,16 @@ instance {-# OVERLAPPABLE #-}
          , DecorableAST (PredicateBox a) ann
          ) => DecorableAST (Program a) ann  where
   decorate Program{..} =
-    Program (decorA annotation)
-            (stratumOver (decorate <$>) <$> strata)
-            (map decorate queryPreds)
+    Program (decorA _annotation)
+            (stratumOver (decorate <$>) <$> _strata)
+            (map decorate _queries)
 
 instance {-# OVERLAPPABLE #-}
          ( DecorableAnn (Ann Clause) ann
          , DecorableAST (Literal a) ann
          ) => DecorableAST (Clause a) ann where
   decorate Clause{..} =
-    Clause (decorA annotation) (decorate head) (fmap decorate body)
+    Clause (decorA _annotation) (decorate _head) (fmap decorate _body)
 
 instance {-# OVERLAPPABLE #-}
          ( DecorableAnn PredicateAnn ann
@@ -223,7 +223,7 @@ instance {-# OVERLAPPABLE #-}
          ( DecorableAnn PredicateAnn ann
          ) => DecorableAST (Predicate n a) ann where
   decorate Predicate{..} =
-    Predicate (decorA annotation) fxSym arity nature
+    Predicate (decorA _annotation) _predSym _arity _nature
 
 -- Helpers relating to logical formulae
 class Formula ast where
@@ -234,12 +234,12 @@ class Formula ast where
 instance Formula (Literal a) where
   type Annotation (Literal a) = a
 
-  variables Literal{terms = terms} = flip mapMaybe (V.toList terms) $ \case
+  variables Literal{..} = flip mapMaybe (V.toList _terms) $ \case
     TVar var -> Just var
     TSym _   -> Nothing
     TWild    -> Nothing
 
-  predicates Literal{predicate = predicate} = [ PredicateBox predicate ]
+  predicates Literal{..} = [ PredicateBox _predicate ]
 
 instance ( IdentifiableAnn (PredicateAnn a) b
          , Ord b
@@ -247,10 +247,10 @@ instance ( IdentifiableAnn (PredicateAnn a) b
   type Annotation (Clause a) = a
 
   variables Clause{..} =
-    variables head ++ concatMap variables body
+    variables _head ++ concatMap variables _body
 
-  predicates Clause{head = head, body = body} =
-    nub $ concatMap predicates $ head : NE.toList body
+  predicates Clause{..} =
+    nub $ concatMap predicates $ _head : NE.toList _body
 
 instance ( IdentifiableAnn (PredicateAnn a) b
          , Ord b
@@ -267,20 +267,20 @@ instance ( IdentifiableAnn (PredicateAnn a) b
 instance ( IdentifiableAnn (PredicateAnn ann) b
          , Eq b
          ) => Eq (Predicate n ann) where
-  p@Predicate{annotation = ann} == p'@Predicate{annotation = ann'} =
-    fxSym p == fxSym p' && idFragment ann == idFragment ann'
+  p@Predicate{_annotation = ann} == p'@Predicate{_annotation = ann'} =
+    _predSym p == _predSym p' && idFragment ann == idFragment ann'
 
 instance ( IdentifiableAnn (PredicateAnn ann) b
          , Ord b
          ) => Ord (Predicate n ann) where
-  p@Predicate{annotation = ann} `compare` p'@Predicate{annotation = ann'} =
-    (idFragment ann, fxSym p) `compare` (idFragment ann', fxSym p')
+  p@Predicate{_annotation = ann} `compare` p'@Predicate{_annotation = ann'} =
+    (idFragment ann, _predSym p) `compare` (idFragment ann', _predSym p')
 
 instance Show (PredicateAnn ann) => Show (Predicate n ann) where
   show Predicate{..} =
-    "Predicate{annotation = " <> show annotation <> ", " <>
-    "fxSym = " <> show fxSym <> "," <>
-    "arity = " <> show arity <> "}"
+    "Predicate{annotation = " <> show _annotation <> ", " <>
+    "fxSym = " <> show _predSym <> "," <>
+    "arity = " <> show _arity <> "}"
 
 deriving instance
   ( Show (PredicateAnn a)
@@ -295,13 +295,13 @@ instance ( IdentifiableAnn (PredicateAnn a) b
          , Eq b
          , Eq c
          ) => Eq (Literal a) where
-  l@Literal{annotation = ann, predicate = p, terms = ts} ==
-    l'@Literal{annotation = ann', predicate = p', terms = ts'}
-    | Proved Refl <- sameArity p p' =
+  lit@Literal{_annotation = ann, _predicate = pred, _terms = terms} ==
+    lit'@Literal{_annotation = ann', _predicate = pred', _terms = terms'}
+    | Proved Refl <- sameArity pred pred' =
       idFragment ann == idFragment ann' &&
-      p == p' &&
-      polarity l == polarity l' &&
-      ts == ts'
+      pred == pred' &&
+      _polarity lit == _polarity lit' &&
+      terms == terms'
     | otherwise = False
 
 instance ( IdentifiableAnn (PredicateAnn a) b
@@ -309,10 +309,10 @@ instance ( IdentifiableAnn (PredicateAnn a) b
          , Ord b
          , Ord c
          ) => Ord (Literal a) where
-  Literal ann pol p@Predicate{arity = n} ts `compare`
-    Literal ann' pol' p'@Predicate{arity = n'} ts'
-    | Proved Refl <- sameArity p p' =
-        (idFragment ann, pol, p, ts) `compare` (idFragment ann', pol', p', ts')
+  Literal ann pol pred@Predicate{_arity = n} ts `compare`
+    Literal ann' pol' pred'@Predicate{_arity = n'} ts'
+    | Proved Refl <- sameArity pred pred' =
+        (idFragment ann, pol, pred, ts) `compare` (idFragment ann', pol', pred', ts')
     | otherwise = fromSing $ sCompare n n'
 
 deriving instance
@@ -323,16 +323,16 @@ deriving instance
 -- Instances for obtaining sapns of AST nodes
 instance {-# OVERLAPPING #-}
     SpannableAnn (ProgramAnn ann) => Spannable (Program ann) where
-  span Program{..} = annSpan annotation
+  span Program{..} = annSpan _annotation
 instance {-# OVERLAPPING #-}
     SpannableAnn (ClauseAnn ann) => Spannable (Clause ann) where
-  span Clause{..} = annSpan annotation
+  span Clause{..} = annSpan _annotation
 instance {-# OVERLAPPING #-}
     SpannableAnn (LiteralAnn ann) => Spannable (Literal ann) where
-  span Literal{..} = annSpan annotation
+  span Literal{..} = annSpan _annotation
 instance {-# OVERLAPPING #-}
     SpannableAnn (PredicateAnn ann) => Spannable (Predicate n ann) where
-  span Predicate{..} = annSpan annotation
+  span Predicate{..} = annSpan _annotation
 
 type SpannableAST ann =
   ( Spannable (Program ann)
@@ -375,8 +375,8 @@ instance ( IdentifiableAnn (ProgramAnn a) b, Eq b
          , Ord (PredicateBox a)
          , Ord (Clause a)
          ) => Eq (Program a) where
-  Program{annotation = ann, strata = strat, queryPreds = qPreds} ==
-    Program{annotation = ann', strata = strat', queryPreds = qPreds'} =
+  Program{_annotation = ann, _strata = strat, _queries = qPreds} ==
+    Program{_annotation = ann', _strata = strat', _queries = qPreds'} =
     idFragment ann == idFragment ann' &&
     S.fromList strat == S.fromList strat' &&
     S.fromList qPreds == S.fromList qPreds'
@@ -391,7 +391,7 @@ deriving instance
 data PredicateBox a = forall n. PredicateBox (Predicate n a)
 
 predicateBox :: Literal a -> PredicateBox a
-predicateBox Literal{predicate = p} = PredicateBox p
+predicateBox Literal{_predicate = pred} = PredicateBox pred
 
 infixr 0 $$
 ($$) :: (forall n. Predicate n a -> b) -> PredicateBox a -> b
@@ -407,35 +407,36 @@ instance ( IdentifiableAnn (PredicateAnn ann) b
 instance ( IdentifiableAnn (PredicateAnn ann) b
          , Ord b
          ) => Ord (PredicateBox ann) where
-  PredicateBox p `compare` PredicateBox p'
-    | Proved Refl <- sameArity p p' = p `compare` p'
-    | otherwise = fromSing (arity p) `compare` fromSing (arity p')
+  PredicateBox pred `compare` PredicateBox pred'
+    | Proved Refl <- sameArity pred pred' = pred `compare` pred'
+    | otherwise = fromSing (_arity pred) `compare` fromSing (_arity pred')
 
 -- Misc. helpers
 
 literals :: Clause ann -> NE.NonEmpty (Literal ann)
-literals Clause{..} = head `NE.cons` body
+literals Clause{..} = _head `NE.cons` _body
 
 -- | Decide if two predicates have the same arity
 sameArity :: Predicate n ann -> Predicate m ann -> Decision (n :~: m)
-sameArity p p' = arity p %~ arity p'
+sameArity p p' = _arity p %~ _arity p'
 
 class HasIntentionals ast ann | ast -> ann where
   intentionals :: ast -> [ PredicateBox ann ]
 
 instance (Ord (PredicateBox ann)) => HasIntentionals (Stratum ann) ann where
-  intentionals stratum = nub $
-    (\Literal{predicate = p} -> PredicateBox p) <$> map head (_unStratum stratum)
+  intentionals stratum = nub
+                       $ (\Literal{_predicate = pred} -> PredicateBox pred)
+                     <$> map _head (_unStratum stratum)
 
 instance (Ord (PredicateBox ann)) => HasIntentionals (Program ann) ann where
   -- No need to $nub$ because different strata can't have the same
   -- intentional predicates.
-  intentionals Program{strata = strata} = mconcat $ map intentionals strata
+  intentionals Program{_strata = strata} = mconcat $ map intentionals strata
 
 -- | Search for clauses that has the given head predicate
 search :: Identifiable (PredicateAnn a) b
        => Program a -> PredicateBox a -> [ Clause a ]
 search pr predBox =
-  [ cl | Stratum cls <- strata pr
-       , cl@Clause{head = Literal{predicate = p}} <- cls
-       , PredicateBox p == predBox ]
+  [ cl | Stratum clauses <- _strata pr
+       , cl@Clause{_head = Literal{_predicate = pred}} <- clauses
+       , PredicateBox pred == predBox ]

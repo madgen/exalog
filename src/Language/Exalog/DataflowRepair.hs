@@ -40,14 +40,14 @@ fixDataflow :: (Clause ('ARename 'ABase) -> Repair [ (FlowSink 'ABase, Var) ])
             -> (Program ('ARename 'ABase), R.Solution ('ARename 'ABase))
             -> Logger (Program 'ABase, R.Solution 'ABase)
 fixDataflow violationFinder errMsg (pr@Program{..}, sol)
-  | [ Stratum clauses ] <- strata = runRepairT pr $ do
+  | [ Stratum clauses ] <- _strata = runRepairT pr $ do
     (originalClauses, guardClausess, guardSols) <- unzip3 <$>
       traverse (fixDataflowClause violationFinder errMsg) clauses
 
     pure ( Program
-            { annotation = peelA annotation
-            , strata     = [ Stratum $ originalClauses <> join guardClausess ]
-            , queryPreds = (PredicateBox . peel $$) <$> queryPreds
+            { _annotation = peelA _annotation
+            , _strata     = [ Stratum $ originalClauses <> join guardClausess ]
+            , _queries    = (PredicateBox . peel $$) <$> _queries
             , ..}
          , mconcat (R.rename peel sol : guardSols)
          )
@@ -60,19 +60,19 @@ fixDataflowClause :: (Clause ('ARename 'ABase) -> Repair [ (FlowSink 'ABase, Var
                   -> Repair (Clause 'ABase, [ Clause 'ABase ], R.Solution 'ABase)
 fixDataflowClause violationFinder errMsg cl@Clause{..} = do
   violations <- violationFinder cl
-  repairResults <- traverse (uncurry (attemptFix $ span head)) violations
+  repairResults <- traverse (uncurry (attemptFix $ span _head)) violations
 
   (guardLits, guardClausess, guardSols) <-
     fmap (unzip3 . catMaybes) $ forM repairResults $ \case
       Guard gLit gCls gSol -> pure $ Just (gLit, gCls, gSol)
       DeadDataPath         -> pure Nothing
-      NotFixable           -> lift $ lift $ scold (Just $ span head) errMsg
+      NotFixable           -> lift $ lift $ scold (Just $ span _head) errMsg
 
   pure ( Clause
-          { annotation = peelA annotation
-          , head       = peel head
-          , body       = foldr' NE.cons (peel <$> body) guardLits
-          , ..}
+          { _annotation = peelA _annotation
+          , _head       = peel _head
+          , _body       = foldr' NE.cons (peel <$> _body) guardLits
+          }
        , join guardClausess
        , mconcat guardSols
        )
@@ -120,50 +120,49 @@ mkGuardFact guardPred sym = R.fromList
 
 mkGuardClause :: SrcSpan -> Literal 'ABase -> Body 'ABase -> Clause 'ABase
 mkGuardClause sp head body = Clause
-  { annotation = ClABase sp
-  , head       = head
-  , body       = body
+  { _annotation = ClABase sp
+  , _head       = head
+  , _body       = body
   }
 
 mkGuardBody :: SrcSpan -> Literal ('ARename 'ABase) -> Var -> Int -> Body 'ABase
-mkGuardBody sp Literal{predicate = guardPred@Predicate{..}} var ix = do
-  let ts = replicate (fromIntegral . fromSing $ arity) TWild
+mkGuardBody sp Literal{_predicate = guardPred@Predicate{..}} var ix = do
+  let ts = replicate (fromIntegral . fromSing $ _arity) TWild
 
   V.withSizedList ts $ \(vts :: V.Vector n Term) ->
-    case (sing :: SNat n) %~ arity of
+    case (sing :: SNat n) %~ _arity of
       Proved Refl -> (NE.:| []) $ Literal
-         { annotation = LitABase sp
-         , predicate  = peel guardPred
-         , terms      = V.unsafeUpd vts [(ix,TVar var)]
-         , polarity   = Positive
+         { _annotation = LitABase sp
+         , _predicate  = peel guardPred
+         , _terms      = V.unsafeUpd vts [(ix,TVar var)]
+         , _polarity   = Positive
          }
       _ -> panic "Argument vector generation failed."
 
 mkGuardPredicate :: PredicateSymbol -> SrcSpan -> Predicate 1 'ABase
-mkGuardPredicate pSym sp = Predicate
-  { annotation = PredABase sp
-  , fxSym      = pSym
-  , nature     = Logical
-  , arity      = sing :: SNat 1
+mkGuardPredicate predSym sp = Predicate
+  { _annotation = PredABase sp
+  , _predSym    = predSym
+  , _nature     = Logical
+  , _arity      = sing :: SNat 1
   }
 
 mkGuardLiteral :: Predicate 1 'ABase -> SrcSpan -> Term -> Literal 'ABase
 mkGuardLiteral pred sp term = Literal
-  { annotation = LitABase sp
-  , predicate  = pred
-  , terms      = V.singleton term
-  , polarity   = Positive
+  { _annotation = LitABase sp
+  , _predicate  = pred
+  , _terms      = V.singleton term
+  , _polarity   = Positive
   }
 
 type RepairEnv = PositiveFlowGr 'ABase
 type RepairT m = ReaderT RepairEnv (FreshT m)
 
 runRepairT :: Monad m => Program ('ARename 'ABase) -> RepairT m a -> m a
-runRepairT pr = runFreshT (Just "guard") reserved
-             . (`runReaderT` flowGr)
+runRepairT pr = runFreshT (Just "guard") reserved . (`runReaderT` flowGr)
   where
   flowGr = analysePositiveFlow pr
-  reserved  = ((\Predicate{fxSym = PredicateSymbol txt} -> txt) $$)
+  reserved  = ((\Predicate{_predSym = PredicateSymbol txt} -> txt) $$)
           <$> predicates pr
 
 getPositiveFlowGraph :: Monad m => RepairT m (PositiveFlowGr 'ABase)

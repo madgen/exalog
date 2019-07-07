@@ -31,8 +31,8 @@ import           Language.Exalog.SrcLoc (dummySpan)
 import qualified Language.Exalog.Tuples as T
 
 not :: Literal 'ABase -> Literal 'ABase
-not l@Literal{polarity = pol} =
-  l { polarity = if pol == Positive then Negative else Positive }
+not l@Literal{_polarity = pol} =
+  l {_polarity = if pol == Positive then Negative else Positive}
 
 lit :: Predicate n 'ABase -> V.Vector n Term -> Literal 'ABase
 lit = Literal (LitABase dummySpan) Positive

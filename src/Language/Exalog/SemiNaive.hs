@@ -98,11 +98,11 @@ evalClauses clss = do
 
 evalClause :: forall a b. (SpannableAST a, Identifiable (PredicateAnn a) b)
            => Clause a -> SemiNaive a (R.Relation a)
-evalClause cl@Clause{..} = deriveHead =<< foldM walkBody [ U.empty ] body
+evalClause cl@Clause{..} = deriveHead =<< foldM walkBody [ U.empty ] _body
   where
   deriveHead :: [ U.Unifier ] -> SemiNaive a (R.Relation a)
   deriveHead unifiers
-    | Literal{predicate = pred, terms = terms} <- head = do
+    | Literal{_predicate = pred, _terms = terms} <- _head = do
       let preTuples = map (`U.substitute` terms) unifiers
       tuples <- lift $ traverse extractHeadTuple preTuples
       pure $ R.Relation pred . T.fromList $ tuples
@@ -121,19 +121,19 @@ evalClause cl@Clause{..} = deriveHead =<< foldM walkBody [ U.empty ] body
 
 execLiteral :: (SpannableAST a, Identifiable (PredicateAnn a) b)
             => Literal a -> SemiNaive a [ U.Unifier ]
-execLiteral lit@Literal{predicate = p@Predicate{nature = nature}, ..}
+execLiteral lit@Literal{_predicate = p@Predicate{_nature = nature}, ..}
   | Extralogical foreignAction <- nature = do
-    eTuples <- liftIO $ foreignAction terms
+    eTuples <- liftIO $ foreignAction _terms
     case eTuples of
-      Right tuples -> return $ handleTuples terms tuples
+      Right tuples -> return $ handleTuples _terms tuples
       Left msg -> lift $ scold (Just (span lit)) $
         "Fatal foreign function error: " <> msg
   | otherwise =
-    handleTuples terms . T.toList . R.findTuples p <$> ask
+    handleTuples _terms . T.toList . R.findTuples p <$> ask
   where
   handleTuples :: V.Vector n Term -> [ V.Vector n Sym ] -> [ U.Unifier ]
   handleTuples terms tuples =
-    case polarity of
+    case _polarity of
       Positive -> tuplesToUnifiers terms tuples
       Negative -> [ U.empty | null (tuplesToUnifiers terms tuples) ]
 

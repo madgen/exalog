@@ -42,8 +42,8 @@ class RangeRestriction ast where
   isRangeRestricted          :: ast -> Bool
 
 instance SpannableAnn (ClauseAnn ann) => RangeRestriction (Program ann) where
-  checkRangeRestriction Program{..} = traverse_ checkRangeRestriction (join $ map _unStratum strata)
-  isRangeRestricted Program{..} = all isRangeRestricted (join $ map _unStratum strata)
+  checkRangeRestriction Program{..} = traverse_ checkRangeRestriction (join $ map _unStratum _strata)
+  isRangeRestricted Program{..} = all isRangeRestricted (join $ map _unStratum _strata)
 
 instance SpannableAnn (ClauseAnn ann) => RangeRestriction (Clause ann) where
   checkRangeRestriction cl =
@@ -51,7 +51,7 @@ instance SpannableAnn (ClauseAnn ann) => RangeRestriction (Clause ann) where
       scold (Just $ span cl) "Range restriction is violated."
 
   isRangeRestricted Clause{..} =
-    null $ variables head \\ mconcat (variables <$> NE.toList body)
+    null $ variables _head \\ mconcat (variables <$> NE.toList _body)
 
 fixRangeRestriction :: (Program ('ARename 'ABase), R.Solution ('ARename 'ABase))
                     -> Logger (Program 'ABase, R.Solution 'ABase)
@@ -63,8 +63,8 @@ rangeRestrictionViolations :: Clause ('ARename ann) -> [ (FlowSink ann, Var) ]
 rangeRestrictionViolations Clause{..} = map (genSink . fst &&& snd)
                                       . filter (isRestriction . snd)
                                       . zip [0..]
-                                      $ variables head
+                                      $ variables _head
   where
   isRestriction var = var `notElem` bodyVariables
-  genSink = FSinkPredicate (predicateBox head)
-  bodyVariables = mconcat $ variables <$> NE.toList body
+  genSink = FSinkPredicate (predicateBox _head)
+  bodyVariables = mconcat $ variables <$> NE.toList _body

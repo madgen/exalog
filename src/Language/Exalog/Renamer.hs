@@ -19,7 +19,7 @@ module Language.Exalog.Renamer
   , HasPredicateID(..), HasLiteralID(..), HasClauseID(..)
   ) where
 
-import Protolude hiding (head)
+import Protolude hiding (head, pred)
 
 import qualified Data.Bimap as BM
 import qualified Data.List.NonEmpty as NE
@@ -49,19 +49,19 @@ type ClauseIDMap ann    = BM.Bimap (Clause       ('ARename ann)) ClauseID
 
 class    HasPredicateID a                             where predicateID :: a -> PredicateID
 instance HasPredicateID (PredicateAnn ('ARename ann)) where predicateID PredARename{..} = _predicateID
-instance HasPredicateID (Predicate n  ('ARename ann)) where predicateID Predicate{..}   = _predicateID annotation
+instance HasPredicateID (Predicate n  ('ARename ann)) where predicateID Predicate{..}   = _predicateID _annotation
 
-instance HasPredicateID (PredicateBox ('ARename ann)) where predicateID (PredicateBox p) = predicateID p
+instance HasPredicateID (PredicateBox ('ARename ann)) where predicateID (PredicateBox pred) = predicateID pred
 
-instance HasPredicateID (Literal      ('ARename ann)) where predicateID Literal{..} = predicateID predicate
+instance HasPredicateID (Literal      ('ARename ann)) where predicateID Literal{..} = predicateID _predicate
 
 class    HasLiteralID a                           where literalID :: a -> LiteralID
 instance HasLiteralID (LiteralAnn ('ARename ann)) where literalID LitARename{..} = _literalID
-instance HasLiteralID (Literal    ('ARename ann)) where literalID Literal{..}    = _literalID annotation
+instance HasLiteralID (Literal    ('ARename ann)) where literalID Literal{..}    = _literalID _annotation
 
 class    HasClauseID a                          where clauseID :: a -> ClauseID
 instance HasClauseID (ClauseAnn ('ARename ann)) where clauseID ClARename{..} = _clauseID
-instance HasClauseID (Clause    ('ARename ann)) where clauseID Clause{..}    = _clauseID annotation
+instance HasClauseID (Clause    ('ARename ann)) where clauseID Clause{..}    = _clauseID _annotation
 
 --------------------------------------------------------------------------------
 -- Renamer
@@ -90,12 +90,12 @@ renameProgram :: SpannableAnn (PredicateAnn ann)
               => Program ann
               -> Rename ann (Program ('ARename ann))
 renameProgram Program{..} = do
-  renamedStrata     <- traverse (stratumOverF $ traverse renameClause) strata
-  renamedQueryPreds <- traverse (\(PredicateBox p) -> PredicateBox <$> renamePredicate p) queryPreds
+  renamedStrata  <- traverse (stratumOverF $ traverse renameClause) _strata
+  renamedQueries <- traverse (\(PredicateBox pred) -> PredicateBox <$> renamePredicate pred) _queries
   pure Program
-    { annotation = ProgARename annotation
-    , strata     = renamedStrata
-    , queryPreds = renamedQueryPreds
+    { _annotation = ProgARename _annotation
+    , _strata     = renamedStrata
+    , _queries    = renamedQueries
     , ..}
 
 renameClause :: SpannableAnn (PredicateAnn ann)
@@ -104,14 +104,14 @@ renameClause :: SpannableAnn (PredicateAnn ann)
              => Clause ann
              -> Rename ann (Clause ('ARename ann))
 renameClause Clause{..} = do
-  renamedHead <- renameLiteral head
-  renamedBody <- traverse renameLiteral body
+  renamedHead <- renameLiteral _head
+  renamedBody <- traverse renameLiteral _body
   id <- freshID
   pure Clause
-    { annotation = ClARename (ClauseID id) annotation
-    , head       = renamedHead
-    , body       = renamedBody
-    , ..}
+    { _annotation = ClARename (ClauseID id) _annotation
+    , _head       = renamedHead
+    , _body       = renamedBody
+    }
 
 renameLiteral :: SpannableAnn (PredicateAnn ann)
               => IdentifiableAnn (PredicateAnn ann) b
@@ -119,11 +119,11 @@ renameLiteral :: SpannableAnn (PredicateAnn ann)
               => Literal ann
               -> Rename ann (Literal ('ARename ann))
 renameLiteral Literal{..} = do
-  renamedPredicate <- renamePredicate predicate
+  renamedPredicate <- renamePredicate _predicate
   id <- freshID
   pure $ Literal
-    { annotation = LitARename (LiteralID id) annotation
-    , predicate  = renamedPredicate
+    { _annotation = LitARename (LiteralID id) _annotation
+    , _predicate  = renamedPredicate
     , ..}
 
 renamePredicate :: SpannableAnn (PredicateAnn ann)
@@ -131,12 +131,12 @@ renamePredicate :: SpannableAnn (PredicateAnn ann)
                 => Ord b
                 => Predicate n ann
                 -> Rename ann (Predicate n ('ARename ann))
-renamePredicate p@Predicate{..} = do
+renamePredicate pred@Predicate{..} = do
   preds <- ask
-  case PredicateBox p `S.lookupIndex` preds of
+  case PredicateBox pred `S.lookupIndex` preds of
     Just ix -> pure $
-      Predicate{annotation = PredARename (PredicateID ix) annotation,..}
-    Nothing -> lift $ lift $ scream (Just $ span p)
+      Predicate{_annotation = PredARename (PredicateID ix) _annotation,..}
+    Nothing -> lift $ lift $ scream (Just $ span pred)
       "Impossible happened! Renamed predicate is not a predicate of the program."
 
 mkPredicateMap :: IdentifiableAnn (PredicateAnn ann) a
@@ -144,15 +144,15 @@ mkPredicateMap :: IdentifiableAnn (PredicateAnn ann) a
                => Program ('ARename ann)
                -> PredicateIDMap ann
 mkPredicateMap pr = BM.fromList $ (<$> predicates pr) $
-  \pBox@(PredicateBox Predicate{..}) -> (pBox, predicateID annotation)
+  \pBox@(PredicateBox Predicate{..}) -> (pBox, predicateID _annotation)
 
 mkLiteralMap :: IdentifiableAnn (PredicateAnn ann) a
              => IdentifiableAnn (LiteralAnn ann) b
              => Ord a => Ord b
              => Program ('ARename ann)
              -> LiteralIDMap ann
-mkLiteralMap Program{strata = strata} =
-  BM.fromList $ fmap (\lit@Literal{..} -> (lit, literalID annotation))
+mkLiteralMap Program{_strata = strata} =
+  BM.fromList $ fmap (\lit@Literal{..} -> (lit, literalID _annotation))
               . join
               $ NE.toList . literals
             <$> join (map _unStratum strata)
@@ -163,9 +163,9 @@ mkClauseMap :: IdentifiableAnn (PredicateAnn ann) a
             => Ord a => Ord b => Ord c
             => Program ('ARename ann)
             -> ClauseIDMap ann
-mkClauseMap Program{strata = strata} =
+mkClauseMap Program{_strata = strata} =
   BM.fromList $ (<$> join (map _unStratum strata))
-              $ \cl@Clause{..} -> (cl, clauseID annotation)
+              $ \cl@Clause{..} -> (cl, clauseID _annotation)
 
 --------------------------------------------------------------------------------
 -- Monadic actions for renaming
@@ -227,6 +227,6 @@ instance PeelableAnn ProgramAnn   'ARename where peelA (ProgARename   prevAnn) =
 
 instance PeelableAST (Literal ('ARename ann)) where
   peel Literal{..} = Literal
-    { annotation = peelA annotation
-    , predicate = peel predicate
+    { _annotation = peelA _annotation
+    , _predicate  = peel  _predicate
     , ..}

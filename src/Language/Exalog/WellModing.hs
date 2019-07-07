@@ -31,18 +31,18 @@ class WellModed ast where
 instance ( SpannableAnn (LiteralAnn ann)
          , Moded (Program ('AAdornment ann))
          ) => WellModed (Program ann) where
-  checkWellModedness Program{..} = traverse_ checkWellModedness (join $ map _unStratum strata)
-  isWellModed        Program{..} = all isWellModed $ join $ map _unStratum strata
+  checkWellModedness Program{..} = traverse_ checkWellModedness (join $ map _unStratum _strata)
+  isWellModed        Program{..} = all isWellModed $ join $ map _unStratum _strata
 
 instance ( SpannableAnn (LiteralAnn ann)
          , Moded (Clause ('AAdornment ann))
          ) => WellModed (Clause ann) where
-  checkWellModedness cl@Clause{..} = checkWellModability $ adornClause (allFree head) cl
-  isWellModed        cl@Clause{..} = isWellModable       $ adornClause (allFree head) cl
+  checkWellModedness cl@Clause{..} = checkWellModability $ adornClause (allFree _head) cl
+  isWellModed        cl@Clause{..} = isWellModable       $ adornClause (allFree _head) cl
 
 allFree :: Literal ann -> [ Adornment ]
-allFree Literal{predicate = Predicate{..}} =
-  replicate (fromIntegral . fromSing $ arity) Free
+allFree Literal{_predicate = Predicate{..}} =
+  replicate (fromIntegral . fromSing $ _arity) Free
 
 class Moded ast where
   checkWellModability :: ast -> Logger ()
@@ -50,20 +50,20 @@ class Moded ast where
 
 instance SpannableAnn (LiteralAnn ann)
     => Moded (Program ('AAdornment ann)) where
-  checkWellModability Program{..} = traverse_ checkWellModability $ join $ map _unStratum strata
-  isWellModable       Program{..} = all isWellModable $ join $ map _unStratum strata
+  checkWellModability Program{..} = traverse_ checkWellModability $ join $ map _unStratum _strata
+  isWellModable       Program{..} = all isWellModable $ join $ map _unStratum _strata
 
 instance SpannableAnn (LiteralAnn ann) => Moded (Clause ('AAdornment ann)) where
-  checkWellModability Clause{..} = traverse_ checkWellModability body
-  isWellModable       Clause{..} = all isWellModable body
+  checkWellModability Clause{..} = traverse_ checkWellModability _body
+  isWellModable       Clause{..} = all isWellModable _body
 
 instance SpannableAnn (LiteralAnn ann)
     => Moded (Literal ('AAdornment ann)) where
   checkWellModability lit =
     unless (isWellModable lit) $ scold (Just $ span lit) "Not well-modable."
   isWellModable lit@Literal{..}
-    | Positive <- polarity = True
-    | otherwise = (`all` zip (adornment lit) (V.toList terms)) $ \case
+    | Positive <- _polarity = True
+    | otherwise = (`all` zip (adornment lit) (V.toList _terms)) $ \case
       (Free, TVar{}) -> False
       _              -> True
 
@@ -76,14 +76,14 @@ fixModing =
 modingViolations :: Monad m
                  => Clause ('ARename 'ABase)
                  -> RepairT m [ (FlowSink 'ABase, Var)  ]
-modingViolations Clause{body = body} = do
+modingViolations Clause{_body = body} = do
   flowGr <- getPositiveFlowGraph
 
   pure $ sconcat $ (<$> body) $ \lit@Literal{..} ->
-    catMaybes . V.toList $ (`V.imap` terms) $ \fin -> \case
+    catMaybes . V.toList $ (`V.imap` _terms) $ \fin -> \case
       TVar var ->
         let ix = fromInteger $ getFinite fin
-        in if polarity == Negative && isPredPredicate flowGr lit ix
+        in if _polarity == Negative && isPredPredicate flowGr lit ix
              then Just (FSinkLiteral lit ix, var)
              else Nothing
       _ -> Nothing
