@@ -28,7 +28,7 @@ ghc-options:
 
 dependencies:
 - base >= 4.7 && < 5
-- bimap >= 0.3 && < 0.4
+- bimap >= 0.4 && < 0.5
 - containers >= 0.6 && < 0.7
 - comonad >= 5.0 && < 5.1
 - fgl >= 5.7 && < 5.8
@@ -38,7 +38,7 @@ dependencies:
 - protolude >= 0.2 && < 0.3
 - text >= 1.2 && < 1.3
 - vector-sized >= 1.2 && < 1.3
-- ghc-typelits-natnormalise >= 0.6.3 && < 0.7
+- ghc-typelits-natnormalise >= 0.7 && < 0.8
 - pretty >= 1.1 && < 1.2
 
 library:
@@ -53,6 +53,8 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - hspec >= 2.6 && < 2.7
-    - QuickCheck >= 2.12 && < 2.13
+    - hspec >= 2.7 && < 2.8
+    - QuickCheck >= 2.13 && < 2.14
     - exalog-engine
+    build-tools:
+    - hspec-discover >= 2.7 && < 2.8

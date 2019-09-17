@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise -fplugin-opt GHC.TypeLits.Normalise:assert-constants-natural #-}
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise -fplugin-opt GHC.TypeLits.Normalise #-}
 
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -78,7 +78,7 @@ liftPredicateME p v =
 -}
 liftFunction :: forall f r
               . (Applicable f, RetTy f ~ r, Returnable r, KnownNat (Arity f))
-             => f -> ForeignFunc (NRets r + Arity f)
+             => f -> ForeignFunc (Arity f + NRets r)
 liftFunction f v = return . return $ genTuples (toReturnVs $ f @@ args) v
   where
   args :: V.Vector (Arity f) Term
@@ -89,7 +89,7 @@ liftFunction f v = return . return $ genTuples (toReturnVs $ f @@ args) v
 -}
 liftFunctionME :: forall f r
                 . (Applicable f, RetTy f ~ IO (Either Text r), Returnable r, KnownNat (Arity f))
-               => f -> ForeignFunc (NRets r + Arity f)
+               => f -> ForeignFunc (Arity f + NRets r)
 liftFunctionME f v = do
   eResss <- fmap toReturnVs <$> f @@ args
   return $ do
