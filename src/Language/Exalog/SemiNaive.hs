@@ -66,8 +66,8 @@ semiNaive stratum@(Stratum clss) = do
                    -> R.Solution ('ADelta a)
                    -> R.Solution ('ADelta a)
   updateFromDelta' (PredicateBox p) edb =
-    let ts = R.findTuples (mkDeltaPredicate Delta p) edb
-        tsPrev = R.findTuples (mkDeltaPredicate Prev p) edb
+    let ts = R.findTuplesByPred (mkDeltaPredicate Delta p) edb
+        tsPrev = R.findTuplesByPred (mkDeltaPredicate Prev p) edb
     in R.add (R.Relation (mkDeltaPredicate Current p) (ts <> tsPrev)) edb
 
   -- Current to Prev
@@ -80,7 +80,7 @@ semiNaive stratum@(Stratum clss) = do
   axeDeltaRedundancies :: R.Solution ('ADelta a) -> R.Solution ('ADelta a)
   axeDeltaRedundancies edb = (`R.atEach` edb) $ \(p, ts) ->
     case decor p of
-      Delta -> ts `T.difference` R.findTuples (updateDecor Current p) edb
+      Delta -> ts `T.difference` R.findTuplesByPred (updateDecor Current p) edb
       _ -> ts
 
   step :: SemiNaive ('ADelta a) (R.Solution ('ADelta a))
@@ -129,7 +129,7 @@ execLiteral lit@Literal{_predicate = p@Predicate{_nature = nature}, ..}
       Left msg -> lift $ scold (Just (span lit)) $
         "Fatal foreign function error: " <> msg
   | otherwise =
-    handleTuples _terms . T.toList . R.findTuples p <$> ask
+    handleTuples _terms . T.toList . R.findTuplesByPred p <$> ask
   where
   handleTuples :: V.Vector n Term -> [ V.Vector n Sym ] -> [ U.Unifier ]
   handleTuples terms tuples =
