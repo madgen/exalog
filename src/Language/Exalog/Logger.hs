@@ -13,13 +13,14 @@ module Language.Exalog.Logger
 
 import Protolude hiding (log)
 
+import Control.Monad.Trans.Class (MonadTrans)
 import Control.Monad.Trans.Maybe (MaybeT(..), runMaybeT)
 
 import Language.Exalog.Error (Error(..), Severity(..), printError)
 import Language.Exalog.SrcLoc (SrcSpan)
 
 newtype LoggerT m a = LoggerT (MaybeT m a)
-  deriving (Functor, Applicative, Monad, MonadIO)
+  deriving (Functor, Applicative, Monad, MonadIO, MonadTrans)
 type    Logger      = LoggerT IO
 
 runLoggerT :: Monad m => LoggerT m a -> m (Maybe a)
