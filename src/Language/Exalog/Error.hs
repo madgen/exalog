@@ -12,9 +12,12 @@ import Language.Exalog.Pretty.Helper (Pretty(..), pp)
 import Language.Exalog.SrcLoc (SrcSpan, printSpan)
 
 data Severity =
-    Impossible -- |Error that should never be thrown
-  | User       -- |Standard user error
-  | Warning    -- |Warning
+  -- |Error that should never be thrown
+    Impossible
+  -- |Standard user error
+  | User
+  -- |Warning
+  | Warning
   deriving (Eq)
 
 data Error = Error
