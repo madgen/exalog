@@ -1,7 +1,7 @@
 name:                exalog-engine
 version:             0.1.0.0
 github:              "madgen/exalog-engine"
-license:             BSD3
+license:             BSD-3-Clause
 author:              "Mistral Contrastin"
 maintainer:          "madgenhetic@gmail.com"
 copyright:           "2018"
@@ -44,6 +44,13 @@ dependencies:
 library:
   source-dirs: src
 
+internal-libraries:
+  exalog-fixtures:
+    source-dirs: fixtures
+    dependencies:
+    - QuickCheck >= 2.13 && < 2.14
+    - exalog-engine
+
 tests:
   exalog-engine-test:
     main:                Spec.hs
@@ -56,5 +63,6 @@ tests:
     - hspec >= 2.7 && < 2.8
     - QuickCheck >= 2.13 && < 2.14
     - exalog-engine
+    - exalog-fixtures
     build-tools:
     - hspec-discover >= 2.7 && < 2.8
