@@ -67,33 +67,33 @@ spec =
 
       finalEDB <- execSolver Const.program Const.initEDB
       it "evaluates constants correctly" $
-        R.findTuples Const.rPred <$> finalEDB `shouldBe` Just Const.rTuples
+        R.findTuplesByPred Const.rPred <$> finalEDB `shouldBe` Just Const.rTuples
 
       finalEDB <- execSolver Repeated.program Repeated.initEDB
       it "does not forget repeated variables" $
-        R.findTuples Repeated.pPred <$> finalEDB `shouldBe` Just Repeated.pTuples
+        R.findTuplesByPred Repeated.pPred <$> finalEDB `shouldBe` Just Repeated.pTuples
 
       finalEDB <- execSolver Wildcard.program Wildcard.initEDB
       it "evaluates literals with wildcads correctly" $
-        R.findTuples Wildcard.pPred <$> finalEDB `shouldBe` Just Wildcard.pTuples
+        R.findTuplesByPred Wildcard.pPred <$> finalEDB `shouldBe` Just Wildcard.pTuples
 
       describe "Foreign function" $ do
 
         finalEDB <- execSolver Foreign.programLeq100 Foreign.initLeq100EDB
         it "interprets 'x < 100' correctly" $
-          R.findTuples Foreign.leq100Pred <$> finalEDB `shouldBe` Just Foreign.leq100Tuples
+          R.findTuplesByPred Foreign.leq100Pred <$> finalEDB `shouldBe` Just Foreign.leq100Tuples
 
         finalEDB <- execSolver Foreign.programPrefixOf Foreign.initPrefixOfEDB
         it "interprets 'isPrefixOf' correctly" $
-          R.findTuples Foreign.prefixOfPred <$> finalEDB `shouldBe` Just Foreign.prefixOfTuples
+          R.findTuplesByPred Foreign.prefixOfPred <$> finalEDB `shouldBe` Just Foreign.prefixOfTuples
 
         finalEDB <- execSolver Foreign.programCartesian23 Foreign.initCartesian23EDB
         it "interprets 'cartesian23' correctly" $
-          R.findTuples Foreign.cartesian23Pred <$> finalEDB `shouldBe` Just Foreign.cartesian23Tuples
+          R.findTuplesByPred Foreign.cartesian23Pred <$> finalEDB `shouldBe` Just Foreign.cartesian23Tuples
 
       finalEDB <- execSolver SpanIrr.program SpanIrr.initEDB
       it "evaluates correctly with different spans" $
-        R.findTuples SpanIrr.rPred <$> finalEDB `shouldBe` Just SpanIrr.rTuples
+        R.findTuplesByPred SpanIrr.rPred <$> finalEDB `shouldBe` Just SpanIrr.rTuples
 
 
 -- Arbitrary instances for solution
