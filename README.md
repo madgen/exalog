@@ -1,5 +1,7 @@
 # Exalog: Datalog as a library
 
+[![Build Status](https://travis-ci.com/madgen/exalog.svg?branch=master)](https://travis-ci.com/madgen/exalog)
+
 This project provides a Datalog backend as a library written in Haskell. It is meant to facilitate implementation of Datalog progeny that can compile down to range restricted Datalog wih perfect models.
 
 What we provide:
