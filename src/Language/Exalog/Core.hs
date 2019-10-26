@@ -22,6 +22,7 @@ module Language.Exalog.Core
   , Predicate(..)
   , PredicateSymbol(..)
   , Nature(..)
+  , Foreign
   , ForeignFunc
   -- ** Literal
   , Literal(..)
@@ -58,6 +59,8 @@ import Protolude hiding (head, pred)
 
 import GHC.Base (coerce)
 
+import Control.Monad.Trans.Except (ExceptT)
+
 import           Data.Kind (Type)
 import           Data.List (nub)
 import qualified Data.List.NonEmpty as NE
@@ -77,7 +80,8 @@ import qualified GHC.Show as Show
 import           Language.Exalog.Annotation
 import           Language.Exalog.SrcLoc
 
-type ForeignFunc n = V.Vector n Term -> IO (Either Text [ V.Vector n Sym ])
+type Foreign a = ExceptT Text IO a
+type ForeignFunc n = V.Vector n Term -> Foreign [ V.Vector n Sym ]
 
 -- |Type indicating the nature of Datalog predicate
 data Nature (n :: Nat) =

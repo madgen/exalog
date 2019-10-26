@@ -48,15 +48,14 @@ import Language.Exalog.Core
 - answer set. Otherwise, it returns an empty answer set.
 -}
 liftPredicate :: (Applicable f, RetTy f ~ Bool) => f -> ForeignFunc (Arity f)
-liftPredicate p v = return . return $ [ fromTerm <$> v | p @@ v ]
+liftPredicate p v = pure [ fromTerm <$> v | p @@ v ]
 
 {- | A variant of 'liftPredicate' for functions that have side effects and
 - may produce errors.
 -}
-liftPredicateME :: (Applicable f, RetTy f ~ IO (Either Text Bool))
+liftPredicateME :: (Applicable f, RetTy f ~ Foreign Bool)
                 => f -> ForeignFunc (Arity f)
-liftPredicateME p v =
-  fmap (\cond -> [ fromTerm <$> v | cond ]) <$> p @@ v
+liftPredicateME p v = (\cond -> [ fromTerm <$> v | cond ]) <$> p @@ v
 
 --------------------------------------------------------------------------------
 -- Lift functions that do not return Bool
@@ -79,7 +78,7 @@ liftPredicateME p v =
 liftFunction :: forall f r
               . (Applicable f, RetTy f ~ r, Returnable r, KnownNat (Arity f))
              => f -> ForeignFunc (Arity f + NRets r)
-liftFunction f v = return . return $ genTuples (toReturnVs $ f @@ args) v
+liftFunction f v = pure $ genTuples (toReturnVs $ f @@ args) v
   where
   args :: V.Vector (Arity f) Term
   args = V.take' (Proxy :: Proxy (Arity f)) v
@@ -88,13 +87,11 @@ liftFunction f v = return . return $ genTuples (toReturnVs $ f @@ args) v
 - may produce errors.
 -}
 liftFunctionME :: forall f r
-                . (Applicable f, RetTy f ~ IO (Either Text r), Returnable r, KnownNat (Arity f))
+                . (Applicable f, RetTy f ~ Foreign r, Returnable r, KnownNat (Arity f))
                => f -> ForeignFunc (Arity f + NRets r)
 liftFunctionME f v = do
-  eResss <- fmap toReturnVs <$> f @@ args
-  return $ do
-    resss <- eResss
-    return $ genTuples resss v
+  resss <- toReturnVs <$> f @@ args
+  pure $ genTuples resss v
   where
   args :: V.Vector (Arity f) Term
   args = V.take' (Proxy :: Proxy (Arity f)) v

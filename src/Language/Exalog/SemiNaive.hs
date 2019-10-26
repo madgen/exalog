@@ -123,7 +123,7 @@ execLiteral :: (SpannableAST a, Identifiable (PredicateAnn a) b)
             => Literal a -> SemiNaive a [ U.Unifier ]
 execLiteral lit@Literal{_predicate = p@Predicate{_nature = nature}, ..}
   | Extralogical foreignAction <- nature = do
-    eTuples <- liftIO $ foreignAction _terms
+    eTuples <- liftIO $ runExceptT $ foreignAction _terms
     case eTuples of
       Right tuples -> return $ handleTuples _terms tuples
       Left msg -> lift $ scold (Just (span lit)) $
