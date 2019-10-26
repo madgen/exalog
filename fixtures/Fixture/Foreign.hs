@@ -18,6 +18,12 @@ module Fixture.Foreign
   , initCartesian23EDB
   , cartesian23Pred
   , cartesian23Tuples
+
+  -- Impure
+  , programImpure
+  , initImpureEDB
+  , impurePred
+  , impureTuples
   ) where
 
 import Protolude hiding (isPrefixOf)
@@ -188,3 +194,70 @@ initCartesian23EDB = fromList [ ]
 cartesian23Tuples :: T.Tuples 2
 cartesian23Tuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
   ([ [ 1, 1 ] , [ 1, 2 ], [ 1, 3] , [ 2, 1 ] , [ 2, 2 ], [ 2, 3 ] ] :: [ [ Int ] ])
+
+--------------------------------------------------------------------------------
+-- Non-pure fixture
+--------------------------------------------------------------------------------
+
+impureIDForeign :: Int -> Foreign Int
+impureIDForeign = pure
+
+impureIDPred :: Predicate 2 'ABase
+impureIDPred = Predicate
+  (PredABase dummySpan)
+  "impureID"
+  SNat
+  (Extralogical $ liftFunctionME impureIDForeign)
+
+impureID :: Term -> Term -> Literal 'ABase
+impureID t t' = lit impureIDPred $ fromJust $ V.fromList [ t, t' ]
+
+impureFinForeign :: Int -> Foreign [ Int ]
+impureFinForeign i = pure [0..i]
+
+impureFinPred :: Predicate 2 'ABase
+impureFinPred = Predicate
+  (PredABase dummySpan)
+  "impureFin"
+  SNat
+  (Extralogical $ liftFunctionME impureFinForeign)
+
+impureFin :: Term -> Term -> Literal 'ABase
+impureFin t t' = lit impureFinPred $ fromJust $ V.fromList [ t, t' ]
+
+impureEvenForeign :: Int -> Foreign Bool
+impureEvenForeign = pure . even
+
+impureEvenPred :: Predicate 1 'ABase
+impureEvenPred = Predicate
+  (PredABase dummySpan)
+  "impureEven"
+  SNat
+  (Extralogical $ liftPredicateME impureEvenForeign)
+
+impureEven :: Term -> Literal 'ABase
+impureEven t = lit impureEvenPred $ fromJust $ V.fromList [ t ]
+
+impurePred :: Predicate 1 'ABase
+impurePred = Predicate (PredABase dummySpan) "impure" SNat Logical
+
+impure :: Term -> Literal 'ABase
+impure t = lit impurePred $ fromJust $ V.fromList [ t ]
+
+programImpure :: Program 'ABase
+programImpure = Program (ProgABase dummySpan)
+  (Stratum <$>
+    [ [ Clause (ClABase dummySpan) (impure (tvar "Y")) $ NE.fromList
+        [ impureFin  (tsym (10 :: Int)) (tvar "X")
+        , impureEven (tvar "X")
+        , impureID   (tvar "X") (tvar "Y")]
+      ]
+    ])
+  [ PredicateBox impurePred ]
+
+initImpureEDB :: Solution 'ABase
+initImpureEDB = fromList [ ]
+
+impureTuples :: T.Tuples 1
+impureTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+  ([ [ 0 ], [ 2 ], [ 4 ], [ 6 ], [ 8 ], [ 10 ] ] :: [ [ Int ] ])

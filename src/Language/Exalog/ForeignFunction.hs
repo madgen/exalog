@@ -185,20 +185,22 @@ instance (ReturnableBase a, ReturnableBase b, ReturnableBase c, ReturnableBase d
 
 -- |Indicate returnable types
 type family IsReturnable' r :: Bool where
-  IsReturnable' Text       = 'True
-  IsReturnable' Int        = 'True
-  IsReturnable' Double     = 'True
-  IsReturnable' Bool       = 'True
-  IsReturnable' (a,b)      = 'True
-  IsReturnable' (a,b,c)    = 'True
-  IsReturnable' (a,b,c,d)  = 'True
-  IsReturnable' _          = 'False
+  IsReturnable' Text        = 'True
+  IsReturnable' Int         = 'True
+  IsReturnable' Double      = 'True
+  IsReturnable' Bool        = 'True
+  IsReturnable' (a,b)       = 'True
+  IsReturnable' (a,b,c)     = 'True
+  IsReturnable' (a,b,c,d)   = 'True
+  IsReturnable' _           = 'False
 
 -- |Determines the returnable type regardless the multitude of the results
 -- returned by the foreign function
 type family IsReturnable a :: Bool where
-  IsReturnable [ a ] = IsReturnable' a
-  IsReturnable a     = IsReturnable' a
+  IsReturnable (Foreign [ a ]) = IsReturnable' a
+  IsReturnable (Foreign a)     = IsReturnable' a
+  IsReturnable [ a ]           = IsReturnable' a
+  IsReturnable a               = IsReturnable' a
 
 data Multiplicity = Multiple | Single
 

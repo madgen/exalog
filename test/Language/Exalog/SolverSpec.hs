@@ -91,6 +91,10 @@ spec =
         it "interprets 'cartesian23' correctly" $
           R.findTuplesByPred Foreign.cartesian23Pred <$> finalEDB `shouldBe` Just Foreign.cartesian23Tuples
 
+        finalEDB <- execSolver Foreign.programImpure Foreign.initImpureEDB
+        it "interprets 'impure' correctly" $
+          R.findTuplesByPred Foreign.impurePred <$> finalEDB `shouldBe` Just Foreign.impureTuples
+
       finalEDB <- execSolver SpanIrr.program SpanIrr.initEDB
       it "evaluates correctly with different spans" $
         R.findTuplesByPred SpanIrr.rPred <$> finalEDB `shouldBe` Just SpanIrr.rTuples
