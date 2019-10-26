@@ -32,6 +32,8 @@ import GHC.TypeLits as TL (type (+))
 
 import Language.Exalog.Core
 
+type Err = Either Text
+
 --------------------------------------------------------------------------------
 -- Lift functions that return Bool
 --------------------------------------------------------------------------------
@@ -50,9 +52,10 @@ import Language.Exalog.Core
 - answer set. Otherwise, it returns an empty answer set.
 -}
 liftPredicate :: (Applicable f, RetTy f ~ Bool) => f -> ForeignFunc (Arity f)
-liftPredicate p v = do
-  syms <- except $ traverse fromTerm v
-  pure [ syms | p @@ syms ]
+liftPredicate p v = except $ do
+  syms <- traverse fromTerm v
+  cond <- p @@ syms
+  pure [ syms | cond ]
 
 {- | A variant of 'liftPredicate' for functions that have side effects and
 - may produce errors.
@@ -61,7 +64,7 @@ liftPredicateME :: (Applicable f, RetTy f ~ Foreign Bool)
                 => f -> ForeignFunc (Arity f)
 liftPredicateME p v = do
   syms <- except $ traverse fromTerm v
-  cond <- p @@ syms
+  cond <- join $ except $ p @@ syms
   pure [ syms | cond ]
 
 --------------------------------------------------------------------------------
@@ -85,9 +88,10 @@ liftPredicateME p v = do
 liftFunction :: forall f r
               . (Applicable f, RetTy f ~ r, Returnable r, KnownNat (Arity f))
              => f -> ForeignFunc (Arity f + NRets r)
-liftFunction f v = do
-  argSyms <- except $ traverse fromTerm args
-  except $ genTuples (toReturnVs $ f @@ argSyms) v
+liftFunction f v = except $ do
+  argSyms <- traverse fromTerm args
+  ress    <- f @@ argSyms
+  genTuples (toReturnVs ress) v
   where
   args :: V.Vector (Arity f) Term
   args = V.take' (Proxy :: Proxy (Arity f)) v
@@ -100,7 +104,8 @@ liftFunctionME :: forall f r
                => f -> ForeignFunc (Arity f + NRets r)
 liftFunctionME f v = do
   argSyms <- except $ traverse fromTerm args
-  resss <- toReturnVs <$> f @@ argSyms
+  ress    <- except $ f @@ argSyms
+  resss   <- toReturnVs <$> ress
   except $ genTuples resss v
   where
   args :: V.Vector (Arity f) Term
@@ -110,7 +115,7 @@ genTuples :: forall na nr
            . KnownNat na
           => [ V.Vector nr Sym ]
           -> V.Vector (na + nr) Term
-          -> Either Text [ V.Vector (na + nr) Sym ]
+          -> Err [ V.Vector (na + nr) Sym ]
 genTuples resss v = do
   symArgs <- traverse fromTerm args
   pure [ symArgs V.++ ress
@@ -213,31 +218,31 @@ instance ReturnableBase a => Returnable' 'True [ a ] where
 interpretAt :: forall i n a
              . (KnownNat i, Argumentable a)
             => V.Vector ((i + n) + 1) Sym
-            -> a
+            -> Err a
 interpretAt v = interpret . V.index' v $ (Proxy :: Proxy i)
 
 class Argumentable a where
-  interpret :: Sym -> a
+  interpret :: Sym -> Err a
 
 instance Argumentable Text where
-  interpret (SymText t) = t
+  interpret (SymText t) = pure t
   interpret _ =
-    panic "Fatal error: Foreign function was expecting arugment of type Text."
+    Left "Fatal error: Foreign function was expecting arugment of type Text."
 
 instance Argumentable Int where
-  interpret (SymInt i) = i
+  interpret (SymInt i) = pure i
   interpret _ =
-    panic "Fatal error: Foreign function was expecting arugment of type Int."
+    Left "Fatal error: Foreign function was expecting arugment of type Int."
 
 instance Argumentable Double where
-  interpret (SymDouble f) = f
+  interpret (SymDouble f) = pure f
   interpret _ =
-    panic "Fatal error: Foreign function was expecting arugment of type Char."
+    Left "Fatal error: Foreign function was expecting arugment of type Char."
 
 instance Argumentable Bool where
-  interpret (SymBool b) = b
+  interpret (SymBool b) = pure b
   interpret _ =
-    panic "Fatal error: Foreign function was expecting arugment of type Bool."
+    Left "Fatal error: Foreign function was expecting arugment of type Bool."
 
 type family RetTy f where
   RetTy (a -> r) = If (ReturnableB r) r (RetTy r)
@@ -248,44 +253,48 @@ type family Arity f :: Nat where
 type Applicable f = Applicable' f (Arity f)
 
 class ari ~ Arity f => Applicable' f (ari :: Nat) where
-  (@@) :: f -> V.Vector ari Sym -> RetTy f
+  (@@) :: f -> V.Vector ari Sym -> Err (RetTy f)
 
 instance ( ReturnableB r ~ 'True
          , Argumentable a
          ) => Applicable' (a -> r) 1 where
-  f @@ v = f (interpretAt @0 v)
+  f @@ v = f <$> interpretAt @0 v
 
 instance ( ReturnableB r ~ 'True
          , Argumentable a, Argumentable b
          ) => Applicable' (a -> b -> r) 2 where
-  f @@ v = f (interpretAt @0 v)
-             (interpretAt @1 v)
+  f @@ v = f
+       <$> interpretAt @0 v
+       <*> interpretAt @1 v
 
 instance ( ReturnableB r ~ 'True
          , Argumentable a, Argumentable b, Argumentable c
          ) => Applicable' (a -> b -> c -> r) 3 where
-  f @@ v = f (interpretAt @0 v)
-             (interpretAt @1 v)
-             (interpretAt @2 v)
+  f @@ v = f
+       <$> interpretAt @0 v
+       <*> interpretAt @1 v
+       <*> interpretAt @2 v
 
 instance ( ReturnableB r ~ 'True
          , Argumentable a, Argumentable b, Argumentable c, Argumentable d
          ) => Applicable' (a -> b -> c -> d -> r) 4 where
-  f @@ v = f (interpretAt @0 v)
-             (interpretAt @1 v)
-             (interpretAt @2 v)
-             (interpretAt @3 v)
+  f @@ v = f
+       <$> interpretAt @0 v
+       <*> interpretAt @1 v
+       <*> interpretAt @2 v
+       <*> interpretAt @3 v
 
 instance ( ReturnableB r ~ 'True
          , Argumentable a, Argumentable b, Argumentable c, Argumentable d, Argumentable e
          ) => Applicable' (a -> b -> c -> d -> e -> r) 5 where
-  f @@ v = f (interpretAt @0 v)
-             (interpretAt @1 v)
-             (interpretAt @2 v)
-             (interpretAt @3 v)
-             (interpretAt @4 v)
+  f @@ v = f
+       <$> interpretAt @0 v
+       <*> interpretAt @1 v
+       <*> interpretAt @2 v
+       <*> interpretAt @3 v
+       <*> interpretAt @4 v
 
-fromTerm :: Term -> Either Text Sym
+fromTerm :: Term -> Err Sym
 fromTerm = \case
   TSym s -> pure s
   _      -> Left
