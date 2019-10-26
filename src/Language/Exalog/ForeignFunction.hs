@@ -91,7 +91,7 @@ liftFunction :: forall f r
 liftFunction f v = except $ do
   argSyms <- traverse fromTerm args
   ress    <- f @@ argSyms
-  genTuples (toReturnVs ress) v
+  genTuples (fromForeignFxReturn ress) v
   where
   args :: V.Vector (Arity f) Term
   args = V.take' (Proxy :: Proxy (Arity f)) v
@@ -105,7 +105,7 @@ liftFunctionME :: forall f r
 liftFunctionME f v = do
   argSyms <- except $ traverse fromTerm args
   ress    <- except $ f @@ argSyms
-  resss   <- toReturnVs <$> ress
+  resss   <- fromForeignFxReturn <$> ress
   except $ genTuples resss v
   where
   args :: V.Vector (Arity f) Term
@@ -142,6 +142,8 @@ consistent sym = \case
 -- Util
 --------------------------------------------------------------------------------
 
+-- |Number of terms used as used as output based on the return type of the
+-- foreign function
 type family NRets a :: Nat where
   NRets Text   = 1
   NRets Int    = 1
@@ -152,6 +154,8 @@ type family NRets a :: Nat where
   NRets (a,b,c,d) = NRets a + NRets b + NRets c + NRets d
   NRets [ a ] = NRets a
 
+-- |Typeclass for converting the return type of the foreign function to a
+-- vector of symbols
 class ReturnableBase r where
   toReturnV :: r -> V.Vector (NRets r) Sym
 
@@ -179,41 +183,46 @@ instance (ReturnableBase a, ReturnableBase b, ReturnableBase c, ReturnableBase d
   toReturnV (a,b,c,d) =
     toReturnV a V.++ toReturnV b V.++ toReturnV c V.++ toReturnV d
 
-type family ReturnableB' r :: Bool where
-  ReturnableB' Text       = 'True
-  ReturnableB' Int        = 'True
-  ReturnableB' Double     = 'True
-  ReturnableB' Bool       = 'True
-  ReturnableB' (a,b)      = 'True
-  ReturnableB' (a,b,c)    = 'True
-  ReturnableB' (a,b,c,d)  = 'True
-  ReturnableB' _          = 'False
+-- |Indicate returnable types
+type family IsReturnable' r :: Bool where
+  IsReturnable' Text       = 'True
+  IsReturnable' Int        = 'True
+  IsReturnable' Double     = 'True
+  IsReturnable' Bool       = 'True
+  IsReturnable' (a,b)      = 'True
+  IsReturnable' (a,b,c)    = 'True
+  IsReturnable' (a,b,c,d)  = 'True
+  IsReturnable' _          = 'False
 
-type family ReturnableB a :: Bool where
-  ReturnableB [ a ] = ReturnableB' a
-  ReturnableB a     = ReturnableB' a
+-- |Determines the returnable type regardless the multitude of the results
+-- returned by the foreign function
+type family IsReturnable a :: Bool where
+  IsReturnable [ a ] = IsReturnable' a
+  IsReturnable a     = IsReturnable' a
 
--- Flag to distinguish the general and specific case to later avoid
--- overlapping instances
-type family ReturnFlag a :: Bool where
-  ReturnFlag [ a ] = 'True
-  ReturnFlag _     = 'False
+data Multiplicity = Multiple | Single
 
+-- Flag to whether there will be multiple results or not.
+type family GetMultiplicity a :: Multiplicity where
+  GetMultiplicity [ a ] = 'Multiple
+  GetMultiplicity _     = 'Single
+
+-- |Type class to convert the result of the foreign function to output symbols
 class Returnable r where
-  toReturnVs :: r -> [ V.Vector (NRets r) Sym ]
+  fromForeignFxReturn :: r -> [ V.Vector (NRets r) Sym ]
 
 -- Instance defined in terms of Returnable' to avoid overlapping instances
-instance (ReturnFlag r ~ flag, Returnable' flag r) => Returnable r where
-  toReturnVs = toReturnVs' (Proxy :: Proxy flag)
+instance (GetMultiplicity r ~ mult, Returnable' mult r) => Returnable r where
+  fromForeignFxReturn = fromForeignFxReturn' (Proxy @mult)
 
-class Returnable' (flag :: Bool) r where
-  toReturnVs' :: Proxy flag -> r -> [ V.Vector (NRets r) Sym ]
+class Returnable' (mult :: Multiplicity) r where
+  fromForeignFxReturn' :: Proxy mult -> r -> [ V.Vector (NRets r) Sym ]
 
-instance ReturnableBase a => Returnable' 'False a where
-  toReturnVs' _ x = [ toReturnV x ]
+instance ReturnableBase a => Returnable' 'Single a where
+  fromForeignFxReturn' _ x = [ toReturnV x ]
 
-instance ReturnableBase a => Returnable' 'True [ a ] where
-  toReturnVs' _ = map toReturnV
+instance ReturnableBase a => Returnable' 'Multiple [ a ] where
+  fromForeignFxReturn' _ = map toReturnV
 
 interpretAt :: forall i n a
              . (KnownNat i, Argumentable a)
@@ -245,29 +254,29 @@ instance Argumentable Bool where
     Left "Fatal error: Foreign function was expecting arugment of type Bool."
 
 type family RetTy f where
-  RetTy (a -> r) = If (ReturnableB r) r (RetTy r)
+  RetTy (a -> r) = If (IsReturnable r) r (RetTy r)
 
 type family Arity f :: Nat where
-  Arity (a -> r) = If (ReturnableB r) 1 (Arity r + 1)
+  Arity (a -> r) = If (IsReturnable r) 1 (Arity r + 1)
 
 type Applicable f = Applicable' f (Arity f)
 
 class ari ~ Arity f => Applicable' f (ari :: Nat) where
   (@@) :: f -> V.Vector ari Sym -> Err (RetTy f)
 
-instance ( ReturnableB r ~ 'True
+instance ( IsReturnable r ~ 'True
          , Argumentable a
          ) => Applicable' (a -> r) 1 where
   f @@ v = f <$> interpretAt @0 v
 
-instance ( ReturnableB r ~ 'True
+instance ( IsReturnable r ~ 'True
          , Argumentable a, Argumentable b
          ) => Applicable' (a -> b -> r) 2 where
   f @@ v = f
        <$> interpretAt @0 v
        <*> interpretAt @1 v
 
-instance ( ReturnableB r ~ 'True
+instance ( IsReturnable r ~ 'True
          , Argumentable a, Argumentable b, Argumentable c
          ) => Applicable' (a -> b -> c -> r) 3 where
   f @@ v = f
@@ -275,7 +284,7 @@ instance ( ReturnableB r ~ 'True
        <*> interpretAt @1 v
        <*> interpretAt @2 v
 
-instance ( ReturnableB r ~ 'True
+instance ( IsReturnable r ~ 'True
          , Argumentable a, Argumentable b, Argumentable c, Argumentable d
          ) => Applicable' (a -> b -> c -> d -> r) 4 where
   f @@ v = f
@@ -284,7 +293,7 @@ instance ( ReturnableB r ~ 'True
        <*> interpretAt @2 v
        <*> interpretAt @3 v
 
-instance ( ReturnableB r ~ 'True
+instance ( IsReturnable r ~ 'True
          , Argumentable a, Argumentable b, Argumentable c, Argumentable d, Argumentable e
          ) => Applicable' (a -> b -> c -> d -> e -> r) 5 where
   f @@ v = f
