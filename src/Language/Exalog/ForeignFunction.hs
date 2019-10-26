@@ -23,6 +23,8 @@ module Language.Exalog.ForeignFunction
 
 import Protolude hiding (TypeError, sym)
 
+import Control.Monad.Trans.Except (except)
+
 import           Data.Type.Bool (If)
 import qualified Data.Vector.Sized as V
 
@@ -48,14 +50,19 @@ import Language.Exalog.Core
 - answer set. Otherwise, it returns an empty answer set.
 -}
 liftPredicate :: (Applicable f, RetTy f ~ Bool) => f -> ForeignFunc (Arity f)
-liftPredicate p v = pure [ fromTerm <$> v | p @@ v ]
+liftPredicate p v = do
+  syms <- traverse fromTerm v
+  pure [ syms | p @@ syms ]
 
 {- | A variant of 'liftPredicate' for functions that have side effects and
 - may produce errors.
 -}
 liftPredicateME :: (Applicable f, RetTy f ~ Foreign Bool)
                 => f -> ForeignFunc (Arity f)
-liftPredicateME p v = (\cond -> [ fromTerm <$> v | cond ]) <$> p @@ v
+liftPredicateME p v = do
+  syms <- traverse fromTerm v
+  cond <- p @@ syms
+  pure [ syms | cond ]
 
 --------------------------------------------------------------------------------
 -- Lift functions that do not return Bool
@@ -78,7 +85,9 @@ liftPredicateME p v = (\cond -> [ fromTerm <$> v | cond ]) <$> p @@ v
 liftFunction :: forall f r
               . (Applicable f, RetTy f ~ r, Returnable r, KnownNat (Arity f))
              => f -> ForeignFunc (Arity f + NRets r)
-liftFunction f v = pure $ genTuples (toReturnVs $ f @@ args) v
+liftFunction f v = do
+  argSyms <- traverse fromTerm args
+  genTuples (toReturnVs $ f @@ argSyms) v
   where
   args :: V.Vector (Arity f) Term
   args = V.take' (Proxy :: Proxy (Arity f)) v
@@ -90,8 +99,9 @@ liftFunctionME :: forall f r
                 . (Applicable f, RetTy f ~ Foreign r, Returnable r, KnownNat (Arity f))
                => f -> ForeignFunc (Arity f + NRets r)
 liftFunctionME f v = do
-  resss <- toReturnVs <$> f @@ args
-  pure $ genTuples resss v
+  argSyms <- traverse fromTerm args
+  resss <- toReturnVs <$> f @@ argSyms
+  genTuples resss v
   where
   args :: V.Vector (Arity f) Term
   args = V.take' (Proxy :: Proxy (Arity f)) v
@@ -100,12 +110,12 @@ genTuples :: forall na nr
            . KnownNat na
           => [ V.Vector nr Sym ]
           -> V.Vector (na + nr) Term
-          -> [ V.Vector (na + nr) Sym ]
-genTuples resss v =
-  [ symArgs V.++ ress
-  | ress <- filterFakeResults rets resss ]
+          -> Foreign [ V.Vector (na + nr) Sym ]
+genTuples resss v = do
+  symArgs <- traverse fromTerm args
+  pure [ symArgs V.++ ress
+       | ress <- filterFakeResults rets resss ]
   where
-  symArgs = fromTerm <$> args
   (args, rets) = V.splitAt @na v
 
 -- Eliminate tuples with results that contradict with what is bound in the
@@ -202,9 +212,9 @@ instance ReturnableBase a => Returnable' 'True [ a ] where
 
 interpretAt :: forall i n a
              . (KnownNat i, Argumentable a)
-            => V.Vector ((i + n) + 1) Term
+            => V.Vector ((i + n) + 1) Sym
             -> a
-interpretAt v = interpret . fromTerm . V.index' v $ (Proxy :: Proxy i)
+interpretAt v = interpret . V.index' v $ (Proxy :: Proxy i)
 
 class Argumentable a where
   interpret :: Sym -> a
@@ -238,7 +248,7 @@ type family Arity f :: Nat where
 type Applicable f = Applicable' f (Arity f)
 
 class ari ~ Arity f => Applicable' f (ari :: Nat) where
-  (@@) :: f -> V.Vector ari Term -> RetTy f
+  (@@) :: f -> V.Vector ari Sym -> RetTy f
 
 instance ( ReturnableB r ~ 'True
          , Argumentable a
@@ -275,8 +285,8 @@ instance ( ReturnableB r ~ 'True
              (interpretAt @3 v)
              (interpretAt @4 v)
 
-fromTerm :: Term -> Sym
+fromTerm :: Term -> Foreign Sym
 fromTerm = \case
-  TSym s -> s
-  _      -> panic
+  TSym s -> pure s
+  _      -> except $ Left
     "Mode error: Foreign function argument is not sufficiently bound."
