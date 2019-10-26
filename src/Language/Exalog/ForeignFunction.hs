@@ -51,7 +51,7 @@ import Language.Exalog.Core
 -}
 liftPredicate :: (Applicable f, RetTy f ~ Bool) => f -> ForeignFunc (Arity f)
 liftPredicate p v = do
-  syms <- traverse fromTerm v
+  syms <- except $ traverse fromTerm v
   pure [ syms | p @@ syms ]
 
 {- | A variant of 'liftPredicate' for functions that have side effects and
@@ -60,7 +60,7 @@ liftPredicate p v = do
 liftPredicateME :: (Applicable f, RetTy f ~ Foreign Bool)
                 => f -> ForeignFunc (Arity f)
 liftPredicateME p v = do
-  syms <- traverse fromTerm v
+  syms <- except $ traverse fromTerm v
   cond <- p @@ syms
   pure [ syms | cond ]
 
@@ -86,8 +86,8 @@ liftFunction :: forall f r
               . (Applicable f, RetTy f ~ r, Returnable r, KnownNat (Arity f))
              => f -> ForeignFunc (Arity f + NRets r)
 liftFunction f v = do
-  argSyms <- traverse fromTerm args
-  genTuples (toReturnVs $ f @@ argSyms) v
+  argSyms <- except $ traverse fromTerm args
+  except $ genTuples (toReturnVs $ f @@ argSyms) v
   where
   args :: V.Vector (Arity f) Term
   args = V.take' (Proxy :: Proxy (Arity f)) v
@@ -99,9 +99,9 @@ liftFunctionME :: forall f r
                 . (Applicable f, RetTy f ~ Foreign r, Returnable r, KnownNat (Arity f))
                => f -> ForeignFunc (Arity f + NRets r)
 liftFunctionME f v = do
-  argSyms <- traverse fromTerm args
+  argSyms <- except $ traverse fromTerm args
   resss <- toReturnVs <$> f @@ argSyms
-  genTuples resss v
+  except $ genTuples resss v
   where
   args :: V.Vector (Arity f) Term
   args = V.take' (Proxy :: Proxy (Arity f)) v
@@ -110,7 +110,7 @@ genTuples :: forall na nr
            . KnownNat na
           => [ V.Vector nr Sym ]
           -> V.Vector (na + nr) Term
-          -> Foreign [ V.Vector (na + nr) Sym ]
+          -> Either Text [ V.Vector (na + nr) Sym ]
 genTuples resss v = do
   symArgs <- traverse fromTerm args
   pure [ symArgs V.++ ress
@@ -285,8 +285,8 @@ instance ( ReturnableB r ~ 'True
              (interpretAt @3 v)
              (interpretAt @4 v)
 
-fromTerm :: Term -> Foreign Sym
+fromTerm :: Term -> Either Text Sym
 fromTerm = \case
   TSym s -> pure s
-  _      -> except $ Left
+  _      -> Left
     "Mode error: Foreign function argument is not sufficiently bound."
