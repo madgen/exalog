@@ -39,6 +39,7 @@ module Language.Exalog.Core
   -- * Existentially boxing data types
   , PredicateBox(..)
   , predicateBox
+  , SomeForeignFunc(..)
   -- * Helper type classes
   , DecorableAST(..)
   , PeelableAST(..)
@@ -82,6 +83,7 @@ import           Language.Exalog.SrcLoc
 
 type Foreign a = ExceptT Text IO a
 type ForeignFunc n = V.Vector n Term -> Foreign [ V.Vector n Sym ]
+data SomeForeignFunc = forall (n :: Nat). SFF (ForeignFunc n)
 
 -- |Type indicating the nature of Datalog predicate
 data Nature (n :: Nat) =
