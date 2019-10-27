@@ -14,6 +14,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE GeneralisedNewtypeDeriving #-}
 
 module Language.Exalog.Core
   ( module Language.Exalog.Annotation
@@ -71,10 +72,7 @@ import           Data.Singletons (fromSing)
 import           Data.Singletons.TypeLits (SNat)
 import           Data.Singletons.Prelude (sCompare)
 import           Data.Singletons.Decide (Decision(..), (%~))
-import           Data.String (IsString(fromString))
-import           Data.Text (pack)
 import qualified Data.Vector.Sized as V
-
 
 import qualified GHC.Show as Show
 
@@ -90,7 +88,8 @@ data Nature (n :: Nat) =
     Logical
   | Extralogical (ForeignFunc n)
 
-newtype PredicateSymbol = PredicateSymbol Text deriving (Eq, Ord, Show)
+newtype PredicateSymbol = PredicateSymbol Text
+  deriving (Eq, Ord, Show, IsString)
 
 -- |A predicate is a predicate symbol and an arity
 data Predicate (n :: Nat) a = Predicate
@@ -291,9 +290,6 @@ instance Show (PredicateAnn ann) => Show (Predicate n ann) where
 deriving instance
   ( Show (PredicateAnn a)
   ) => Show (PredicateBox a)
-
-instance IsString PredicateSymbol where
-  fromString = PredicateSymbol . pack
 
 -- Literal
 instance ( IdentifiableAnn (PredicateAnn a) b
