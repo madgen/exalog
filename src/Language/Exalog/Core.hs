@@ -41,6 +41,7 @@ module Language.Exalog.Core
   , PredicateBox(..)
   , predicateBox
   , SomeForeignFunc(..)
+  , SomeNature(..)
   -- * Helper type classes
   , DecorableAST(..)
   , PeelableAST(..)
@@ -87,6 +88,7 @@ data SomeForeignFunc = forall n. KnownNat n => SFF (ForeignFunc n)
 data Nature (n :: Nat) =
     Logical
   | Extralogical (ForeignFunc n)
+data SomeNature = forall n. KnownNat n => SN (Nature n)
 
 newtype PredicateSymbol = PredicateSymbol Text
   deriving (Eq, Ord, Show, IsString)
