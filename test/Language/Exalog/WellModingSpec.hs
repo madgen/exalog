@@ -16,4 +16,4 @@ spec =
       it "programSimple can be repaired" $ do
         let input = (WM.prSimple, mempty)
         let output = (WM.prSimpleRepaired, mempty)
-        runLoggerT (fixModing input) `shouldReturn` Just output
+        runLoggerT vanillaEnv (fixModing input) `shouldReturn` Just output

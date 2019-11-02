@@ -38,7 +38,7 @@ import qualified Language.Exalog.Relation as R
 import           Language.Exalog.Solver
 import           Language.Exalog.Stratification
 
-execSolver pr edb = runIO $ runLoggerT $ do
+execSolver pr edb = runIO $ runLoggerT vanillaEnv $ do
   stratifiedPr <- stratify (decorate pr)
   solve stratifiedPr edb
 
@@ -62,8 +62,8 @@ spec =
 
         prop "linear & non-linear versions produce the same result" $
           \edb -> unsafePerformIO $ liftM2 (==)
-            (runLoggerT $ evalSolver compute LAnc.program  edb)
-            (runLoggerT $ evalSolver compute NLAnc.program edb)
+            (runLoggerT vanillaEnv $ evalSolver compute LAnc.program  edb)
+            (runLoggerT vanillaEnv $ evalSolver compute NLAnc.program edb)
 
       finalEDB <- execSolver Const.program Const.initEDB
       it "evaluates constants correctly" $

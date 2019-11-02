@@ -15,16 +15,16 @@ spec =
   describe "Range restriction" $ do
     parallel $ describe "Checking" $ do
       it "programGood is range-restricted" $
-        runLoggerT (checkRangeRestriction DDep.programGood) `shouldReturn` Just ()
+        runLoggerT vanillaEnv (checkRangeRestriction DDep.programGood) `shouldReturn` Just ()
 
       it "programBad1 violates range restriction" $
-        runLoggerT (checkRangeRestriction DDep.programBad1) `shouldReturn` Nothing
+        runLoggerT vanillaEnv (checkRangeRestriction DDep.programBad1) `shouldReturn` Nothing
 
       it "programBad2 violates range restriction" $
-        runLoggerT (checkRangeRestriction DDep.programBad2) `shouldReturn` Nothing
+        runLoggerT vanillaEnv (checkRangeRestriction DDep.programBad2) `shouldReturn` Nothing
 
     describe "Repair" $
       it "programSimple can be repaired" $ do
         let input = (RRes.prSimple, mempty)
         let output = (RRes.prSimpleRepaired, mempty)
-        runLoggerT (fixRangeRestriction input) `shouldReturn` Just output
+        runLoggerT vanillaEnv (fixRangeRestriction input) `shouldReturn` Just output

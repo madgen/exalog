@@ -49,7 +49,7 @@ spec =
   describe "Dataflow" $
     describe "Positive" $ do
       let rrGr = analysePositiveFlow RR.prSimple
-      renamedNegPr <- fromJust <$> (runIO . runLoggerT $ fst <$> rename (Neg.program,mempty))
+      renamedNegPr <- fromJust <$> (runIO . runLoggerT vanillaEnv $ fst <$> rename (Neg.program,mempty))
       let negGr = analysePositiveFlow renamedNegPr
       describe "Overall graph" $ do
         it "programSimple has expected edges" $ do
