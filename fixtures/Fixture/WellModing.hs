@@ -16,11 +16,11 @@ import           Language.Exalog.Renamer
 import Fixture.Util hiding (lit)
 
 pred :: Int -> PredicateSymbol -> SNat n -> Nature n -> Predicate n ('ARename 'ABase)
-pred id = Predicate (PredARename (PredicateID id) $ PredABase dummySpan)
+pred id = Predicate (PredARename (PredicateID id) $ PredABase NoSpan)
 lit :: Int -> Polarity -> Predicate n ('ARename 'ABase) -> V.Vector n Term -> Literal ('ARename 'ABase)
-lit  id = Literal   (LitARename  (LiteralID   id) $ LitABase  dummySpan)
+lit  id = Literal   (LitARename  (LiteralID   id) $ LitABase  NoSpan)
 cl :: Int -> Head ('ARename 'ABase) -> Body ('ARename 'ABase) -> Clause ('ARename 'ABase)
-cl   id = Clause    (ClARename   (ClauseID    id) $ ClABase   dummySpan)
+cl   id = Clause    (ClARename   (ClauseID    id) $ ClABase   NoSpan)
 
 pPred, qPred, aPred, guardPred :: Predicate 1 ('ARename 'ABase)
 pPred     = pred 0 "p" SNat Logical
@@ -45,7 +45,7 @@ query id = lit id Positive queryPred (fromJust $ V.fromList [ ])
 - query() :- a(X), p(X).
 |-}
 prSimple :: Program ('ARename 'ABase)
-prSimple = Program (ProgARename $ ProgABase dummySpan)
+prSimple = Program (ProgARename $ ProgABase NoSpan)
   (Stratum <$>
     [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ notq 99 (tvar "X") ]
       , cl 200 (query 20)        $ NE.fromList [ a 30 (tvar "X"), p 40 (tvar "X") ]
@@ -58,7 +58,7 @@ prSimple = Program (ProgARename $ ProgABase dummySpan)
 - query() :- a(X), p(X).
 |-}
 prSimpleRepaired :: Program 'ABase
-prSimpleRepaired = peel $ Program (ProgARename $ ProgABase dummySpan)
+prSimpleRepaired = peel $ Program (ProgARename $ ProgABase NoSpan)
   (Stratum <$>
     [ [ cl 100 (p 10 (tvar "X"))  $ NE.fromList [ guard 50 (tvar "X"), notq 99 (tvar "X") ]
       , cl 200 (query 20)         $ NE.fromList [ a 30 (tvar "X")    , p 40 (tvar "X") ]

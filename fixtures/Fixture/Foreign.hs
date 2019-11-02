@@ -47,13 +47,13 @@ import Fixture.Util
 --------------------------------------------------------------------------------
 
 srcPred :: Predicate 1 'ABase
-srcPred =  Predicate (PredABase dummySpan) "src" SNat Logical
+srcPred =  Predicate (PredABase NoSpan) "src" SNat Logical
 
 leqPred :: Predicate 2 'ABase
-leqPred = Predicate (PredABase dummySpan) "<" SNat (Extralogical $ liftPredicate ((<) :: Int -> Int -> Bool))
+leqPred = Predicate (PredABase NoSpan) "<" SNat (Extralogical $ liftPredicate ((<) :: Int -> Int -> Bool))
 
 leq100Pred :: Predicate 1 'ABase
-leq100Pred = Predicate (PredABase dummySpan) "leq100" SNat Logical
+leq100Pred = Predicate (PredABase NoSpan) "leq100" SNat Logical
 
 src :: Term -> Literal 'ABase
 src t = lit srcPred $ fromJust $ V.fromList [ t ]
@@ -72,9 +72,9 @@ leq100 t = lit leq100Pred $ fromJust $ V.fromList [ t ]
 - leq100(X) :- src(X), X < 100.
 -}
 programLeq100 :: Program 'ABase
-programLeq100 = Program (ProgABase dummySpan)
+programLeq100 = Program (ProgABase NoSpan)
   (Stratum <$>
-    [ [ Clause (ClABase dummySpan) (leq100 (tvar "X")) $ NE.fromList
+    [ [ Clause (ClABase NoSpan) (leq100 (tvar "X")) $ NE.fromList
         [ src (tvar "X")
         , leq (tvar "X") (tsym (100 :: Int)) ]
       ]
@@ -100,13 +100,13 @@ leq100Tuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
 --------------------------------------------------------------------------------
 
 src2Pred :: Predicate 1 'ABase
-src2Pred = Predicate (PredABase dummySpan) "src2" SNat Logical
+src2Pred = Predicate (PredABase NoSpan) "src2" SNat Logical
 
 isPrefixOfPred :: Predicate 2 'ABase
-isPrefixOfPred = Predicate (PredABase dummySpan) "isPrefixOf" SNat (Extralogical $ liftPredicate (Text.isPrefixOf :: Text -> Text -> Bool))
+isPrefixOfPred = Predicate (PredABase NoSpan) "isPrefixOf" SNat (Extralogical $ liftPredicate (Text.isPrefixOf :: Text -> Text -> Bool))
 
 prefixOfPred :: Predicate 2 'ABase
-prefixOfPred = Predicate (PredABase dummySpan) "prefixOf" SNat Logical
+prefixOfPred = Predicate (PredABase NoSpan) "prefixOf" SNat Logical
 
 src2 :: Term -> Literal 'ABase
 src2 t = lit src2Pred $ fromJust $ V.fromList [ t ]
@@ -126,9 +126,9 @@ prefixOf t t' = lit prefixOfPred $ fromJust $ V.fromList [ t, t' ]
 - prefixOf(X,Y) :- src(X), src(Y), isPrefixOf(X,Y).
 -}
 programPrefixOf :: Program 'ABase
-programPrefixOf = Program (ProgABase dummySpan)
+programPrefixOf = Program (ProgABase NoSpan)
   (Stratum <$>
-    [ [ Clause (ClABase dummySpan) (prefixOf (tvar "X") (tvar "Y")) $ NE.fromList
+    [ [ Clause (ClABase NoSpan) (prefixOf (tvar "X") (tvar "Y")) $ NE.fromList
         [ src2 (tvar "X")
         , src2 (tvar "Y")
         , tvar "X" `isPrefixOf` tvar "Y" ]
@@ -165,10 +165,10 @@ cart n m = [ (i,j) | i <- [1..n], j <- [1..m] ]
 
 cartesianPred :: Predicate 4 'ABase
 cartesianPred =
-  Predicate (PredABase dummySpan) "cartesian" SNat (Extralogical $ liftFunction cart)
+  Predicate (PredABase NoSpan) "cartesian" SNat (Extralogical $ liftFunction cart)
 
 cartesian23Pred :: Predicate 2 'ABase
-cartesian23Pred = Predicate (PredABase dummySpan) "cartesian23" SNat Logical
+cartesian23Pred = Predicate (PredABase NoSpan) "cartesian23" SNat Logical
 
 cartesian :: Term -> Term -> Term -> Term -> Literal 'ABase
 cartesian t t' t'' t''' = lit cartesianPred $ fromJust $ V.fromList [ t, t', t'', t''' ]
@@ -180,9 +180,9 @@ cartesian23 t t' = lit cartesian23Pred $ fromJust $ V.fromList [ t, t' ]
 - cartesian23(X,Y) :- cartesian(2,3,X,Y).
 -}
 programCartesian23 :: Program 'ABase
-programCartesian23 = Program (ProgABase dummySpan)
+programCartesian23 = Program (ProgABase NoSpan)
   (Stratum <$>
-    [ [ Clause (ClABase dummySpan) (cartesian23 (tvar "X") (tvar "Y")) $ NE.fromList
+    [ [ Clause (ClABase NoSpan) (cartesian23 (tvar "X") (tvar "Y")) $ NE.fromList
         [ cartesian (tsym (2 :: Int)) (tsym (3 :: Int)) (tvar "X") (tvar "Y") ]
       ]
     ])
@@ -204,7 +204,7 @@ impureIDForeign = pure
 
 impureIDPred :: Predicate 2 'ABase
 impureIDPred = Predicate
-  (PredABase dummySpan)
+  (PredABase NoSpan)
   "impureID"
   SNat
   (Extralogical $ liftFunctionME impureIDForeign)
@@ -217,7 +217,7 @@ impureFinForeign i = pure [0..i]
 
 impureFinPred :: Predicate 2 'ABase
 impureFinPred = Predicate
-  (PredABase dummySpan)
+  (PredABase NoSpan)
   "impureFin"
   SNat
   (Extralogical $ liftFunctionME impureFinForeign)
@@ -230,7 +230,7 @@ impureEvenForeign = pure . even
 
 impureEvenPred :: Predicate 1 'ABase
 impureEvenPred = Predicate
-  (PredABase dummySpan)
+  (PredABase NoSpan)
   "impureEven"
   SNat
   (Extralogical $ liftPredicateME impureEvenForeign)
@@ -239,15 +239,15 @@ impureEven :: Term -> Literal 'ABase
 impureEven t = lit impureEvenPred $ fromJust $ V.fromList [ t ]
 
 impurePred :: Predicate 1 'ABase
-impurePred = Predicate (PredABase dummySpan) "impure" SNat Logical
+impurePred = Predicate (PredABase NoSpan) "impure" SNat Logical
 
 impure :: Term -> Literal 'ABase
 impure t = lit impurePred $ fromJust $ V.fromList [ t ]
 
 programImpure :: Program 'ABase
-programImpure = Program (ProgABase dummySpan)
+programImpure = Program (ProgABase NoSpan)
   (Stratum <$>
-    [ [ Clause (ClABase dummySpan) (impure (tvar "Y")) $ NE.fromList
+    [ [ Clause (ClABase NoSpan) (impure (tvar "Y")) $ NE.fromList
         [ impureFin  (tsym (10 :: Int)) (tvar "X")
         , impureEven (tvar "X")
         , impureID   (tvar "X") (tvar "Y")]

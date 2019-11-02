@@ -7,8 +7,8 @@
 
 module Language.Exalog.SrcLoc
   ( SrcLoc(..)
+  , InputSource(..)
   , SrcSpan(..)
-  , dummySpan
   , transSpan
   , listSpan
   , prettySpan
@@ -25,31 +25,30 @@ import Language.Exalog.Pretty.Helper
 
 data SrcLoc =
     SrcLoc
-      { _file :: !FilePath
-      , _line :: !Int
+      { _line :: !Int
       , _col  :: !Int
       }
-  | SrcDummy
   deriving (Eq, Ord, Show)
 
-data SrcSpan = SrcSpan SrcLoc SrcLoc deriving (Eq, Ord, Show)
+data InputSource = File !FilePath | Stdin | None deriving (Eq, Ord, Show)
 
-dummySpan :: SrcSpan
-dummySpan = SrcSpan SrcDummy SrcDummy
+data SrcSpan =
+    Span !InputSource !SrcLoc !SrcLoc
+  | NoSpan
+  deriving (Eq, Ord, Show)
 
 isBefore :: SrcLoc -> SrcLoc -> Bool
 isBefore loc@SrcLoc{} loc'@SrcLoc{} =
-  _file loc == _file loc' && -- In the same file
-  ( _line loc < _line loc' || -- line number of loc precedes loc'
-    ( _line loc == _line loc' &&
-      _col loc < _col loc')) -- or on the same line but loc at a preceding col.
-isBefore _ _ = False
+  _line loc < _line loc' ||
+  (_line loc == _line loc' && _col loc < _col loc')
 
 transSpan :: SrcSpan -> SrcSpan -> SrcSpan
-transSpan (SrcSpan loc1 loc2) (SrcSpan loc2' loc3) =
-  if loc2 `isBefore` loc2'
-    then SrcSpan loc1 loc3
-    else panic "The first span is not before the second."
+transSpan NoSpan sp   = sp
+transSpan sp   NoSpan = sp
+transSpan (Span file1 loc1 loc2) (Span file2 loc2' loc3)
+  | file1 /= file2 = panic "Trying to compute transitive span of two different files."
+  | loc2 `isBefore` loc2' = Span file1 loc1 loc3
+  | otherwise = panic "The first span is not before the second."
 
 listSpan :: [ SrcSpan ] -> SrcSpan
 listSpan = foldr transSpan
@@ -77,18 +76,17 @@ instance Spannable Void where
   span = absurd
 
 prettySpan :: Text -> SrcSpan -> Doc
-prettySpan src (SrcSpan loc1 loc2)
-  | loc1 == SrcDummy || loc2 == SrcDummy = mempty
-  | otherwise = vcat
-    [ "Context:"
-    , vcat $ map (uncurry contextLine) contextLines
-    , if nOfLines == 1
-        then hcat
-           $ replicate 6 " "               -- ^ Line number gap
-          ++ replicate (_col loc1 - 1) " " -- ^ Up to the beginning of the error
-          ++ replicate nOfCols "^"         -- ^ Highlight
-        else mempty
-    ]
+prettySpan _ NoSpan = mempty
+prettySpan src (Span _ loc1 loc2) = vcat
+  [ "Context:"
+  , vcat $ map (uncurry contextLine) contextLines
+  , if nOfLines == 1
+      then hcat
+         $ replicate 6 " "               -- ^ Line number gap
+        ++ replicate (_col loc1 - 1) " " -- ^ Up to the beginning of the error
+        ++ replicate nOfCols "^"         -- ^ Highlight
+      else mempty
+  ]
   where
   contents = zip [(1 :: Int)..] . lines $ src
   contextLines = take nOfLines $ drop (_line loc1 - 1) contents
@@ -104,14 +102,19 @@ prettySpan src (SrcSpan loc1 loc2)
 --------------------------------------------------------------------------------
 
 instance Pretty SrcLoc where
-  pretty SrcLoc{..} = int _line <> colon <> int _col <> " in " <> text _file
-  pretty SrcDummy   = empty
+  pretty SrcLoc{..} = int _line <> colon <> int _col
 
 -- |This is really ought to be better.
 instance Pretty SrcSpan where
-  pretty (SrcSpan loc1 loc2) =
-    "From " <> pretty loc1 $+$ nest 2 ("to " <?> pretty loc2 <> colon)
+  pretty (Span file loc1 loc2) =
+    (pretty file <?> colon) <+> pretty loc1 <> "-" <> pretty loc2
+  pretty NoSpan = mempty
 
 instance Pretty (Maybe SrcSpan) where
   pretty Nothing  = empty
   pretty (Just s) = pretty s
+
+instance Pretty InputSource where
+  pretty (File file) = text file
+  pretty Stdin       = "STDIN"
+  pretty None        = mempty

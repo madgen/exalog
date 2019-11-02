@@ -18,15 +18,15 @@ import           Data.Singletons.TypeLits
 import           Language.Exalog.Core
 import qualified Language.Exalog.Tuples as T
 import           Language.Exalog.Relation
-import           Language.Exalog.SrcLoc (dummySpan)
+import           Language.Exalog.SrcLoc (SrcSpan(NoSpan))
 
 import Fixture.Util
 
 pPred :: Predicate 1 'ABase
-pPred = Predicate (PredABase dummySpan) "p" SNat Logical
+pPred = Predicate (PredABase NoSpan) "p" SNat Logical
 
 qPred :: Predicate 2 'ABase
-qPred = Predicate (PredABase dummySpan) "q" SNat Logical
+qPred = Predicate (PredABase NoSpan) "q" SNat Logical
 
 p :: Term -> Literal 'ABase
 p t = lit pPred $ fromJust $ V.fromList [ t ]
@@ -39,9 +39,9 @@ q t t' = lit qPred $ fromJust $ V.fromList [ t, t' ]
 - p(X) :- q(X,X).
 |-}
 program :: Program 'ABase
-program = Program (ProgABase dummySpan)
+program = Program (ProgABase NoSpan)
   ( Stratum <$>
-    [ [ Clause (ClABase dummySpan) (p (tvar "X")) $ NE.fromList [ q (tvar "X") (tvar "X") ]
+    [ [ Clause (ClABase NoSpan) (p (tvar "X")) $ NE.fromList [ q (tvar "X") (tvar "X") ]
       ]
     ])
   [ PredicateBox pPred ]

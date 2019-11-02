@@ -20,8 +20,8 @@ import           Language.Exalog.SrcLoc
 import Fixture.Util
 
 cPred, rPred :: Predicate 2 'ABase
-cPred = Predicate (PredABase dummySpan) "c" SNat Logical
-rPred = Predicate (PredABase dummySpan) "r" SNat Logical
+cPred = Predicate (PredABase NoSpan) "c" SNat Logical
+rPred = Predicate (PredABase NoSpan) "r" SNat Logical
 
 c, r :: Term -> Term -> Literal 'ABase
 c t t' = lit cPred $ fromJust $ V.fromList [ t, t' ]
@@ -31,9 +31,9 @@ r t t' = lit rPred $ fromJust $ V.fromList [ t, t' ]
 - r(X,Y) :- c(X,Y).
 -}
 programGood :: Program 'ABase
-programGood = Program (ProgABase dummySpan)
+programGood = Program (ProgABase NoSpan)
   (Stratum <$>
-    [ [ Clause (ClABase dummySpan) (r  (tvar "X") (tvar "Y")) $
+    [ [ Clause (ClABase NoSpan) (r  (tvar "X") (tvar "Y")) $
           NE.fromList [ c (tvar "X") (tvar "Y") ]
       ]
     ])
@@ -43,9 +43,9 @@ programGood = Program (ProgABase dummySpan)
 - r(X,Y) :- c(X,X).
 -}
 programBad1 :: Program 'ABase
-programBad1 = Program (ProgABase dummySpan)
+programBad1 = Program (ProgABase NoSpan)
   (Stratum <$>
-    [ [ Clause (ClABase dummySpan) (r  (tvar "X") (tvar "Y")) $
+    [ [ Clause (ClABase NoSpan) (r  (tvar "X") (tvar "Y")) $
           NE.fromList [ c (tvar "X") (tvar "X") ]
       ]
     ])
@@ -55,9 +55,9 @@ programBad1 = Program (ProgABase dummySpan)
 - r(X,Y) :- c("a","b").
 -}
 programBad2 :: Program 'ABase
-programBad2 = Program (ProgABase dummySpan)
+programBad2 = Program (ProgABase NoSpan)
   (Stratum <$>
-    [ [ Clause (ClABase dummySpan) (r  (tvar "X") (tvar "Y")) $
+    [ [ Clause (ClABase NoSpan) (r  (tvar "X") (tvar "Y")) $
           NE.fromList [ c (tsym ("a" :: Text)) (tsym ("b" :: Text)) ]
       ]
     ])

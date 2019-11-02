@@ -23,9 +23,9 @@ import           Language.Exalog.SrcLoc
 import Fixture.Util
 
 cPred, rPred, rPred' :: Predicate 1 'ABase
-cPred = Predicate (PredABase dummySpan) "c" SNat Logical
-rPred = Predicate (PredABase dummySpan) "r" SNat Logical
-rPred' = Predicate (PredABase (SrcSpan (SrcLoc "" 1 2) (SrcLoc "" 2 3))) "r" SNat Logical
+cPred = Predicate (PredABase NoSpan) "c" SNat Logical
+rPred = Predicate (PredABase NoSpan) "r" SNat Logical
+rPred' = Predicate (PredABase (Span None (SrcLoc 1 2) (SrcLoc 2 3))) "r" SNat Logical
 
 c,r,r' :: Term -> Literal 'ABase
 c  t = lit cPred  $ fromJust $ V.fromList [ t ]
@@ -37,10 +37,10 @@ r' t = lit rPred' $ fromJust $ V.fromList [ t ]
 - r("b") :- c("2").
 -}
 program :: Program 'ABase
-program = Program (ProgABase dummySpan)
+program = Program (ProgABase NoSpan)
   (Stratum <$>
-    [ [ Clause (ClABase dummySpan) (r  (tsym ("a" :: Text))) $ NE.fromList [ c (tsym ("1" :: Text)) ]
-      , Clause (ClABase dummySpan) (r' (tsym ("b" :: Text))) $ NE.fromList [ c (tsym ("2" :: Text)) ]
+    [ [ Clause (ClABase NoSpan) (r  (tsym ("a" :: Text))) $ NE.fromList [ c (tsym ("1" :: Text)) ]
+      , Clause (ClABase NoSpan) (r' (tsym ("b" :: Text))) $ NE.fromList [ c (tsym ("2" :: Text)) ]
       ]
     ])
   [ PredicateBox rPred ]

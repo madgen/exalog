@@ -17,11 +17,11 @@ import           Language.Exalog.Renamer
 import Fixture.Util hiding (lit)
 
 pred :: Int -> PredicateSymbol -> SNat n -> Nature n -> Predicate n ('ARename 'ABase)
-pred id = Predicate (PredARename (PredicateID id) $ PredABase dummySpan)
+pred id = Predicate (PredARename (PredicateID id) $ PredABase NoSpan)
 lit :: Int -> Polarity -> Predicate n ('ARename 'ABase) -> V.Vector n Term -> Literal ('ARename 'ABase)
-lit  id = Literal   (LitARename  (LiteralID   id) $ LitABase  dummySpan)
+lit  id = Literal   (LitARename  (LiteralID   id) $ LitABase  NoSpan)
 cl :: Int -> Head ('ARename 'ABase) -> Body ('ARename 'ABase) -> Clause ('ARename 'ABase)
-cl   id = Clause    (ClARename   (ClauseID    id) $ ClABase   dummySpan)
+cl   id = Clause    (ClARename   (ClauseID    id) $ ClABase   NoSpan)
 
 pPred, qPred, sPred, aPred :: Predicate 1 ('ARename 'ABase)
 pPred = pred 0 "p" SNat Logical
@@ -59,7 +59,7 @@ flowSinkR = FSinkLiteral (r 98 (tvar "X") (tvar "X")) 0
 - query() :- p(1).
 |-}
 prConst :: Program ('ARename 'ABase)
-prConst = Program (ProgARename $ ProgABase dummySpan)
+prConst = Program (ProgARename $ ProgABase NoSpan)
   (Stratum <$>
     [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
       , cl 200 (query 30)        $ NE.fromList [ p 40 (tsym (1 :: Int)) ]
@@ -80,7 +80,7 @@ flowSourcesConst = Just [ FSourceConstant (CSym (symbol (1 :: Int))) ]
 - s(X) :- p(X).
 |-}
 prDeadPath :: Program ('ARename 'ABase)
-prDeadPath = Program (ProgARename $ ProgABase dummySpan)
+prDeadPath = Program (ProgARename $ ProgABase NoSpan)
   (Stratum <$>
     [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
       , cl 200 (query 30)        $ NE.fromList [ p 40 (tsym (1 :: Int)) ]
@@ -112,7 +112,7 @@ flowSourcesExposed = Nothing
 - query() :- p(_).
 |-}
 prWild :: Program ('ARename 'ABase)
-prWild = Program (ProgARename $ ProgABase dummySpan)
+prWild = Program (ProgARename $ ProgABase NoSpan)
   (Stratum <$>
     [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
       , cl 200 (query 30)        $ NE.fromList [ p 40 TWild ]
@@ -129,7 +129,7 @@ flowSourcesWild = Just [ FSourceConstant CWild ]
 - query() :- p(X).
 |-}
 prSingleOpen :: Program ('ARename 'ABase)
-prSingleOpen = Program (ProgARename $ ProgABase dummySpan)
+prSingleOpen = Program (ProgARename $ ProgABase NoSpan)
   (Stratum <$>
     [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
       , cl 200 (query 30)        $ NE.fromList [ p 40 (tvar "X") ]
@@ -147,7 +147,7 @@ flowSourcesSingleOpen = Nothing
 - query() :- p(1).
 |-}
 prMultipleClosed :: Program ('ARename 'ABase)
-prMultipleClosed = Program (ProgARename $ ProgABase dummySpan)
+prMultipleClosed = Program (ProgARename $ ProgABase NoSpan)
   (Stratum <$>
     [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
       , cl 200 (query 30) $ NE.fromList [ a 40 (tvar "X"), p 50 (tvar "X") ]
@@ -169,7 +169,7 @@ flowSourcesMultipleClosed = Just
 - query() :- p(X).
 |-}
 prHalfOpen :: Program ('ARename 'ABase)
-prHalfOpen = Program (ProgARename $ ProgABase dummySpan)
+prHalfOpen = Program (ProgARename $ ProgABase NoSpan)
   (Stratum <$>
     [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
       , cl 200 (query 30) $ NE.fromList [ a 40 (tvar "X"), p 50 (tvar "X") ]
@@ -187,7 +187,7 @@ flowSourcesHalfOpen = Nothing
 - query() :- a(X), r(X,1).
 |-}
 prAliasHeadClosed :: Program ('ARename 'ABase)
-prAliasHeadClosed = Program (ProgARename $ ProgABase dummySpan)
+prAliasHeadClosed = Program (ProgARename $ ProgABase NoSpan)
   (Stratum <$>
     [ [ cl 100 (r 10 (tvar "X") (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
       , cl 200 (query 30) $ NE.fromList [ a 40 (tvar "X"), r 50 (tvar "X") (tsym (1 :: Int)) ]
@@ -207,7 +207,7 @@ flowSourcesAliasHeadClosed = Just
 - query() :- r(X,1).
 |-}
 prAliasHeadOpen :: Program ('ARename 'ABase)
-prAliasHeadOpen = Program (ProgARename $ ProgABase dummySpan)
+prAliasHeadOpen = Program (ProgARename $ ProgABase NoSpan)
   (Stratum <$>
     [ [ cl 100 (r 10 (tvar "X") (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
       , cl 200 (query 30) $ NE.fromList [ r 40 (tvar "X") (tsym (1 :: Int)) ]
@@ -223,7 +223,7 @@ flowSourcesAliasHeadOpen = Nothing
 - query() :- a(X), r(X,X).
 |-}
 prAliasBody :: Program ('ARename 'ABase)
-prAliasBody = Program (ProgARename $ ProgABase dummySpan)
+prAliasBody = Program (ProgARename $ ProgABase NoSpan)
   (Stratum <$>
     [ [ cl 100 (query 10) $ NE.fromList [ a 20 (tvar "X"), r 98 (tvar "X") (tvar "X") ]
       ]
@@ -240,7 +240,7 @@ flowSourcesAliasBody = Just [ FSourceLiteral (a 20 (tvar "X")) 0 ]
 - query() :- p(1), s(2).
 |-}
 prIndirection :: Program ('ARename 'ABase)
-prIndirection = Program (ProgARename $ ProgABase dummySpan)
+prIndirection = Program (ProgARename $ ProgABase NoSpan)
   (Stratum <$>
     [ [ cl 100 (s 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
       , cl 200 (p 30 (tvar "X")) $ NE.fromList [ s 40 (tvar "X") ]
@@ -262,7 +262,7 @@ flowSourcesIndirection = Just
 - query() :- p(1).
 |-}
 prRecClosed :: Program ('ARename 'ABase)
-prRecClosed = Program (ProgARename $ ProgABase dummySpan)
+prRecClosed = Program (ProgARename $ ProgABase NoSpan)
   (Stratum <$>
     [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
       , cl 200 (p 30 (tsym (1 :: Int))) $ NE.fromList [ a 40 (tvar "Y"), p 50 (tvar "Y") ]
@@ -284,7 +284,7 @@ flowSourcesRecClosed = Just
 - query() :- p(1).
 |-}
 prRecClosedIndiff :: Program ('ARename 'ABase)
-prRecClosedIndiff = Program (ProgARename $ ProgABase dummySpan)
+prRecClosedIndiff = Program (ProgARename $ ProgABase NoSpan)
   (Stratum <$>
     [ [ cl 100 (p 10 (tvar "X")) $ NE.fromList [ q 99 (tvar "X") ]
       , cl 200 (p 30 (tvar "X")) $ NE.fromList [ p 40 (tvar "X") ]

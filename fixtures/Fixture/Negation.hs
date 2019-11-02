@@ -12,17 +12,17 @@ import           Data.Singletons.TypeLits
 import           Language.Exalog.Core
 import qualified Language.Exalog.Tuples as T
 import           Language.Exalog.Relation
-import           Language.Exalog.SrcLoc (dummySpan)
+import           Language.Exalog.SrcLoc (SrcSpan(NoSpan))
 
 import Fixture.Util
 
 rPred, tPred, tcPred :: Predicate 2 'ABase
-rPred = Predicate  (PredABase dummySpan) "r" SNat Logical
-tPred = Predicate  (PredABase dummySpan) "t" SNat Logical
-tcPred = Predicate (PredABase dummySpan) "tc" SNat Logical
+rPred = Predicate  (PredABase NoSpan) "r" SNat Logical
+tPred = Predicate  (PredABase NoSpan) "t" SNat Logical
+tcPred = Predicate (PredABase NoSpan) "tc" SNat Logical
 
 vPred :: Predicate 1 'ABase
-vPred = Predicate (PredABase dummySpan) "v" SNat Logical
+vPred = Predicate (PredABase NoSpan) "v" SNat Logical
 
 r, t, tc :: Term -> Term -> Literal 'ABase
 r  term term' = lit rPred $ fromJust  $ V.fromList [ term, term' ]
@@ -41,15 +41,15 @@ v term = lit vPred $ fromJust $ V.fromList [ term ]
 - tc(x,y):- v(x), v(y), not t(x,y).
 -}
 program :: Program 'ABase
-program = Program (ProgABase dummySpan)
+program = Program (ProgABase NoSpan)
   (Stratum <$>
-    [ [ Clause (ClABase dummySpan) (v (tvar "X")) $ NE.fromList [ r (tvar "X") (tvar "Y") ]
-      , Clause (ClABase dummySpan) (v (tvar "Y")) $ NE.fromList [ r (tvar "X") (tvar "Y") ]
-      , Clause (ClABase dummySpan) (t (tvar "X") (tvar "Y")) $ NE.fromList
+    [ [ Clause (ClABase NoSpan) (v (tvar "X")) $ NE.fromList [ r (tvar "X") (tvar "Y") ]
+      , Clause (ClABase NoSpan) (v (tvar "Y")) $ NE.fromList [ r (tvar "X") (tvar "Y") ]
+      , Clause (ClABase NoSpan) (t (tvar "X") (tvar "Y")) $ NE.fromList
           [ r (tvar "X") (tvar "Y") ]
-      , Clause (ClABase dummySpan) (t (tvar "X") (tvar "Y")) $ NE.fromList
+      , Clause (ClABase NoSpan) (t (tvar "X") (tvar "Y")) $ NE.fromList
           [ t (tvar "X") (tvar "Z"), r (tvar "Z") (tvar "Y") ]
-      , Clause (ClABase dummySpan) (tc (tvar "X") (tvar "Y")) $ NE.fromList
+      , Clause (ClABase NoSpan) (tc (tvar "X") (tvar "Y")) $ NE.fromList
           [ v (tvar "X"), v (tvar "Y"), not $ t (tvar "X") (tvar "Y") ]
       ] ])
   [ PredicateBox rPred

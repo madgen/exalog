@@ -24,11 +24,11 @@ import Fixture.Util
 - anc(X,Y) :- par(X,Y).
 |-}
 program :: Program 'ABase
-program = Program (ProgABase dummySpan)
+program = Program (ProgABase NoSpan)
   (Stratum <$>
-    [ [ Clause (ClABase dummySpan) (anc (tvar "X") (tvar "Z")) $ NE.fromList
+    [ [ Clause (ClABase NoSpan) (anc (tvar "X") (tvar "Z")) $ NE.fromList
           [ par (tvar "X") (tvar "Y"), anc (tvar "Y") (tvar "Z") ]
-      , Clause (ClABase dummySpan) (anc (tvar "X") (tvar "Y")) $ NE.fromList
+      , Clause (ClABase NoSpan) (anc (tvar "X") (tvar "Y")) $ NE.fromList
           [ par (tvar "X") (tvar "Y") ]
       ]
     ])
@@ -40,7 +40,7 @@ program = Program (ProgABase dummySpan)
 |-}
 deltaStratum :: Stratum ('ADelta 'ABase)
 deltaStratum = Stratum
-  [ Clause (decorA (ClABase dummySpan)) (mkDeltaLiteral Delta $ anc (tvar "X") (tvar "Z"))
+  [ Clause (decorA (ClABase NoSpan)) (mkDeltaLiteral Delta $ anc (tvar "X") (tvar "Z"))
       $ NE.fromList
         [ mkDeltaLiteral Constant $ par (tvar "X") (tvar "Y")
         , mkDeltaLiteral Delta $ anc (tvar "Y") (tvar "Z") ]
@@ -54,23 +54,23 @@ deltaStratum = Stratum
 - anc_bf(X,Y) :- par_bf(X,Y).
 |-}
 adornedProgram :: Program ('AAdornment 'ABase)
-adornedProgram = Program (decorA (ProgABase dummySpan))
+adornedProgram = Program (decorA (ProgABase NoSpan))
   (Stratum <$>
-    [ [ Clause (decorA (ClABase dummySpan))
+    [ [ Clause (decorA (ClABase NoSpan))
           (adornLiteral [ Free, Free ] $ anc (tvar "X") (tvar "Z"))
           $ NE.fromList
             [ adornLiteral [ Free, Free ] $ par (tvar "X") (tvar "Y")
             , adornLiteral [ Bound, Free ] $ anc (tvar "Y") (tvar "Z") ]
-      , Clause (decorA (ClABase dummySpan))
+      , Clause (decorA (ClABase NoSpan))
           (adornLiteral [ Bound, Free ] $ anc (tvar "X") (tvar "Z"))
           $ NE.fromList
             [ adornLiteral [ Bound, Free ] $ par (tvar "X") (tvar "Y")
             , adornLiteral [ Bound, Free ] $ anc (tvar "Y") (tvar "Z") ]
-      , Clause (decorA (ClABase dummySpan))
+      , Clause (decorA (ClABase NoSpan))
           (adornLiteral [ Free, Free ] $ anc (tvar "X") (tvar "Y"))
           $ NE.fromList
             [ adornLiteral [ Free, Free ] $ par (tvar "X") (tvar "Y") ]
-      , Clause (decorA (ClABase dummySpan))
+      , Clause (decorA (ClABase NoSpan))
           (adornLiteral [ Bound, Free ] $ anc (tvar "X") (tvar "Y"))
           $ NE.fromList
             [ adornLiteral [ Bound, Free ] $ par (tvar "X") (tvar "Y") ]

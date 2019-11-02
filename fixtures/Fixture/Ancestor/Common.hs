@@ -23,7 +23,7 @@ par :: Term -> Term -> Literal 'ABase
 par t t' = lit parPred $ fromJust $ V.fromList [ t, t' ]
 
 parPred :: Predicate 2 'ABase
-parPred = Predicate (PredABase dummySpan) "par" SNat Logical
+parPred = Predicate (PredABase NoSpan) "par" SNat Logical
 
 ancPred :: Predicate 2 'ABase
-ancPred = Predicate (PredABase dummySpan) "anc" SNat Logical
+ancPred = Predicate (PredABase NoSpan) "anc" SNat Logical
