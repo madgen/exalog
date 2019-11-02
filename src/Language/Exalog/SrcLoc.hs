@@ -11,7 +11,7 @@ module Language.Exalog.SrcLoc
   , dummySpan
   , transSpan
   , listSpan
-  , printSpan
+  , prettySpan
   , Spannable(..)
   ) where
 
@@ -76,32 +76,28 @@ instance {-# OVERLAPPING #-} Spannable a => Spannable [ a ] where
 instance Spannable Void where
   span = absurd
 
-printSpan :: MonadIO m => SrcSpan -> m ()
-printSpan (SrcSpan loc1 loc2)
-  | loc1 == SrcDummy || loc2 == SrcDummy = pure ()
-  | otherwise = liftIO $ do
-    putStrLn . render . nest 2 $ "Context:"
-    if _file loc1 == _file loc2
-      then do
-        contents <- zip [(1 :: Int)..] . lines <$> readFile (_file loc1)
-        let contextLines = take nOfLines $ drop (_line loc1 - 1) contents
-
-        traverse_
-          (putStrLn . render . nest 2 .
-            (\(i,l) -> (justifyLeft' 6 . pack . show $ i) <> (text . unpack) l))
-          contextLines
-
-        when (nOfLines == 1) $
-          putStrLn . render . nest 2 $
-            justifyLeft' 6 " " <> hcat (replicate (_col loc1 - 1) " ") <>
-            hcat (replicate nOfCols "^")
-      else putStrLn $ render . nest 2 $
-        "The error occurred across multiple files. I can't print the context."
+prettySpan :: Text -> SrcSpan -> Doc
+prettySpan src (SrcSpan loc1 loc2)
+  | loc1 == SrcDummy || loc2 == SrcDummy = mempty
+  | otherwise = vcat
+    [ "Context:"
+    , vcat $ map (uncurry contextLine) contextLines
+    , if nOfLines == 1
+        then hcat
+           $ replicate 6 " "               -- ^ Line number gap
+          ++ replicate (_col loc1 - 1) " " -- ^ Up to the beginning of the error
+          ++ replicate nOfCols "^"         -- ^ Highlight
+        else mempty
+    ]
   where
+  contents = zip [(1 :: Int)..] . lines $ src
+  contextLines = take nOfLines $ drop (_line loc1 - 1) contents
+
+  contextLine ix line =
+    (text . unpack . justifyLeft 6 ' ' . pack . show) ix <> (text . unpack) line
+
   nOfLines = _line loc2 - _line loc1 + 1
   nOfCols  = _col  loc2 - _col  loc1 + 1
-
-  justifyLeft' n = text . unpack . justifyLeft n ' '
 
 --------------------------------------------------------------------------------
 -- Pretty instances

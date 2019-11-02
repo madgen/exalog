@@ -9,45 +9,54 @@ module Language.Exalog.Logger
   , whisper
   , scold
   , scream
-  , Error
-  , Severity(..)
+  , Err.Error
+  , Err.Severity(..)
   ) where
 
 import Protolude hiding (log)
 
-import qualified Data.ByteString.Lazy.Char8 as BS
-
+import Control.Monad.Trans.Class (MonadTrans(..))
 import Control.Monad.Trans.Maybe (MaybeT(..), runMaybeT)
 
-import Language.Exalog.Error (Error(..), Severity(..), printError)
-import Language.Exalog.SrcLoc (SrcSpan)
+import           Language.Exalog.Pretty (pp)
+import qualified Language.Exalog.Error as Err
+import           Language.Exalog.SrcLoc (SrcSpan)
 
 newtype LoggerEnv = LoggerEnv
-  { _sourceCode :: Maybe BS.ByteString
+  { -- |Optional because test cases don't have source code
+    _mSource :: Maybe Text
   }
 
 vanillaEnv :: LoggerEnv
 vanillaEnv = LoggerEnv
-  { _sourceCode = Nothing
+  { _mSource = Nothing
   }
 
 newtype LoggerT m a = LoggerT (ReaderT LoggerEnv (MaybeT m) a)
-  deriving (Functor, Applicative, Monad, MonadIO)
-type    Logger      = LoggerT IO
+  deriving (Functor, Applicative, Monad, MonadIO, MonadReader LoggerEnv)
+type Logger = LoggerT IO
+
+instance MonadTrans LoggerT where
+  lift m = LoggerT (lift (lift m))
 
 runLoggerT :: Monad m => LoggerEnv -> LoggerT m a -> m (Maybe a)
 runLoggerT env (LoggerT act) = runMaybeT (runReaderT act env)
 
 whisper :: MonadIO m => Maybe SrcSpan -> Text -> LoggerT m ()
-whisper mSpan msg =
-  liftIO . printError $ Error Warning mSpan msg
+whisper = common Err.Warning
 
 scold :: MonadIO m => Maybe SrcSpan -> Text -> LoggerT m a
 scold mSpan msg = do
-  liftIO . printError $ Error User mSpan msg
+  common Err.User mSpan msg
   LoggerT (lift $ MaybeT (pure Nothing))
 
 scream :: MonadIO m => Maybe SrcSpan -> Text -> LoggerT m a
 scream mSpan msg = do
-  liftIO . printError $ Error Impossible mSpan msg
+  common Err.Impossible mSpan msg
   LoggerT (lift $ MaybeT (pure Nothing))
+
+common :: MonadIO m => Err.Severity -> Maybe SrcSpan -> Text -> LoggerT m ()
+common severity mSpan msg = do
+  mSrc <- _mSource <$> ask
+  let renderedErr = pp $ Err.Error severity mSrc mSpan msg
+  liftIO $ putStrLn renderedErr

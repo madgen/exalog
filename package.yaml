@@ -29,7 +29,6 @@ ghc-options:
 dependencies:
 - base >= 4.7 && < 5
 - bimap >= 0.4 && < 0.5
-- bytestring >= 0.10 && < 0.11
 - containers >= 0.6 && < 0.7
 - comonad >= 5.0 && < 5.1
 - fgl >= 5.7 && < 5.8
