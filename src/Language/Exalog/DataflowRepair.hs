@@ -51,7 +51,7 @@ fixDataflow violationFinder errMsg (pr@Program{..}, sol)
             , ..}
          , mconcat (R.rename peel sol : guardSols)
          )
-  | otherwise = scream Nothing
+  | otherwise = scream NoSpan
     "Dataflow repair can only be performed prior to stratification."
 
 fixDataflowClause :: (Clause ('ARename 'ABase) -> Repair [ (FlowSink 'ABase, Var) ])
@@ -66,7 +66,7 @@ fixDataflowClause violationFinder errMsg cl@Clause{..} = do
     fmap (unzip3 . catMaybes) $ forM repairResults $ \case
       Guard gLit gCls gSol -> pure $ Just (gLit, gCls, gSol)
       DeadDataPath         -> pure Nothing
-      NotFixable           -> lift $ lift $ scold (Just $ span _head) errMsg
+      NotFixable           -> lift $ lift $ scold (span _head) errMsg
 
   pure ( Clause
           { _annotation = peelA _annotation

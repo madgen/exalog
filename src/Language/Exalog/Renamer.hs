@@ -136,7 +136,7 @@ renamePredicate pred@Predicate{..} = do
   case PredicateBox pred `S.lookupIndex` preds of
     Just ix -> pure $
       Predicate{_annotation = PredARename (PredicateID ix) _annotation,..}
-    Nothing -> lift $ lift $ scream (Just $ span pred)
+    Nothing -> lift $ lift $ scream (span pred)
       "Impossible happened! Renamed predicate is not a predicate of the program."
 
 mkPredicateMap :: IdentifiableAnn (PredicateAnn ann) a

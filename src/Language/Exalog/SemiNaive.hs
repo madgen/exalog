@@ -116,8 +116,8 @@ evalClause cl@Clause{..} = deriveHead =<< foldM walkBody [ U.empty ] _body
   extractHeadTuple :: V.Vector n Term -> Logger (V.Vector n Sym)
   extractHeadTuple = traverse (\case
     TSym sym -> pure sym
-    TVar{}   -> scream (Just $ span cl) "Range-restriction is violated"
-    TWild    -> scream (Just $ span cl) "Head contains a wildcard")
+    TVar{}   -> scream (span cl) "Range-restriction is violated"
+    TWild    -> scream (span cl) "Head contains a wildcard")
 
 execLiteral :: (SpannableAST a, Identifiable (PredicateAnn a) b)
             => Literal a -> SemiNaive a [ U.Unifier ]
@@ -126,7 +126,7 @@ execLiteral lit@Literal{_predicate = p@Predicate{_nature = nature}, ..}
     eTuples <- liftIO $ runExceptT $ foreignAction _terms
     case eTuples of
       Right tuples -> return $ handleTuples _terms tuples
-      Left msg -> lift $ scold (Just (span lit)) $
+      Left msg -> lift $ scold (span lit) $
         "Fatal foreign function error: " <> msg
   | otherwise =
     handleTuples _terms . T.toList . R.findTuplesByPred p <$> ask

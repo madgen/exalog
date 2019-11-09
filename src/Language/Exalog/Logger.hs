@@ -42,20 +42,20 @@ instance MonadTrans LoggerT where
 runLoggerT :: Monad m => LoggerEnv -> LoggerT m a -> m (Maybe a)
 runLoggerT env (LoggerT act) = runMaybeT (runReaderT act env)
 
-whisper :: MonadIO m => Maybe SrcSpan -> Text -> LoggerT m ()
+whisper :: MonadIO m => SrcSpan -> Text -> LoggerT m ()
 whisper = common Err.Warning
 
-scold :: MonadIO m => Maybe SrcSpan -> Text -> LoggerT m a
+scold :: MonadIO m => SrcSpan -> Text -> LoggerT m a
 scold mSpan msg = do
   common Err.User mSpan msg
   LoggerT (lift $ MaybeT (pure Nothing))
 
-scream :: MonadIO m => Maybe SrcSpan -> Text -> LoggerT m a
+scream :: MonadIO m => SrcSpan -> Text -> LoggerT m a
 scream mSpan msg = do
   common Err.Impossible mSpan msg
   LoggerT (lift $ MaybeT (pure Nothing))
 
-common :: MonadIO m => Err.Severity -> Maybe SrcSpan -> Text -> LoggerT m ()
+common :: MonadIO m => Err.Severity -> SrcSpan -> Text -> LoggerT m ()
 common severity mSpan msg = do
   mSrc <- _mSource <$> ask
   let renderedErr = pp $ Err.Error severity mSrc mSpan msg

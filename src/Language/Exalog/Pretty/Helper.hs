@@ -4,6 +4,8 @@ module Language.Exalog.Pretty.Helper
   , PrettyCollection(..)
   , (<?>)
   , (<+?>)
+  , ($?$)
+  , ($+?$)
   , cond
   , csep
   ) where
@@ -39,6 +41,18 @@ d1 <?> d2
 d1 <+?> d2
   | isEmpty d1 || isEmpty d2 = empty
   | otherwise = d1 <+> d2
+
+-- | Same as `$$` but `empty` acts as an annihilator
+($?$) :: Doc -> Doc -> Doc
+d1 $?$ d2
+  | isEmpty d1 || isEmpty d2 = empty
+  | otherwise = d1 $$ d2
+
+-- | Same as `$+?$` but `empty` acts as an annihilator
+($+?$) :: Doc -> Doc -> Doc
+d1 $+?$ d2
+  | isEmpty d1 || isEmpty d2 = empty
+  | otherwise = d1 $+$ d2
 
 -- | Conditionally return the second argument
 cond :: Bool -> Doc -> Doc

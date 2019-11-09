@@ -48,7 +48,7 @@ instance SpannableAnn (ClauseAnn ann) => RangeRestriction (Program ann) where
 instance SpannableAnn (ClauseAnn ann) => RangeRestriction (Clause ann) where
   checkRangeRestriction cl =
     unless (isRangeRestricted cl) $
-      scold (Just $ span cl) "Range restriction is violated."
+      scold (span cl) "Range restriction is violated."
 
   isRangeRestricted Clause{..} =
     null $ variables _head \\ mconcat (variables <$> NE.toList _body)

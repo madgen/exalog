@@ -9,7 +9,7 @@ import Protolude hiding ((<>))
 
 import Text.PrettyPrint
 
-import Language.Exalog.Pretty.Helper (Pretty(..))
+import Language.Exalog.Pretty.Helper (Pretty(..), ($+?$))
 import Language.Exalog.SrcLoc (SrcSpan, prettySpan)
 
 data Severity =
@@ -24,7 +24,7 @@ data Severity =
 data Error = Error
   { _severity :: Severity
   , _mSource  :: Maybe Text
-  , _mSpan    :: Maybe SrcSpan
+  , _span     :: SrcSpan
   , _message  :: Text
   }
 
@@ -38,8 +38,8 @@ instance Pretty Error where
         brackets (pretty _severity) <> colon
     $+$ nest 2 prettyError
     where
-    prettyError = pretty _mSpan
+    prettyError = pretty _span
               $+$ pretty _message
               $+$ maybe mempty
-                        (("" $+$) . uncurry prettySpan)
-                        ((,) <$> _mSource <*> _mSpan)
+                        (("" $+?$) . (`prettySpan` _span))
+                        _mSource

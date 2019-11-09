@@ -17,6 +17,7 @@ import           Data.List (lookup)
 import           Data.Maybe (fromJust)
 
 import           Language.Exalog.Core
+import           Language.Exalog.SrcLoc (SrcSpan(NoSpan))
 import           Language.Exalog.Dependency
 import           Language.Exalog.Logger
 
@@ -30,7 +31,7 @@ stratify pr@Program{} = do
       let polarities = sccPolarities comp
       if Negative `elem` polarities
         then pure $
-          scold Nothing "Stratification failed due to cyclic use of negation."
+          scold NoSpan "Stratification failed due to cyclic use of negation."
         else do
           let cls = concatMap (search peeledPr) . findPreds depGrDict $ comp
           guard (not . null $ cls)

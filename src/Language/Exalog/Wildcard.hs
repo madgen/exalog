@@ -19,4 +19,4 @@ checkWildcards Program{..} =
 checkWildcardsInClause :: Spannable (Clause ann) => Clause ann -> Logger ()
 checkWildcardsInClause cl@Clause{_head = Literal{..}} =
   when (TWild `elem` _terms) $
-    scold (Just $ span cl) "Clause heads cannot have wildcards."
+    scold (span cl) "Clause heads cannot have wildcards."
