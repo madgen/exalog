@@ -26,7 +26,7 @@ deriving instance (IdentifiableAnn (PredicateAnn ann) id, Ord id) => Monoid (Set
 
 instance ( IdentifiableAnn (PredicateAnn ann) id
          , Ord id
-         ) => Knowledgable Identity Set ann where
+         ) => Knowledgeable Identity Set ann where
   fromList = pure . Set . S.fromList
 
   add x = pure . coerce . S.insert x . coerce

@@ -2,7 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Language.Exalog.KnowledgeBase.Class
-  ( Knowledgable(..)
+  ( Knowledgeable(..)
   ) where
 
 import Protolude
@@ -10,7 +10,7 @@ import Protolude
 import Language.Exalog.Annotation
 import Language.Exalog.KnowledgeBase.Knowledge
 
-class (Monad m, Monoid (sol a)) => Knowledgable m sol a where
+class (Monad m, Monoid (sol a)) => Knowledgeable m sol a where
   fromList :: [ Knowledge a ] -> m (sol a)
 
   add :: Knowledge a -> sol a -> m (sol a)
