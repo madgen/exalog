@@ -15,9 +15,10 @@ class (Monad m, Monoid (sol a)) => Knowledgable m sol a where
 
   add :: Knowledge a -> sol a -> m (sol a)
   filter :: (Knowledge a -> Bool) -> sol a -> m (sol a)
-  lookup :: IdentifiableAnn (PredicateAnn a) id => id -> sol a -> m (Knowledge a)
 
-  atEach :: (Knowledge a -> Knowledge a) -> sol a -> m (sol a)
+  atEach :: ( IdentifiableAnn (PredicateAnn b) id'
+            , Ord id'
+            ) => (Knowledge a -> Knowledge b) -> sol a -> m (sol b)
 
   empty :: m (sol a)
   singleton :: Knowledge a -> m (sol a)
