@@ -10,18 +10,18 @@ import Protolude
 import Language.Exalog.Annotation
 import Language.Exalog.KnowledgeBase.Knowledge
 
-class (Monad m, Monoid (sol a)) => Knowledgeable m sol a where
-  fromList :: [ Knowledge a ] -> m (sol a)
+class (Monoid (sol a)) => Knowledgeable sol a where
+  fromList :: [ Knowledge a ] -> sol a
 
-  add :: Knowledge a -> sol a -> m (sol a)
-  filter :: (Knowledge a -> Bool) -> sol a -> m (sol a)
+  add :: Knowledge a -> sol a -> sol a
+  filter :: (Knowledge a -> Bool) -> sol a -> sol a
 
   atEach :: ( IdentifiableAnn (PredicateAnn b) id'
             , Ord id'
-            ) => (Knowledge a -> Knowledge b) -> sol a -> m (sol b)
+            ) => (Knowledge a -> Knowledge b) -> sol a -> sol b
 
-  empty :: m (sol a)
-  singleton :: Knowledge a -> m (sol a)
+  empty :: sol a
+  singleton :: Knowledge a -> sol a
 
-  size :: sol a -> m Int
-  null :: sol a -> m Bool
+  size :: sol a -> Int
+  null :: sol a -> Bool

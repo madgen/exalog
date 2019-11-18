@@ -26,16 +26,16 @@ deriving instance (IdentifiableAnn (PredicateAnn ann) id, Ord id) => Monoid (Set
 
 instance ( IdentifiableAnn (PredicateAnn ann) id
          , Ord id
-         ) => Knowledgeable Identity Set ann where
-  fromList = pure . Set . S.fromList
+         ) => Knowledgeable Set ann where
+  fromList = Set . S.fromList
 
-  add x = pure . coerce . S.insert x . coerce
-  filter p = pure . coerce . S.filter p . coerce
+  add x = coerce . S.insert x . coerce
+  filter p = coerce . S.filter p . coerce
 
-  atEach f = pure . coerce . S.map f . coerce
+  atEach f = coerce . S.map f . coerce
 
-  empty = pure . coerce $ S.empty
-  singleton = pure . coerce . S.singleton
+  empty = coerce S.empty
+  singleton = coerce . S.singleton
 
-  size = pure . S.size . coerce
-  null = pure . S.null . coerce
+  size = S.size . coerce
+  null = S.null . coerce
