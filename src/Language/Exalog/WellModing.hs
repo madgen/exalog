@@ -20,8 +20,8 @@ import           Language.Exalog.Adornment
 import           Language.Exalog.Core
 import           Language.Exalog.Dataflow
 import           Language.Exalog.DataflowRepair
+import qualified Language.Exalog.KnowledgeBase.Class as KB
 import           Language.Exalog.Logger
-import qualified Language.Exalog.Relation as R
 import           Language.Exalog.SrcLoc (span)
 
 class WellModed ast where
@@ -67,8 +67,11 @@ instance SpannableAnn (LiteralAnn ann)
       (Free, TVar{}) -> False
       _              -> True
 
-fixModing :: (Program ('ARename 'ABase), R.Solution ('ARename 'ABase))
-          -> Logger (Program 'ABase, R.Solution 'ABase)
+fixModing :: KB.Knowledgeable kb 'ABase
+          => KB.Knowledgeable kb ('ARename 'ABase)
+          => Monoid (kb 'ABase)
+          => (Program ('ARename 'ABase), kb ('ARename 'ABase))
+          -> Logger (Program 'ABase, kb 'ABase)
 fixModing =
   fixDataflow modingViolations
               "Not well-moded and cannot be repaired due to its dataflow."

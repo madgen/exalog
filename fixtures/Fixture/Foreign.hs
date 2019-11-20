@@ -26,7 +26,7 @@ module Fixture.Foreign
   , impureTuples
   ) where
 
-import Protolude hiding (isPrefixOf)
+import Protolude hiding (isPrefixOf, Set)
 
 import           Data.Maybe (fromJust)
 import qualified Data.Text as Text
@@ -36,8 +36,9 @@ import           Data.Singletons.TypeLits
 
 import           Language.Exalog.Core
 import           Language.Exalog.ForeignFunction
-import qualified Language.Exalog.Tuples as T
-import           Language.Exalog.Relation
+import           Language.Exalog.KnowledgeBase.Class
+import           Language.Exalog.KnowledgeBase.Knowledge
+import           Language.Exalog.KnowledgeBase.Set
 import           Language.Exalog.SrcLoc
 
 import Fixture.Util
@@ -85,14 +86,11 @@ srcTuples :: [ V.Vector 1 Int ]
 srcTuples = fromJust . V.fromList <$>
   [ [ 10 ], [ 99 ], [ 100 ], [ 3000 ] ]
 
-srcRel :: Relation 'ABase
-srcRel = Relation srcPred . T.fromList $ fmap symbol <$> srcTuples
+initLeq100EDB :: Set 'ABase
+initLeq100EDB = fromList $ Knowledge srcPred . fmap symbol <$> srcTuples
 
-initLeq100EDB :: Solution 'ABase
-initLeq100EDB = fromList [ srcRel ]
-
-leq100Tuples :: T.Tuples 1
-leq100Tuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+leq100Tuples :: [ V.Vector 1 Sym ]
+leq100Tuples = fmap symbol . fromJust . V.fromList <$>
   ([ [ 10 ], [ 99 ] ] :: [ [ Int ] ])
 
 --------------------------------------------------------------------------------
@@ -141,14 +139,11 @@ src2Tuples = fromJust . V.fromList <$>
   ([ [ "" ], [ "Mis" ], [ "Andrew" ], [ "Mistral" ], [ "Mistral Contrastin" ] ]
   :: [ [ Text ] ])
 
-src2Rel :: Relation 'ABase
-src2Rel = Relation src2Pred . T.fromList $ fmap symbol <$> src2Tuples
+initPrefixOfEDB :: Set 'ABase
+initPrefixOfEDB = fromList $ Knowledge src2Pred . fmap symbol <$> src2Tuples
 
-initPrefixOfEDB :: Solution 'ABase
-initPrefixOfEDB = fromList [ src2Rel ]
-
-prefixOfTuples :: T.Tuples 2
-prefixOfTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+prefixOfTuples :: [ V.Vector 2 Sym ]
+prefixOfTuples = fmap symbol . fromJust . V.fromList <$>
   ([ [ "", "" ], [ "", "Mis" ], [ "", "Andrew" ], [ "", "Mistral" ], [ "", "Mistral Contrastin" ]
   , [ "Mis", "Mis" ], [ "Mis", "Mistral" ], [ "Mis", "Mistral Contrastin" ]
   , [ "Andrew", "Andrew" ]
@@ -188,11 +183,11 @@ programCartesian23 = Program (ProgABase NoSpan)
     ])
   [ PredicateBox cartesian23Pred ]
 
-initCartesian23EDB :: Solution 'ABase
+initCartesian23EDB :: Set 'ABase
 initCartesian23EDB = fromList [ ]
 
-cartesian23Tuples :: T.Tuples 2
-cartesian23Tuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+cartesian23Tuples :: [ V.Vector 2 Sym ]
+cartesian23Tuples = fmap symbol . fromJust . V.fromList <$>
   ([ [ 1, 1 ] , [ 1, 2 ], [ 1, 3] , [ 2, 1 ] , [ 2, 2 ], [ 2, 3 ] ] :: [ [ Int ] ])
 
 --------------------------------------------------------------------------------
@@ -255,9 +250,9 @@ programImpure = Program (ProgABase NoSpan)
     ])
   [ PredicateBox impurePred ]
 
-initImpureEDB :: Solution 'ABase
+initImpureEDB :: Set 'ABase
 initImpureEDB = fromList [ ]
 
-impureTuples :: T.Tuples 1
-impureTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+impureTuples :: [ V.Vector 1 Sym ]
+impureTuples = fmap symbol . fromJust . V.fromList <$>
   ([ [ 0 ], [ 2 ], [ 4 ], [ 6 ], [ 8 ], [ 10 ] ] :: [ [ Int ] ])

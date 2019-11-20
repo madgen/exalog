@@ -10,7 +10,7 @@ module Language.Exalog.Pretty
   ( pp
   ) where
 
-import Protolude hiding ((<>), empty, head)
+import Protolude hiding ((<>), empty, head, pred)
 
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Vector.Sized as V
@@ -18,6 +18,7 @@ import qualified Data.Vector.Sized as V
 import Text.PrettyPrint
 
 import           Language.Exalog.Core
+import qualified Language.Exalog.KnowledgeBase.Knowledge as KB
 import           Language.Exalog.Pretty.Helper
 import qualified Language.Exalog.Relation as R
 import qualified Language.Exalog.Tuples as T
@@ -98,6 +99,9 @@ instance Identifiable (PredicateAnn ann) b => Pretty (R.Relation ann) where
 
 instance Identifiable (PredicateAnn ann) b => Pretty (R.Solution ann) where
   pretty = vcat . prettyC . R.toList
+
+instance Identifiable (PredicateAnn ann) b => Pretty (KB.Knowledge ann) where
+  pretty (KB.Knowledge pred syms) = pretty pred <> (csep . prettyC) syms
 
 -- Common pretty instances
 

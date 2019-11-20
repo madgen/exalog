@@ -2,13 +2,14 @@
 
 module Fixture.Ancestor.EDB (initEDB, finalEDB) where
 
-import Protolude
+import Protolude hiding (Set)
 
 import           Data.Maybe (fromJust)
 import qualified Data.Vector.Sized as V
 
-import qualified Language.Exalog.Tuples as T
-import           Language.Exalog.Relation
+import qualified Language.Exalog.KnowledgeBase.Class as KB
+import           Language.Exalog.KnowledgeBase.Knowledge
+import           Language.Exalog.KnowledgeBase.Set
 import           Language.Exalog.Core
 
 import Fixture.Ancestor.Common
@@ -27,8 +28,8 @@ parentTuples = fromJust . V.fromList <$>
   , [ "Omer"        , "Orhan"   ]
   ]
 
-parentRel :: Relation 'ABase
-parentRel = Relation parPred . T.fromList $ fmap symbol <$> parentTuples
+parentKB :: Set 'ABase
+parentKB = KB.fromList $ Knowledge parPred . fmap symbol <$> parentTuples
 
 ancestorTuples :: [ V.Vector 2 Text ]
 ancestorTuples =
@@ -45,16 +46,11 @@ ancestorTuples =
   , [ "Omer"        , "Emir"    ]
   ]
 
-ancestorRel :: Relation 'ABase
-ancestorRel = Relation ancPred . T.fromList $ fmap symbol <$> ancestorTuples
+ancestorKB :: Set 'ABase
+ancestorKB = KB.fromList $ Knowledge ancPred . fmap symbol <$> ancestorTuples
 
-initEDB :: Solution 'ABase
-initEDB = fromList [ parentRel ]
+initEDB :: Set 'ABase
+initEDB = parentKB
 
-finalEDB :: Solution 'ABase
-finalEDB = fromList
-  -- Parent
-  [ parentRel
-  -- Ancestor
-  , ancestorRel
-  ]
+finalEDB :: Set 'ABase
+finalEDB = parentKB <> ancestorKB

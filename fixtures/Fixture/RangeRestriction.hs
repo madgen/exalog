@@ -10,10 +10,11 @@ import qualified Data.Vector.Sized as V
 import           Data.Singletons.TypeLits
 
 import           Language.Exalog.Core
-import           Language.Exalog.Relation
 import           Language.Exalog.Renamer
 import           Language.Exalog.SrcLoc
-import qualified Language.Exalog.Tuples as T
+import qualified Language.Exalog.KnowledgeBase.Class as KB
+import qualified Language.Exalog.KnowledgeBase.Knowledge as KB
+import qualified Language.Exalog.KnowledgeBase.Set as KB
 
 import Fixture.Util
 
@@ -86,8 +87,7 @@ prSimpleRepaired = Program (ProgABase NoSpan)
   [ PredicateBox queryPred ]
 
 guard0Tuples :: [ V.Vector 1 Int ]
-guard0Tuples = fromJust . V.fromList <$>
-  [ [ 1 ] ]
+guard0Tuples = fromJust . V.fromList <$> [ [ 1 ] ]
 
-guard0Rel :: Relation 'ABase
-guard0Rel = Relation guard0Pred . T.fromList $ fmap symbol <$> guard0Tuples
+guard0Rel :: KB.Set 'ABase
+guard0Rel = KB.fromList $ KB.Knowledge guard0Pred . fmap symbol <$> guard0Tuples

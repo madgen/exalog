@@ -15,10 +15,11 @@ import qualified Fixture.Negation as Neg
 import qualified Fixture.Dataflow as DF
 import           Fixture.Util
 
-import Language.Exalog.Core
-import Language.Exalog.Dataflow
-import Language.Exalog.Renamer
-import Language.Exalog.Logger
+import           Language.Exalog.Core
+import           Language.Exalog.Dataflow
+import           Language.Exalog.Renamer
+import qualified Language.Exalog.KnowledgeBase.Set as KB
+import           Language.Exalog.Logger
 
 edgeShouldExist :: (Show (f ann), Show (g ann), HasEdge f g ann)
                 => PositiveFlowGr ann -> (f ann, Int) -> (g ann, Int)
@@ -49,7 +50,10 @@ spec =
   describe "Dataflow" $
     describe "Positive" $ do
       let rrGr = analysePositiveFlow RR.prSimple
-      renamedNegPr <- fromJust <$> (runIO . runLoggerT vanillaEnv $ fst <$> rename (Neg.program,mempty))
+      renamedNegPr <- fromJust
+                 <$> (runIO . runLoggerT vanillaEnv
+                            $ fst
+                          <$> rename (Neg.program,mempty :: KB.Set 'ABase))
       let negGr = analysePositiveFlow renamedNegPr
       describe "Overall graph" $ do
         it "programSimple has expected edges" $ do

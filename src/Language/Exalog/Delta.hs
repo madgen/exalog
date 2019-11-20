@@ -24,13 +24,14 @@ module Language.Exalog.Delta
   , cleanDeltaSolution
   ) where
 
-import Protolude hiding (head)
+import Protolude hiding (head, pred)
 
 import           Control.Comonad (Comonad(..))
 
 import           Language.Exalog.Pretty.Helper (Pretty(..))
 import           Language.Exalog.Core
-import qualified Language.Exalog.Relation as R
+import qualified Language.Exalog.KnowledgeBase.Knowledge as KB
+import qualified Language.Exalog.KnowledgeBase.Class as KB
 import qualified Language.Exalog.Util.List.Zipper as LZ
 
 data Decor = Constant | Current | Delta | Prev deriving (Eq, Ord, Show)
@@ -90,8 +91,8 @@ updateDecor :: Decor -> Predicate n ('ADelta a) -> Predicate n ('ADelta a)
 updateDecor dec p@Predicate{_annotation = PredADelta _ prevAnn} =
   p {_annotation = PredADelta dec prevAnn}
 
-elimDecor :: Decor -> R.Solution ('ADelta a) -> R.Solution ('ADelta a)
-elimDecor d sol = (`R.filter` sol) $ \(R.Relation p _) -> decor p /= d
+elimDecor :: KB.Knowledgeable kb ('ADelta a) => Decor -> kb ('ADelta a) -> kb ('ADelta a)
+elimDecor d sol = (`KB.filter` sol) $ \(KB.Knowledge p _) -> decor p /= d
 
 decor :: Predicate n ('ADelta a) -> Decor
 decor Predicate{_annotation = PredADelta dec _} = dec
@@ -151,18 +152,24 @@ mkDeltaPredicate deco Predicate{..} = Predicate
   { _annotation = PredADelta deco _annotation
   , ..}
 
-mkDeltaSolution :: Identifiable (PredicateAnn a) b
-                => [ PredicateBox a ] -> R.Solution a -> R.Solution ('ADelta a)
-mkDeltaSolution intentionalPreds sol =
-  intDeltas `R.merge` intPrevs `R.merge` extCurrents
+mkDeltaSolution :: Semigroup (kb ('ADelta a))
+                => Identifiable (PredicateAnn a) id
+                => KB.Knowledgeable kb a
+                => [ PredicateBox a ] -> kb a -> kb ('ADelta a)
+mkDeltaSolution intentionalPreds kb =
+  intDeltas <> intPrevs <> extCurrents
   where
-  (intentionalSol, extensionalSol) =
-    R.partition (\(R.Relation p _) -> PredicateBox p `elem` intentionalPreds) sol
+  (intentionalKB, extensionalKB) =
+    KB.partition (\(KB.Knowledge p _) -> PredicateBox p `elem` intentionalPreds) kb
 
-  intDeltas  = R.rename (mkDeltaPredicate Delta   ) intentionalSol
-  intPrevs   = R.rename (mkDeltaPredicate Prev    ) intentionalSol
-  extCurrents = R.rename (mkDeltaPredicate Constant) extensionalSol
+  intDeltas   = KB.atEach (\(KB.Knowledge p syms) -> KB.Knowledge (mkDeltaPredicate Delta    p) syms) intentionalKB
+  intPrevs    = KB.atEach (\(KB.Knowledge p syms) -> KB.Knowledge (mkDeltaPredicate Prev     p) syms) intentionalKB
+  extCurrents = KB.atEach (\(KB.Knowledge p syms) -> KB.Knowledge (mkDeltaPredicate Constant p) syms) extensionalKB
 
-cleanDeltaSolution :: R.Solution ('ADelta a) -> R.Solution a
-cleanDeltaSolution = R.rename peel
-                   . R.filter (\(R.Relation p _) -> decor p `elem` [ Current, Constant ])
+cleanDeltaSolution :: KB.Knowledgeable kb ('ADelta a)
+                   => Identifiable (PredicateAnn a) id
+                   => kb ('ADelta a) -> kb a
+cleanDeltaSolution = KB.atEach (\(KB.Knowledge pred syms) -> KB.Knowledge (peel pred) syms)
+                   . KB.filter isCurrentOrConstant
+  where
+  isCurrentOrConstant (KB.Knowledge p _) = decor p `elem` [ Current, Constant ]

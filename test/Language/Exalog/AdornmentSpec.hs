@@ -12,7 +12,8 @@ import qualified Fixture.Ancestor.EDB as AncEDB
 
 import Language.Exalog.Adornment
 import Language.Exalog.Core (decorate)
-import Language.Exalog.Relation
+import Language.Exalog.KnowledgeBase.Class
+import Language.Exalog.KnowledgeBase.Knowledge
 
 import Language.Exalog.SolverSpec (execSolver)
 
@@ -30,10 +31,10 @@ spec =
       it "adorns swapped non-linear ancestor correctly" $
         adornProgram NLAnc.programSwapped `shouldBe` NLAnc.adornedProgramSwapped
 
-      finalEDB <- execSolver NLAnc.adornedProgram (rename decorate AncEDB.initEDB)
+      finalEDB <- execSolver NLAnc.adornedProgram (atEach (\(Knowledge pred syms) -> Knowledge (decorate pred) syms) AncEDB.initEDB)
       it "adornment preserves non-linear ancestor solutions" $
-        finalEDB `shouldBe` Just (rename decorate AncEDB.finalEDB)
+        finalEDB `shouldBe` Just (atEach (\(Knowledge pred syms) -> Knowledge (decorate pred) syms) AncEDB.finalEDB)
 
-      finalEDB <- execSolver LAnc.adornedProgram (rename decorate AncEDB.initEDB)
+      finalEDB <- execSolver LAnc.adornedProgram (atEach (\(Knowledge pred syms) -> Knowledge (decorate pred) syms) AncEDB.initEDB)
       it "adornment preserves linear ancestor solutions" $
-        finalEDB `shouldBe` Just (rename decorate AncEDB.finalEDB)
+        finalEDB `shouldBe` Just (atEach (\(Knowledge pred syms) -> Knowledge (decorate pred) syms) AncEDB.finalEDB)

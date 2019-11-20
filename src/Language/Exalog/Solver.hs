@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -23,25 +24,34 @@ import           Language.Exalog.SemiNaive ( SemiNaive
                                            , semiNaive
                                            , evalClauses
                                            )
-import qualified Language.Exalog.Relation as R
+import qualified Language.Exalog.KnowledgeBase.Knowledge as KB
+import qualified Language.Exalog.KnowledgeBase.Class as KB
 
-data SolverSt ann = SolverSt
+data SolverSt kb ann = SolverSt
     { _program :: Program ann
-    , _initEDB :: R.Solution ann
+    , _initEDB :: kb ann
     }
 
-type Solver ann = StateT (SolverSt ann) (SemiNaive ann)
+type Solver kb ann = StateT (SolverSt kb ann) (SemiNaive (kb ann))
 
-solve :: (SpannableAST a, Identifiable (PredicateAnn a) b)
-      => Program a -> R.Solution a -> Logger (R.Solution a)
+solve :: SpannableAST a
+      => Identifiable (PredicateAnn a) b
+      => KB.Knowledgeable kb a => KB.Knowledgeable kb ('ADelta a)
+      => Monoid (kb a) => Semigroup (kb ('ADelta a))
+      => Program a -> kb a -> Logger (kb a)
 solve = evalSolver compute
 
 evalSolver :: Identifiable (PredicateAnn ann) b
-           => Solver ann a -> Program ann -> R.Solution ann -> Logger a
+           => KB.Knowledgeable kb ann
+           => Monoid (kb ann)
+           => Solver kb ann a -> Program ann -> kb ann -> Logger a
 evalSolver action pr sol = evalSemiNaiveT (evalStateT action (SolverSt pr sol)) mempty
 
-compute :: SpannableAST a => Identifiable (PredicateAnn a) b
-        => Solver a (R.Solution a)
+compute :: SpannableAST a
+        => Identifiable (PredicateAnn a) b
+        => KB.Knowledgeable kb a => KB.Knowledgeable kb ('ADelta a)
+        => Semigroup (kb a) => Semigroup (kb ('ADelta a))
+        => Solver kb a (kb a)
 compute = do
   pr      <- _program <$> get
   initEDB <- _initEDB <$> get
@@ -52,10 +62,14 @@ compute = do
 
   -- Filter out non-query solutions
   let qPreds = _queries pr
-  pure $ R.filter (\(R.Relation p _) -> PredicateBox p `elem` qPreds) finalEDB
+  pure $ KB.filter (\(KB.Knowledge p _) -> PredicateBox p `elem` qPreds) finalEDB
 
-evalStratum :: forall a b. SpannableAST a => Identifiable (PredicateAnn a) b
-            => Stratum a -> SemiNaive a (R.Solution a)
+evalStratum :: forall a b kb
+             . SpannableAST a
+            => Identifiable (PredicateAnn a) b
+            => KB.Knowledgeable kb a => KB.Knowledgeable kb ('ADelta a)
+            => Semigroup (kb a) => Semigroup (kb ('ADelta a))
+            => Stratum a -> SemiNaive (kb a) (kb a)
 evalStratum stratum@(Stratum cls) = do
   simpleEDB <-
     if null simpleClauses

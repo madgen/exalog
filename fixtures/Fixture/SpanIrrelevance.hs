@@ -7,7 +7,7 @@ module Fixture.SpanIrrelevance
   , rTuples
   ) where
 
-import Protolude hiding (SrcLoc)
+import Protolude hiding (SrcLoc, Set)
 
 import           Data.Maybe (fromJust)
 
@@ -16,8 +16,9 @@ import qualified Data.Vector.Sized as V
 import           Data.Singletons.TypeLits
 
 import           Language.Exalog.Core
-import qualified Language.Exalog.Tuples as T
-import           Language.Exalog.Relation
+import           Language.Exalog.KnowledgeBase.Class
+import           Language.Exalog.KnowledgeBase.Knowledge
+import           Language.Exalog.KnowledgeBase.Set
 import           Language.Exalog.SrcLoc
 
 import Fixture.Util
@@ -51,12 +52,12 @@ cTuples = fromJust . V.fromList <$>
   , [ "2" ]
   ]
 
-cRel :: Relation 'ABase
-cRel = Relation cPred . T.fromList $ fmap symbol <$> cTuples
+cKB :: Set 'ABase
+cKB = fromList $ Knowledge cPred . fmap symbol <$> cTuples
 
-initEDB :: Solution 'ABase
-initEDB = fromList [ cRel ]
+initEDB :: Set 'ABase
+initEDB = cKB
 
-rTuples :: T.Tuples 1
-rTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+rTuples :: [ V.Vector 1 Sym ]
+rTuples = fmap symbol . fromJust . V.fromList <$>
   ([ [ "a" ] , [ "b" ] ] :: [ [ Text ] ])

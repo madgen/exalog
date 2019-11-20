@@ -9,9 +9,11 @@
 
 module Language.Exalog.SolverSpec (spec, execSolver) where
 
-import Protolude hiding (Nat)
+import Protolude hiding (Set)
 
 import Control.Monad (liftM2)
+
+import qualified Data.Set as S
 
 import Test.Hspec
 import Test.Hspec.QuickCheck
@@ -33,14 +35,18 @@ import qualified Fixture.Wildcard as Wildcard
 
 import           Language.Exalog.Core hiding (Positive)
 import           Language.Exalog.Dependency ()
+import qualified Language.Exalog.KnowledgeBase.Class as KB
+import qualified Language.Exalog.KnowledgeBase.Set as KB
 import           Language.Exalog.Logger
-import qualified Language.Exalog.Relation as R
 import           Language.Exalog.Solver
 import           Language.Exalog.Stratification
 
 execSolver pr edb = runIO $ runLoggerT vanillaEnv $ do
   stratifiedPr <- stratify (decorate pr)
   solve stratifiedPr edb
+
+infixr 1 `shouldBeish`
+shouldBeish xs ys = S.fromList <$> xs `shouldBe` S.fromList <$> ys
 
 spec :: Spec
 spec =
@@ -61,43 +67,43 @@ spec =
           finalEDB `shouldBe` Just AncEDB.finalEDB
 
         prop "linear & non-linear versions produce the same result" $
-          \edb -> unsafePerformIO $ liftM2 (==)
+          \(edb :: KB.Set 'ABase) -> unsafePerformIO $ liftM2 (==)
             (runLoggerT vanillaEnv $ evalSolver compute LAnc.program  edb)
             (runLoggerT vanillaEnv $ evalSolver compute NLAnc.program edb)
 
       finalEDB <- execSolver Const.program Const.initEDB
       it "evaluates constants correctly" $
-        R.findTuplesByPred Const.rPred <$> finalEDB `shouldBe` Just Const.rTuples
+        KB.findByPred Const.rPred <$> finalEDB `shouldBeish` Just Const.rTuples
 
       finalEDB <- execSolver Repeated.program Repeated.initEDB
       it "does not forget repeated variables" $
-        R.findTuplesByPred Repeated.pPred <$> finalEDB `shouldBe` Just Repeated.pTuples
+        KB.findByPred Repeated.pPred <$> finalEDB `shouldBeish` Just Repeated.pTuples
 
       finalEDB <- execSolver Wildcard.program Wildcard.initEDB
       it "evaluates literals with wildcads correctly" $
-        R.findTuplesByPred Wildcard.pPred <$> finalEDB `shouldBe` Just Wildcard.pTuples
+        KB.findByPred Wildcard.pPred <$> finalEDB `shouldBeish` Just Wildcard.pTuples
 
       describe "Foreign function" $ do
 
         finalEDB <- execSolver Foreign.programLeq100 Foreign.initLeq100EDB
         it "interprets 'x < 100' correctly" $
-          R.findTuplesByPred Foreign.leq100Pred <$> finalEDB `shouldBe` Just Foreign.leq100Tuples
+          KB.findByPred Foreign.leq100Pred <$> finalEDB `shouldBeish` Just Foreign.leq100Tuples
 
         finalEDB <- execSolver Foreign.programPrefixOf Foreign.initPrefixOfEDB
         it "interprets 'isPrefixOf' correctly" $
-          R.findTuplesByPred Foreign.prefixOfPred <$> finalEDB `shouldBe` Just Foreign.prefixOfTuples
+          KB.findByPred Foreign.prefixOfPred <$> finalEDB `shouldBeish` Just Foreign.prefixOfTuples
 
         finalEDB <- execSolver Foreign.programCartesian23 Foreign.initCartesian23EDB
         it "interprets 'cartesian23' correctly" $
-          R.findTuplesByPred Foreign.cartesian23Pred <$> finalEDB `shouldBe` Just Foreign.cartesian23Tuples
+          KB.findByPred Foreign.cartesian23Pred <$> finalEDB `shouldBeish` Just Foreign.cartesian23Tuples
 
         finalEDB <- execSolver Foreign.programImpure Foreign.initImpureEDB
         it "interprets 'impure' correctly" $
-          R.findTuplesByPred Foreign.impurePred <$> finalEDB `shouldBe` Just Foreign.impureTuples
+          KB.findByPred Foreign.impurePred <$> finalEDB `shouldBeish` Just Foreign.impureTuples
 
       finalEDB <- execSolver SpanIrr.program SpanIrr.initEDB
       it "evaluates correctly with different spans" $
-        R.findTuplesByPred SpanIrr.rPred <$> finalEDB `shouldBe` Just SpanIrr.rTuples
+        KB.findByPred SpanIrr.rPred <$> finalEDB `shouldBeish` Just SpanIrr.rTuples
 
 
 -- Arbitrary instances for solution

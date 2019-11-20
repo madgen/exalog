@@ -27,8 +27,9 @@ import qualified Data.Set as S
 
 import           Language.Exalog.Core
 import           Language.Exalog.Logger
-import qualified Language.Exalog.Relation as R
 import           Language.Exalog.SrcLoc
+import qualified Language.Exalog.KnowledgeBase.Class as KB
+import qualified Language.Exalog.KnowledgeBase.Knowledge as KB
 
 newtype PredicateID = PredicateID Int deriving (Eq, Ord, Show)
 newtype LiteralID   = LiteralID   Int deriving (Eq, Ord, Show)
@@ -68,21 +69,27 @@ instance HasClauseID (Clause    ('ARename ann)) where clauseID Clause{..}    = _
 --------------------------------------------------------------------------------
 
 rename :: SpannableAnn (PredicateAnn ann)
-       => IdentifiableAnn (PredicateAnn ann) b
-       => Ord b
-       => (Program ann, R.Solution ann)
-       -> Logger (Program ('ARename ann), R.Solution ('ARename ann))
-rename (pr,sol) = evalRename preds $
-  (,) <$> renameProgram pr <*> renameSolution sol
+       => Identifiable (PredicateAnn ann) id
+       => KB.Knowledgeable kb ann
+       => KB.Knowledgeable kb ('ARename ann)
+       => (Program ann, kb ann)
+       -> Logger (Program ('ARename ann), kb ('ARename ann))
+rename (pr,kb) = evalRename preds $
+  (,) <$> renameProgram pr <*> renameSolution kb
   where
-  preds = S.fromList $ predicates pr <> R.predicates sol
+  preds = S.fromList $ predicates pr
+       <> KB.map (\(KB.Knowledge pred _) -> PredicateBox pred) kb
 
 renameSolution :: SpannableAnn (PredicateAnn ann)
                => IdentifiableAnn (PredicateAnn ann) a
                => Ord a
-               => R.Solution ann
-               -> Rename ann (R.Solution ('ARename ann))
-renameSolution = R.renameM renamePredicate
+               => KB.Knowledgeable kb ann
+               => KB.Knowledgeable kb ('ARename ann)
+               => kb ann
+               -> Rename ann (kb ('ARename ann))
+renameSolution = fmap KB.fromList
+               . traverse (\(KB.Knowledge pred syms) -> (`KB.Knowledge` syms) <$> renamePredicate pred)
+               . KB.toList
 
 renameProgram :: SpannableAnn (PredicateAnn ann)
               => IdentifiableAnn (PredicateAnn ann) a

@@ -21,7 +21,7 @@ import           Language.Exalog.Core
 import           Language.Exalog.Logger
 import           Language.Exalog.Dataflow
 import           Language.Exalog.DataflowRepair
-import qualified Language.Exalog.Relation as R
+import qualified Language.Exalog.KnowledgeBase.Class as KB
 import           Language.Exalog.SrcLoc (Spannable(..))
 
 -- |Checks if all variables in the head appear in the bodies of the
@@ -53,8 +53,11 @@ instance SpannableAnn (ClauseAnn ann) => RangeRestriction (Clause ann) where
   isRangeRestricted Clause{..} =
     null $ variables _head \\ mconcat (variables <$> NE.toList _body)
 
-fixRangeRestriction :: (Program ('ARename 'ABase), R.Solution ('ARename 'ABase))
-                    -> Logger (Program 'ABase, R.Solution 'ABase)
+fixRangeRestriction :: KB.Knowledgeable kb 'ABase
+                    => Monoid (kb 'ABase)
+                    => KB.Knowledgeable kb ('ARename 'ABase)
+                    => (Program ('ARename 'ABase), kb ('ARename 'ABase))
+                    -> Logger (Program 'ABase, kb 'ABase)
 fixRangeRestriction =
   fixDataflow (pure <$> rangeRestrictionViolations)
               "Not range-restricted and cannot be repaired due to its dataflow."

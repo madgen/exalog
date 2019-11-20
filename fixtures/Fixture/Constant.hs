@@ -7,7 +7,7 @@ module Fixture.Constant
   , rTuples
   ) where
 
-import Protolude
+import Protolude hiding (Set)
 
 import           Data.Maybe (fromJust)
 
@@ -16,8 +16,9 @@ import qualified Data.Vector.Sized as V
 import           Data.Singletons.TypeLits
 
 import           Language.Exalog.Core
-import qualified Language.Exalog.Tuples as T
-import           Language.Exalog.Relation
+import           Language.Exalog.KnowledgeBase.Class
+import           Language.Exalog.KnowledgeBase.Knowledge
+import           Language.Exalog.KnowledgeBase.Set
 import           Language.Exalog.SrcLoc
 
 import Fixture.Util
@@ -60,14 +61,11 @@ cTuples = fromJust . V.fromList <$>
   , [ "a"     , "d" ]
   ]
 
-cRel :: Relation 'ABase
-cRel = Relation cPred . T.fromList $ fmap symbol <$> cTuples
+initEDB :: Set 'ABase
+initEDB = fromList $ Knowledge cPred . fmap symbol <$> cTuples
 
-initEDB :: Solution 'ABase
-initEDB = fromList [ cRel ]
-
-rTuples :: T.Tuples 2
-rTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+rTuples :: [ V.Vector 2 Sym ]
+rTuples = fmap symbol . fromJust . V.fromList <$>
   ([ [ "c", "1" ]
   , [ "b", "2" ]
   , [ "c", "2" ]

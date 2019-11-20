@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds #-}
+
 module Language.Exalog.RangeRestrictionSpec (spec) where
 
 import Protolude
@@ -7,8 +9,10 @@ import Test.Hspec
 import qualified Fixture.RangeRestriction as RRes
 import qualified Fixture.DomainDependent as DDep
 
-import Language.Exalog.Logger
-import Language.Exalog.RangeRestriction
+import           Language.Exalog.Annotation
+import qualified Language.Exalog.KnowledgeBase.Set as KB
+import           Language.Exalog.Logger
+import           Language.Exalog.RangeRestriction
 
 spec :: Spec
 spec =
@@ -25,6 +29,6 @@ spec =
 
     describe "Repair" $
       it "programSimple can be repaired" $ do
-        let input = (RRes.prSimple, mempty)
-        let output = (RRes.prSimpleRepaired, mempty)
+        let input = (RRes.prSimple, mempty :: KB.Set ('ARename 'ABase))
+        let output = (RRes.prSimpleRepaired, mempty :: KB.Set 'ABase)
         runLoggerT vanillaEnv (fixRangeRestriction input) `shouldReturn` Just output

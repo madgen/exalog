@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Fixture.Util
   ( tvar
@@ -23,12 +24,11 @@ import qualified Data.Vector.Sized as V
 
 import           Test.QuickCheck.Arbitrary
 import           Test.QuickCheck.Gen
-import qualified Test.QuickCheck.Modifiers as QM
-
 import           Language.Exalog.Core
-import qualified Language.Exalog.Relation as R
+import qualified Language.Exalog.KnowledgeBase.Knowledge as KB
+import qualified Language.Exalog.KnowledgeBase.Class as KB
+import qualified Language.Exalog.KnowledgeBase.Set as KBS
 import           Language.Exalog.SrcLoc (SrcSpan(NoSpan))
-import qualified Language.Exalog.Tuples as T
 
 not :: Literal 'ABase -> Literal 'ABase
 not l@Literal{_polarity = pol} =
@@ -71,22 +71,18 @@ instance SingI n => Arbitrary (Predicate n 'ABase) where
           <*> pure (sing :: SNat n)
           <*> pure Logical
 
--- For Relation
-instance Arbitrary Sym => Arbitrary (R.Relation 'ABase) where
+instance Arbitrary Sym => Arbitrary (KB.Knowledge 'ABase) where
   arbitrary = do
     n <- oneof $ return <$> [1..10]
     withSomeSing n $
       \(snat :: SNat n) ->
         withKnownNat snat $
-          R.Relation
+          KB.Knowledge
             <$> (arbitrary :: Gen (Predicate n 'ABase))
-            <*> (arbitrary :: Gen (T.Tuples n))
+            <*> (arbitrary :: Gen (V.Vector n Sym))
 
-instance Arbitrary Sym => Arbitrary (R.Solution 'ABase) where
-  arbitrary = R.fromList <$> arbitrary
+instance (KnownNat n, Arbitrary a) => Arbitrary (V.Vector n a) where
+  arbitrary = V.replicateM arbitrary
 
--- For Tuples
-instance (KnownNat n, SingI n, Arbitrary Sym) => Arbitrary (T.Tuples n) where
-  arbitrary = do
-    QM.Positive len <- arbitrary :: Gen (QM.Positive Int)
-    T.fromList <$> replicateM len (V.replicateM arbitrary :: Gen (V.Vector n Sym))
+instance Arbitrary Sym => Arbitrary (KBS.Set 'ABase) where
+  arbitrary = KB.fromList <$> arbitrary

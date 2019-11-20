@@ -22,23 +22,26 @@ import qualified Data.List.NonEmpty as NE
 import           Language.Exalog.Core
 import           Language.Exalog.Dataflow
 import           Language.Exalog.Fresh
+import qualified Language.Exalog.KnowledgeBase.Class as KB
+import qualified Language.Exalog.KnowledgeBase.Knowledge as KB
 import           Language.Exalog.Renamer ()
-import qualified Language.Exalog.Relation as R
 import           Language.Exalog.Logger
 import           Language.Exalog.SrcLoc
-import qualified Language.Exalog.Tuples as T
 
-data RepairResult =
+data RepairResult kb =
     DeadDataPath
   | NotFixable
-  | Guard (Literal 'ABase) [ Clause 'ABase ] (R.Solution 'ABase)
+  | Guard (Literal 'ABase) [ Clause 'ABase ] (kb 'ABase)
 
 type Repair = RepairT Logger
 
-fixDataflow :: (Clause ('ARename 'ABase) -> Repair [ (FlowSink 'ABase, Var) ])
+fixDataflow :: KB.Knowledgeable kb 'ABase
+            => KB.Knowledgeable kb ('ARename 'ABase)
+            => Monoid (kb 'ABase)
+            => (Clause ('ARename 'ABase) -> Repair [ (FlowSink 'ABase, Var) ])
             -> Text
-            -> (Program ('ARename 'ABase), R.Solution ('ARename 'ABase))
-            -> Logger (Program 'ABase, R.Solution 'ABase)
+            -> (Program ('ARename 'ABase), kb ('ARename 'ABase))
+            -> Logger (Program 'ABase, kb 'ABase)
 fixDataflow violationFinder errMsg (pr@Program{..}, sol)
   | [ Stratum clauses ] <- _strata = runRepairT pr $ do
     (originalClauses, guardClausess, guardSols) <- unzip3 <$>
@@ -49,15 +52,17 @@ fixDataflow violationFinder errMsg (pr@Program{..}, sol)
             , _strata     = [ Stratum $ originalClauses <> join guardClausess ]
             , _queries    = (PredicateBox . peel $$) <$> _queries
             , ..}
-         , mconcat (R.rename peel sol : guardSols)
+         , mconcat (KB.atEach (\(KB.Knowledge pred syms) -> KB.Knowledge (peel pred) syms) sol : guardSols)
          )
   | otherwise = scream NoSpan
     "Dataflow repair can only be performed prior to stratification."
 
-fixDataflowClause :: (Clause ('ARename 'ABase) -> Repair [ (FlowSink 'ABase, Var) ])
+fixDataflowClause :: Monoid (kb 'ABase)
+                  => KB.Knowledgeable kb 'ABase
+                  => (Clause ('ARename 'ABase) -> Repair [ (FlowSink 'ABase, Var) ])
                   -> Text
                   -> Clause ('ARename 'ABase)
-                  -> Repair (Clause 'ABase, [ Clause 'ABase ], R.Solution 'ABase)
+                  -> Repair (Clause 'ABase, [ Clause 'ABase ], kb 'ABase)
 fixDataflowClause violationFinder errMsg cl@Clause{..} = do
   violations <- violationFinder cl
   repairResults <- traverse (uncurry (attemptFix $ span _head)) violations
@@ -78,9 +83,12 @@ fixDataflowClause violationFinder errMsg cl@Clause{..} = do
        )
 
 attemptFix :: Monad m
-           => SrcSpan -> FlowSink 'ABase
+           => Monoid (kb 'ABase)
+           => KB.Knowledgeable kb 'ABase
+           => SrcSpan
+           -> FlowSink 'ABase
            -> Var
-           -> RepairT m RepairResult
+           -> RepairT m (RepairResult kb)
 attemptFix sp flowSink var = do
   flowGr <- getPositiveFlowGraph
 
@@ -89,10 +97,12 @@ attemptFix sp flowSink var = do
     Nothing          -> pure DeadDataPath
 
 mkGuard :: Monad m
+        => Monoid (kb 'ABase)
+        => KB.Knowledgeable kb 'ABase
         => SrcSpan
         -> [ FlowSource 'ABase ]
         -> Var
-        -> RepairT m RepairResult
+        -> RepairT m (RepairResult kb)
 mkGuard sp flowSources var = do
   guardSym <- getFreshPredSym
 
@@ -113,10 +123,11 @@ mkGuard sp flowSources var = do
 
   pure $ maybe NotFixable (uncurry (Guard guardLit) . second mconcat) mGuard
 
-mkGuardFact :: IdentifiableAnn (PredicateAnn ann) a => Ord a
-            => Predicate 1 ann -> Sym -> R.Solution ann
-mkGuardFact guardPred sym = R.fromList
-  [ R.Relation guardPred (T.fromList [ V.singleton sym ]) ]
+mkGuardFact :: Identifiable (PredicateAnn ann) id
+            => KB.Knowledgeable kb ann
+            => Predicate 1 ann -> Sym -> kb ann
+mkGuardFact guardPred sym = KB.singleton $
+  KB.Knowledge guardPred (V.singleton sym)
 
 mkGuardClause :: SrcSpan -> Literal 'ABase -> Body 'ABase -> Clause 'ABase
 mkGuardClause sp head body = Clause

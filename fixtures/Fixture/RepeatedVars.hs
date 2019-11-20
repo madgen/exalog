@@ -7,7 +7,7 @@ module Fixture.RepeatedVars
   , pTuples
   ) where
 
-import Protolude
+import Protolude hiding (Set)
 
 import           Data.Maybe (fromJust)
 
@@ -16,8 +16,9 @@ import qualified Data.Vector.Sized as V
 import           Data.Singletons.TypeLits
 
 import           Language.Exalog.Core
-import qualified Language.Exalog.Tuples as T
-import           Language.Exalog.Relation
+import           Language.Exalog.KnowledgeBase.Class
+import           Language.Exalog.KnowledgeBase.Knowledge
+import           Language.Exalog.KnowledgeBase.Set
 import           Language.Exalog.SrcLoc (SrcSpan(NoSpan))
 
 import Fixture.Util
@@ -52,12 +53,11 @@ qTuples = fromJust . V.fromList <$>
   , [ 2     , 2 ]
   ]
 
-qRel :: Relation 'ABase
-qRel = Relation qPred . T.fromList $ fmap symbol <$> qTuples
+qKB :: Set 'ABase
+qKB = fromList $ Knowledge qPred . fmap symbol <$> qTuples
 
-initEDB :: Solution 'ABase
-initEDB = fromList [ qRel ]
+initEDB :: Set 'ABase
+initEDB = qKB
 
-pTuples :: T.Tuples 1
-pTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
-  ([ [ 2 ] ] :: [ [ Int ] ])
+pTuples :: [ V.Vector 1 Sym ]
+pTuples = fmap symbol . fromJust . V.fromList <$> ([ [ 2 ] ] :: [ [ Int ] ])

@@ -2,7 +2,7 @@
 
 module Fixture.Negation where
 
-import Protolude hiding (not)
+import Protolude hiding (not, Set)
 
 import qualified Data.List.NonEmpty as NE
 import           Data.Maybe (fromJust)
@@ -10,8 +10,9 @@ import qualified Data.Vector.Sized as V
 import           Data.Singletons.TypeLits
 
 import           Language.Exalog.Core
-import qualified Language.Exalog.Tuples as T
-import           Language.Exalog.Relation
+import           Language.Exalog.KnowledgeBase.Class
+import           Language.Exalog.KnowledgeBase.Knowledge
+import           Language.Exalog.KnowledgeBase.Set
 import           Language.Exalog.SrcLoc (SrcSpan(NoSpan))
 
 import Fixture.Util
@@ -58,8 +59,8 @@ program = Program (ProgABase NoSpan)
   , PredicateBox vPred
   ]
 
-rTuples :: T.Tuples 2
-rTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+rKB :: Set 'ABase
+rKB = fromList $ Knowledge rPred . fmap symbol . fromJust . V.fromList <$>
   ([ [ "x"     , "y" ]
   , [ "x"     , "z" ]
   , [ "z"     , "x" ]
@@ -67,18 +68,15 @@ rTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
   , [ "x"     , "x" ]
   ] :: [ [ Text ] ])
 
-rRel :: Relation 'ABase
-rRel = Relation rPred rTuples
+initEDB :: Set 'ABase
+initEDB = rKB
 
-initEDB :: Solution 'ABase
-initEDB = fromList [ rRel ]
-
-vTuples :: T.Tuples 1
-vTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+vKB :: Set 'ABase
+vKB = fromList $ Knowledge vPred . fmap symbol . fromJust . V.fromList <$>
   ([ [ "x" ], [ "y" ], [ "z" ], [ "w" ] ] :: [ [ Text ] ])
 
-tTuples :: T.Tuples 2
-tTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+tKB :: Set 'ABase
+tKB = fromList $ Knowledge tPred . fmap symbol . fromJust . V.fromList <$>
   ([ [ "x"     , "x" ]
   , [ "x"     , "y" ]
   , [ "y"     , "w" ]
@@ -90,8 +88,8 @@ tTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
   , [ "z"     , "z" ]
   ] :: [ [ Text ] ])
 
-tcTuples :: T.Tuples 2
-tcTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
+tcKB :: Set 'ABase
+tcKB = fromList $ Knowledge tcPred . fmap symbol . fromJust . V.fromList <$>
   ([ [ "y"     , "x" ]
   , [ "y"     , "z" ]
   , [ "w"     , "z" ]
@@ -101,8 +99,5 @@ tcTuples = T.fromList $ fmap symbol . fromJust . V.fromList <$>
   , [ "w"     , "y" ]
   ] :: [ [ Text ] ])
 
-finalEDB :: Solution 'ABase
-finalEDB = initEDB `merge` fromList
-  [ Relation vPred vTuples
-  , Relation tPred tTuples
-  , Relation tcPred tcTuples ]
+finalEDB :: Set 'ABase
+finalEDB = initEDB <> vKB <> tKB <> tcKB
