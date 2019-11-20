@@ -18,7 +18,9 @@ import qualified Data.Vector.Sized as V
 import Text.PrettyPrint
 
 import           Language.Exalog.Core
+import qualified Language.Exalog.KnowledgeBase.Class as KB
 import qualified Language.Exalog.KnowledgeBase.Knowledge as KB
+import qualified Language.Exalog.KnowledgeBase.Set as KB
 import           Language.Exalog.Pretty.Helper
 
 -- Core pretty instances
@@ -87,6 +89,9 @@ instance Pretty (ProgramAnn   'ABase) where pretty _ = empty
 
 instance Identifiable (PredicateAnn ann) b => Pretty (KB.Knowledge ann) where
   pretty (KB.Knowledge pred syms) = pretty pred <> (csep . prettyC) syms
+
+instance Identifiable (PredicateAnn ann) b => Pretty (KB.Set ann) where
+  pretty = vcat . map pretty . KB.toList
 
 -- Common pretty instances
 
