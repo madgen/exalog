@@ -20,8 +20,6 @@ import Text.PrettyPrint
 import           Language.Exalog.Core
 import qualified Language.Exalog.KnowledgeBase.Knowledge as KB
 import           Language.Exalog.Pretty.Helper
-import qualified Language.Exalog.Relation as R
-import qualified Language.Exalog.Tuples as T
 
 -- Core pretty instances
 
@@ -85,20 +83,7 @@ instance Pretty (LiteralAnn   'ABase) where pretty _ = empty
 instance Pretty (ClauseAnn    'ABase) where pretty _ = empty
 instance Pretty (ProgramAnn   'ABase) where pretty _ = empty
 
--- Solution related data type instances
-
-instance Identifiable (PredicateAnn ann) b => Pretty (R.Relation ann) where
-  pretty (R.Relation predicate tuples) =
-    pretty predicate <+> parens (int . T.size $ tuples) <+> "= {"
-    $+$ (nest 2 . vcat . map csep . groupsOf 8 . prettyC $ tuples)
-    $+$ rbrace
-    where
-    groupsOf :: Int -> [ a ] -> [ [ a ] ]
-    groupsOf _ [] = []
-    groupsOf i xs = let (gr, rest) = splitAt i xs in gr : groupsOf i rest
-
-instance Identifiable (PredicateAnn ann) b => Pretty (R.Solution ann) where
-  pretty = vcat . prettyC . R.toList
+-- Knowledge base related instances
 
 instance Identifiable (PredicateAnn ann) b => Pretty (KB.Knowledge ann) where
   pretty (KB.Knowledge pred syms) = pretty pred <> (csep . prettyC) syms
@@ -116,6 +101,3 @@ instance Pretty a => PrettyCollection (NE.NonEmpty a) where
 
 instance Pretty a => PrettyCollection (V.Vector n a) where
   prettyC = map pretty . V.toList
-
-instance PrettyCollection (T.Tuples n) where
-  prettyC = map (parens . csep . prettyC) . T.toList
