@@ -49,21 +49,25 @@ data    instance PredicateAnn ('ADelta a) = PredADelta Decor (PredicateAnn a)
 data    instance LiteralAnn ('ADelta a)   = LitADelta (LiteralAnn a)
 newtype instance ClauseAnn  ('ADelta a)   = ClADelta (ClauseAnn a)
 newtype instance ProgramAnn ('ADelta a)   = ProgADelta (ProgramAnn a)
+newtype instance KnowledgeAnn ('ADelta a) = KnowADelta (KnowledgeAnn a)
 
 deriving instance Show (PredicateAnn a) => Show (PredicateAnn ('ADelta a))
 deriving instance Show (LiteralAnn a)   => Show (LiteralAnn ('ADelta a))
 deriving instance Show (ClauseAnn a)    => Show (ClauseAnn ('ADelta a))
 deriving instance Show (ProgramAnn a)   => Show (ProgramAnn ('ADelta a))
+deriving instance Show (KnowledgeAnn a) => Show (KnowledgeAnn ('ADelta a))
 
 deriving instance Eq (PredicateAnn a) => Eq (PredicateAnn ('ADelta a))
 deriving instance Eq (LiteralAnn a)   => Eq (LiteralAnn ('ADelta a))
 deriving instance Eq (ClauseAnn a)    => Eq (ClauseAnn ('ADelta a))
 deriving instance Eq (ProgramAnn a)   => Eq (ProgramAnn ('ADelta a))
+deriving instance Eq (KnowledgeAnn a) => Eq (KnowledgeAnn ('ADelta a))
 
 deriving instance Ord (PredicateAnn a) => Ord (PredicateAnn ('ADelta a))
 deriving instance Ord (LiteralAnn a)   => Ord (LiteralAnn ('ADelta a))
 deriving instance Ord (ClauseAnn a)    => Ord (ClauseAnn ('ADelta a))
 deriving instance Ord (ProgramAnn a)   => Ord (ProgramAnn ('ADelta a))
+deriving instance Ord (KnowledgeAnn a) => Ord (KnowledgeAnn ('ADelta a))
 
 instance SpannableAnn (PredicateAnn a) => SpannableAnn (PredicateAnn ('ADelta a)) where
   annSpan (PredADelta _ ann) = annSpan ann
@@ -73,6 +77,8 @@ instance SpannableAnn (ClauseAnn a) => SpannableAnn (ClauseAnn ('ADelta a)) wher
   annSpan (ClADelta ann) = annSpan ann
 instance SpannableAnn (ProgramAnn a) => SpannableAnn (ProgramAnn ('ADelta a)) where
   annSpan (ProgADelta ann) = annSpan ann
+instance SpannableAnn (KnowledgeAnn a) => SpannableAnn (KnowledgeAnn ('ADelta a)) where
+  annSpan (KnowADelta ann) = annSpan ann
 
 instance IdentifiableAnn (PredicateAnn ann) b
     => IdentifiableAnn (PredicateAnn ('ADelta ann)) (Decor,b) where
@@ -86,6 +92,9 @@ instance IdentifiableAnn (ClauseAnn ann) b
 instance IdentifiableAnn (ProgramAnn ann) b
     => IdentifiableAnn (ProgramAnn ('ADelta ann)) b where
   idFragment (ProgADelta rest) = idFragment rest
+instance IdentifiableAnn (KnowledgeAnn ann) b
+    => IdentifiableAnn (KnowledgeAnn ('ADelta ann)) b where
+  idFragment (KnowADelta rest) = idFragment rest
 
 updateDecor :: Decor -> Predicate n ('ADelta a) -> Predicate n ('ADelta a)
 updateDecor dec p@Predicate{_annotation = PredADelta _ prevAnn} =
@@ -103,6 +112,8 @@ instance DecorableAnn ProgramAnn 'ADelta where decorA = ProgADelta
 
 instance PeelableAnn PredicateAnn 'ADelta where
   peelA (PredADelta _ prevAnn) = prevAnn
+instance PeelableAnn KnowledgeAnn 'ADelta where
+  peelA (KnowADelta prevAnn) = prevAnn
 
 -- |For each clause, generate a version for each IDB predicate where the
 -- IDB predicate appears in delta form i.e. we focus on the newly generated
