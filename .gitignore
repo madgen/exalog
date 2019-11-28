@@ -2,3 +2,4 @@
 dist-newstyle/
 exalog-engine.cabal
 *~
+.DS_Store

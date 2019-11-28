@@ -43,7 +43,7 @@ instance (Identifiable (KnowledgeAnn ann) id1, Identifiable (PredicateAnn ann) i
 
   findByPred pred kb = foldr' go mempty (toList kb)
     where
-    go (Knowledge ann pred' syms) acc
+    go (Knowledge _ pred' syms) acc
       | Proved Refl <- pred `sameArity` pred'
       , pred == pred' = syms : acc
       | otherwise = acc

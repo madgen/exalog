@@ -53,7 +53,7 @@ data instance ProgramAnn 'ABase   = ProgABase {_span :: SrcSpan}
   deriving (Eq, Ord, Show)
 
 data family KnowledgeAnn (a :: AnnType)
-data instance KnowledgeAnn 'ABase = KnowABase {_span :: SrcSpan}
+data instance KnowledgeAnn 'ABase = KnowABase
   deriving (Eq, Ord, Show)
 
 type family Ann (a :: AnnType -> Type) :: (AnnType -> Type)
@@ -71,7 +71,6 @@ instance SpannableAnn (PredicateAnn 'ABase) where annSpan = span
 instance SpannableAnn (LiteralAnn   'ABase) where annSpan = span
 instance SpannableAnn (ClauseAnn    'ABase) where annSpan = span
 instance SpannableAnn (ProgramAnn   'ABase) where annSpan = span
-instance SpannableAnn (KnowledgeAnn 'ABase) where annSpan = span
 
 class IdentifiableAnn a b | a -> b where
   idFragment :: a -> b

@@ -39,6 +39,8 @@ data    instance PredicateAnn ('ARename a) = PredARename { _predicateID :: Predi
 data    instance LiteralAnn   ('ARename a) = LitARename  { _literalID   :: LiteralID  , _prevAnn :: LiteralAnn   a }
 data    instance ClauseAnn    ('ARename a) = ClARename   { _clauseID    :: ClauseID   , _prevAnn :: ClauseAnn    a }
 newtype instance ProgramAnn   ('ARename a) = ProgARename {                              _prevAnn :: ProgramAnn   a }
+newtype instance KnowledgeAnn ('ARename a) = KnowARename {                              _prevAnn :: KnowledgeAnn a }
+
 
 type PredicateIDMap ann = BM.Bimap (PredicateBox ('ARename ann)) PredicateID
 type LiteralIDMap ann   = BM.Bimap (Literal      ('ARename ann)) LiteralID
@@ -78,7 +80,7 @@ rename (pr,kb) = evalRename preds $
   (,) <$> renameProgram pr <*> renameSolution kb
   where
   preds = S.fromList $ predicates pr
-       <> KB.map (\(KB.Knowledge pred _) -> PredicateBox pred) kb
+       <> KB.map (\(KB.Knowledge _ pred _) -> PredicateBox pred) kb
 
 renameSolution :: SpannableAnn (PredicateAnn ann)
                => IdentifiableAnn (PredicateAnn ann) a
@@ -88,8 +90,17 @@ renameSolution :: SpannableAnn (PredicateAnn ann)
                => kb ann
                -> Rename ann (kb ('ARename ann))
 renameSolution = fmap KB.fromList
-               . traverse (\(KB.Knowledge pred syms) -> (`KB.Knowledge` syms) <$> renamePredicate pred)
+               . traverse renameKnowledge
                . KB.toList
+
+renameKnowledge :: SpannableAnn (PredicateAnn ann)
+                => IdentifiableAnn (PredicateAnn ann) b
+                => Ord b 
+                => KB.Knowledge ann
+                -> Rename ann (KB.Knowledge ('ARename ann))
+renameKnowledge (KB.Knowledge ann pred syms) = do
+  pred' <- renamePredicate pred
+  pure (KB.Knowledge (KnowARename ann) pred' syms)
 
 renameProgram :: SpannableAnn (PredicateAnn ann)
               => IdentifiableAnn (PredicateAnn ann) a
@@ -231,6 +242,7 @@ instance PeelableAnn PredicateAnn 'ARename where peelA (PredARename _ prevAnn) =
 instance PeelableAnn LiteralAnn   'ARename where peelA (LitARename  _ prevAnn) = prevAnn
 instance PeelableAnn ClauseAnn    'ARename where peelA (ClARename   _ prevAnn) = prevAnn
 instance PeelableAnn ProgramAnn   'ARename where peelA (ProgARename   prevAnn) = prevAnn
+instance PeelableAnn KnowledgeAnn 'ARename where peelA (KnowARename   prevAnn) = prevAnn
 
 instance PeelableAST (Literal ('ARename ann)) where
   peel Literal{..} = Literal

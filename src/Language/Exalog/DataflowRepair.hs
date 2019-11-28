@@ -52,7 +52,7 @@ fixDataflow violationFinder errMsg (pr@Program{..}, sol)
             , _strata     = [ Stratum $ originalClauses <> join guardClausess ]
             , _queries    = (PredicateBox . peel $$) <$> _queries
             , ..}
-         , mconcat (KB.atEach (\(KB.Knowledge pred syms) -> KB.Knowledge (peel pred) syms) sol : guardSols)
+         , mconcat (KB.atEach (\(KB.Knowledge ann pred syms) -> KB.Knowledge (peelA ann) (peel pred) syms) sol : guardSols)
          )
   | otherwise = scream NoSpan
     "Dataflow repair can only be performed prior to stratification."
@@ -123,11 +123,10 @@ mkGuard sp flowSources var = do
 
   pure $ maybe NotFixable (uncurry (Guard guardLit) . second mconcat) mGuard
 
-mkGuardFact :: Identifiable (PredicateAnn ann) id
-            => KB.Knowledgeable kb ann
-            => Predicate 1 ann -> Sym -> kb ann
+mkGuardFact :: KB.Knowledgeable kb 'ABase
+            => Predicate 1 'ABase -> Sym -> kb 'ABase
 mkGuardFact guardPred sym = KB.singleton $
-  KB.Knowledge guardPred (V.singleton sym)
+  KB.Knowledge KnowABase guardPred (V.singleton sym)
 
 mkGuardClause :: SrcSpan -> Literal 'ABase -> Body 'ABase -> Clause 'ABase
 mkGuardClause sp head body = Clause

@@ -87,10 +87,10 @@ instance Pretty (ProgramAnn   'ABase) where pretty _ = empty
 
 -- Knowledge base related instances
 
-instance Identifiable (PredicateAnn ann) b => Pretty (KB.Knowledge ann) where
-  pretty (KB.Knowledge pred syms) = pretty pred <> (csep . prettyC) syms
+instance (Identifiable (KnowledgeAnn ann) a, Identifiable (PredicateAnn ann) b) => Pretty (KB.Knowledge ann) where
+  pretty (KB.Knowledge _ pred syms) = pretty pred <> (csep . prettyC) syms
 
-instance Identifiable (PredicateAnn ann) b => Pretty (KB.Set ann) where
+instance (Identifiable (KnowledgeAnn ann) a, Identifiable (PredicateAnn ann) b) => Pretty (KB.Set ann) where
   pretty = vcat . map pretty . KB.toList
 
 -- Common pretty instances

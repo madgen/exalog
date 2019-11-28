@@ -77,8 +77,6 @@ instance SpannableAnn (ClauseAnn a) => SpannableAnn (ClauseAnn ('ADelta a)) wher
   annSpan (ClADelta ann) = annSpan ann
 instance SpannableAnn (ProgramAnn a) => SpannableAnn (ProgramAnn ('ADelta a)) where
   annSpan (ProgADelta ann) = annSpan ann
-instance SpannableAnn (KnowledgeAnn a) => SpannableAnn (KnowledgeAnn ('ADelta a)) where
-  annSpan (KnowADelta ann) = annSpan ann
 
 instance IdentifiableAnn (PredicateAnn ann) b
     => IdentifiableAnn (PredicateAnn ('ADelta ann)) (Decor,b) where
@@ -101,14 +99,15 @@ updateDecor dec p@Predicate{_annotation = PredADelta _ prevAnn} =
   p {_annotation = PredADelta dec prevAnn}
 
 elimDecor :: KB.Knowledgeable kb ('ADelta a) => Decor -> kb ('ADelta a) -> kb ('ADelta a)
-elimDecor d sol = (`KB.filter` sol) $ \(KB.Knowledge p _) -> decor p /= d
+elimDecor d sol = (`KB.filter` sol) $ \(KB.Knowledge _ p _) -> decor p /= d
 
 decor :: Predicate n ('ADelta a) -> Decor
 decor Predicate{_annotation = PredADelta dec _} = dec
 
-instance DecorableAnn LiteralAnn 'ADelta where decorA = LitADelta
-instance DecorableAnn ClauseAnn  'ADelta where decorA = ClADelta
-instance DecorableAnn ProgramAnn 'ADelta where decorA = ProgADelta
+instance DecorableAnn LiteralAnn   'ADelta where decorA = LitADelta
+instance DecorableAnn ClauseAnn    'ADelta where decorA = ClADelta
+instance DecorableAnn ProgramAnn   'ADelta where decorA = ProgADelta
+instance DecorableAnn KnowledgeAnn 'ADelta where decorA = KnowADelta
 
 instance PeelableAnn PredicateAnn 'ADelta where
   peelA (PredADelta _ prevAnn) = prevAnn
@@ -165,22 +164,28 @@ mkDeltaPredicate deco Predicate{..} = Predicate
 
 mkDeltaSolution :: Semigroup (kb ('ADelta a))
                 => Identifiable (PredicateAnn a) id
+                => Identifiable (KnowledgeAnn a) id1
                 => KB.Knowledgeable kb a
                 => [ PredicateBox a ] -> kb a -> kb ('ADelta a)
 mkDeltaSolution intentionalPreds kb =
   intDeltas <> intPrevs <> extCurrents
   where
   (intentionalKB, extensionalKB) =
-    KB.partition (\(KB.Knowledge p _) -> PredicateBox p `elem` intentionalPreds) kb
+    KB.partition (\(KB.Knowledge _ p _) -> PredicateBox p `elem` intentionalPreds) kb
 
-  intDeltas   = KB.atEach (\(KB.Knowledge p syms) -> KB.Knowledge (mkDeltaPredicate Delta    p) syms) intentionalKB
-  intPrevs    = KB.atEach (\(KB.Knowledge p syms) -> KB.Knowledge (mkDeltaPredicate Prev     p) syms) intentionalKB
-  extCurrents = KB.atEach (\(KB.Knowledge p syms) -> KB.Knowledge (mkDeltaPredicate Constant p) syms) extensionalKB
+  intDeltas   = KB.atEach (mkDeltaKnowledge Delta) intentionalKB
+  intPrevs    = KB.atEach (mkDeltaKnowledge Prev) intentionalKB
+  extCurrents = KB.atEach (mkDeltaKnowledge Constant) extensionalKB
+
+mkDeltaKnowledge :: Decor -> KB.Knowledge ann -> KB.Knowledge ('ADelta ann) 
+mkDeltaKnowledge decoration (KB.Knowledge ann pred syms) = 
+  KB.Knowledge (decorA ann) (mkDeltaPredicate decoration pred) syms
 
 cleanDeltaSolution :: KB.Knowledgeable kb ('ADelta a)
                    => Identifiable (PredicateAnn a) id
+                   => Identifiable (KnowledgeAnn a) id1
                    => kb ('ADelta a) -> kb a
-cleanDeltaSolution = KB.atEach (\(KB.Knowledge pred syms) -> KB.Knowledge (peel pred) syms)
+cleanDeltaSolution = KB.atEach (\(KB.Knowledge ann pred syms) -> KB.Knowledge (peelA ann) (peel pred) syms)
                    . KB.filter isCurrentOrConstant
   where
-  isCurrentOrConstant (KB.Knowledge p _) = decor p `elem` [ Current, Constant ]
+  isCurrentOrConstant (KB.Knowledge _ p _) = decor p `elem` [ Current, Constant ]
