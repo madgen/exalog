@@ -51,6 +51,9 @@ newtype instance ClauseAnn  ('ADelta a)   = ClADelta (ClauseAnn a)
 newtype instance ProgramAnn ('ADelta a)   = ProgADelta (ProgramAnn a)
 newtype instance KnowledgeAnn ('ADelta a) = KnowADelta (KnowledgeAnn a)
 
+instance KB.KnowledgeMaker ann => KB.KnowledgeMaker ('ADelta ann) where
+  mkKnowledge pred syms = KB.Knowledge (KnowADelta (KB._annotation (KB.mkKnowledge (peel pred) syms))) pred syms
+
 deriving instance Show (PredicateAnn a) => Show (PredicateAnn ('ADelta a))
 deriving instance Show (LiteralAnn a)   => Show (LiteralAnn ('ADelta a))
 deriving instance Show (ClauseAnn a)    => Show (ClauseAnn ('ADelta a))

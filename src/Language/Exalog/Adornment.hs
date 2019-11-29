@@ -30,6 +30,7 @@ import Text.PrettyPrint (hcat)
 
 import Language.Exalog.Pretty.Helper (Pretty(..), prettyC)
 import Language.Exalog.Core
+import qualified Language.Exalog.KnowledgeBase.Knowledge as KB
 
 data Adornment = Free | Bound deriving (Eq, Ord, Show)
 
@@ -48,6 +49,9 @@ data    instance LiteralAnn   ('AAdornment ann) = LitAAdornment  [ Adornment ] (
 newtype instance ClauseAnn    ('AAdornment ann) = ClAAdornment                 (ClauseAnn     ann)
 newtype instance ProgramAnn   ('AAdornment ann) = ProgAAdornment               (ProgramAnn    ann)
 newtype instance KnowledgeAnn ('AAdornment ann) = KnowAAdornment               (KnowledgeAnn  ann)
+
+instance KB.KnowledgeMaker ann => KB.KnowledgeMaker ('AAdornment ann) where
+  mkKnowledge predicate syms = KB.Knowledge (KnowAAdornment (KB._annotation (KB.mkKnowledge (peel predicate) syms))) predicate syms
 
 deriving instance Show (PredicateAnn a)  => Show (PredicateAnn ('AAdornment a))
 deriving instance Show (LiteralAnn a)    => Show (LiteralAnn   ('AAdornment a))

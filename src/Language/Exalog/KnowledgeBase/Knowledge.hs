@@ -26,6 +26,12 @@ data Knowledge a = forall n. Knowledge
   , _terms      :: (V.Vector n Sym)
   }
 
+class KnowledgeMaker ann where
+  mkKnowledge :: Predicate n ann -> V.Vector n Sym -> Knowledge ann
+
+instance KnowledgeMaker ABase where
+  mkKnowledge pred syms = Knowledge KnowABase pred syms
+
 deriving instance (Show (KnowledgeAnn ann), Show (PredicateAnn ann)) => Show (Knowledge ann)
 
 instance

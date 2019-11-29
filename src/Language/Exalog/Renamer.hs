@@ -41,6 +41,8 @@ data    instance ClauseAnn    ('ARename a) = ClARename   { _clauseID    :: Claus
 newtype instance ProgramAnn   ('ARename a) = ProgARename {                              _prevAnn :: ProgramAnn   a }
 newtype instance KnowledgeAnn ('ARename a) = KnowARename {                              _prevAnn :: KnowledgeAnn a }
 
+instance KB.KnowledgeMaker ann => KB.KnowledgeMaker ('ARename ann) where
+  mkKnowledge predicate syms = KB.Knowledge (KnowARename (KB._annotation (KB.mkKnowledge (peel predicate) syms))) predicate syms
 
 type PredicateIDMap ann = BM.Bimap (PredicateBox ('ARename ann)) PredicateID
 type LiteralIDMap ann   = BM.Bimap (Literal      ('ARename ann)) LiteralID
