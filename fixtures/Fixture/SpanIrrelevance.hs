@@ -53,7 +53,7 @@ cTuples = fromJust . V.fromList <$>
   ]
 
 cKB :: Set 'ABase
-cKB = fromList $ Knowledge cPred . fmap symbol <$> cTuples
+cKB = fromList $ mkKnowledge cPred . fmap symbol <$> cTuples
 
 initEDB :: Set 'ABase
 initEDB = cKB

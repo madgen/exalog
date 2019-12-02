@@ -62,7 +62,7 @@ cTuples = fromJust . V.fromList <$>
   ]
 
 initEDB :: Set 'ABase
-initEDB = fromList $ Knowledge cPred . fmap symbol <$> cTuples
+initEDB = fromList $ mkKnowledge cPred . fmap symbol <$> cTuples
 
 rTuples :: [ V.Vector 2 Sym ]
 rTuples = fmap symbol . fromJust . V.fromList <$>

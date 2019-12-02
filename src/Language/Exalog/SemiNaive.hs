@@ -37,10 +37,12 @@ type SemiNaive  kb = SemiNaiveT kb (LoggerT IO)
 evalSemiNaiveT :: KB.Knowledgeable kb ann => SemiNaiveT (kb ann) m a -> kb ann -> m a
 evalSemiNaiveT = runReaderT
 
-semiNaive :: forall a b kb
+semiNaive :: forall a b c kb
            . SpannableAST a
           => Identifiable (PredicateAnn a) b
+          => Identifiable (KnowledgeAnn a) c
           => KB.Knowledgeable kb ('ADelta a)
+          => KB.KnowledgeMaker a
           => Semigroup (kb ('ADelta a))
           => Stratum ('ADelta a)
           -> SemiNaive (kb ('ADelta a)) (kb ('ADelta a))
@@ -58,15 +60,15 @@ semiNaive stratum@(Stratum clss) = do
 
   areAllDeltaEmpty :: kb ('ADelta a) -> Bool
   areAllDeltaEmpty = KB.null
-                   . KB.filter (\(KB.Knowledge p _) -> decor p == Delta)
+                   . KB.filter (\(KB.Knowledge _ p _) -> decor p == Delta)
 
   -- Adds the current deltas to the normal version of the relation.
   -- Basicall S_{i+1} = S_i \cup delta S_i
-  updateFromDelta :: kb ('ADelta a) -> kb ('ADelta a)
+  updateFromDelta :: KB.KnowledgeMaker a => kb ('ADelta a) -> kb ('ADelta a)
   updateFromDelta edb = sconcat
                       $ edb :| map (updateFromDelta' edb) intentionalPreds
 
-  updateFromDelta' :: kb ('ADelta a) -> PredicateBox a -> kb ('ADelta a)
+  updateFromDelta' :: KB.KnowledgeMaker a => kb ('ADelta a) -> PredicateBox a -> kb ('ADelta a)
   updateFromDelta' edb (PredicateBox p) = KB.fromList $
     KB.mkKnowledge (mkDeltaPredicate Current p) <$> tuples
     where
@@ -75,23 +77,23 @@ semiNaive stratum@(Stratum clss) = do
     tuples = deltaTuples <> prevTuples
 
   -- Current to Prev
-  shiftPrevs :: kb ('ADelta a) -> kb ('ADelta a)
+  shiftPrevs :: (Identifiable (KnowledgeAnn a) id, Ord id) => kb ('ADelta a) -> kb ('ADelta a)
   shiftPrevs kb = (`KB.atEach` kb) $ \knowledge@(KB.Knowledge ann pred terms) ->
     case decor pred of
       Current -> KB.Knowledge ann (updateDecor Prev pred) terms
       _       -> knowledge
 
-  axeDeltaRedundancies :: kb ('ADelta a) -> kb ('ADelta a)
+  axeDeltaRedundancies :: (Identifiable (KnowledgeAnn a) id, Ord id) => kb ('ADelta a) -> kb ('ADelta a)
   axeDeltaRedundancies edb = (deltas `KB.difference` currentsAsDeltas) <> others
     where
     (deltas,others) =
-      KB.partition (\(KB.Knowledge ann pred _) -> decor pred == Delta) edb
+      KB.partition (\(KB.Knowledge _ pred _) -> decor pred == Delta) edb
     currents =
-      KB.filter (\(KB.Knowledge ann pred _) -> decor pred == Current) others
+      KB.filter (\(KB.Knowledge _ pred _) -> decor pred == Current) others
     currentsAsDeltas =
       KB.atEach (\(KB.Knowledge ann pred syms) -> KB.Knowledge ann (updateDecor Delta pred) syms) currents
 
-  step :: KB.KnowledgeMaker a => SemiNaive (kb ('ADelta a)) (kb ('ADelta a))
+  step :: (KB.KnowledgeMaker a, Identifiable (KnowledgeAnn a) id, Ord id) => SemiNaive (kb ('ADelta a)) (kb ('ADelta a))
   step = do
     let evalClauses' = evalClauses clss
     let maintenance = updateFromDelta . shiftPrevs . elimDecor Prev

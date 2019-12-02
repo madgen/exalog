@@ -90,4 +90,4 @@ guard0Tuples :: [ V.Vector 1 Int ]
 guard0Tuples = fromJust . V.fromList <$> [ [ 1 ] ]
 
 guard0Rel :: KB.Set 'ABase
-guard0Rel = KB.fromList $ KB.Knowledge guard0Pred . fmap symbol <$> guard0Tuples
+guard0Rel = KB.fromList $ KB.mkKnowledge guard0Pred . fmap symbol <$> guard0Tuples
