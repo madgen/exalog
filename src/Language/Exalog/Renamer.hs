@@ -239,6 +239,8 @@ instance IdentifiableAnn (ClauseAnn    ann) b => IdentifiableAnn (ClauseAnn    (
   idFragment (ClARename   (ClauseID id)    _) = id
 instance IdentifiableAnn (ProgramAnn   ann) b => IdentifiableAnn (ProgramAnn   ('ARename ann)) b where
   idFragment (ProgARename               rest) = idFragment rest
+instance IdentifiableAnn (KnowledgeAnn ann) b => IdentifiableAnn (KnowledgeAnn ('ARename ann)) b where
+  idFragment (KnowARename               rest) = idFragment rest
 
 instance PeelableAnn PredicateAnn 'ARename where peelA (PredARename _ prevAnn) = prevAnn
 instance PeelableAnn LiteralAnn   'ARename where peelA (LitARename  _ prevAnn) = prevAnn

@@ -31,10 +31,10 @@ spec =
       it "adorns swapped non-linear ancestor correctly" $
         adornProgram NLAnc.programSwapped `shouldBe` NLAnc.adornedProgramSwapped
 
-      finalEDB <- execSolver NLAnc.adornedProgram (atEach (\(Knowledge pred syms) -> Knowledge (decorate pred) syms) AncEDB.initEDB)
+      finalEDB <- execSolver NLAnc.adornedProgram (atEach (\(Knowledge _ pred syms) -> mkKnowledge (decorate pred) syms) AncEDB.initEDB)
       it "adornment preserves non-linear ancestor solutions" $
-        finalEDB `shouldBe` Just (atEach (\(Knowledge pred syms) -> Knowledge (decorate pred) syms) AncEDB.finalEDB)
+        finalEDB `shouldBe` Just (atEach (\(Knowledge _ pred syms) -> mkKnowledge (decorate pred) syms) AncEDB.finalEDB)
 
-      finalEDB <- execSolver LAnc.adornedProgram (atEach (\(Knowledge pred syms) -> Knowledge (decorate pred) syms) AncEDB.initEDB)
+      finalEDB <- execSolver LAnc.adornedProgram (atEach (\(Knowledge _ pred syms) -> mkKnowledge (decorate pred) syms) AncEDB.initEDB)
       it "adornment preserves linear ancestor solutions" $
-        finalEDB `shouldBe` Just (atEach (\(Knowledge pred syms) -> Knowledge (decorate pred) syms) AncEDB.finalEDB)
+        finalEDB `shouldBe` Just (atEach (\(Knowledge _ pred syms) -> mkKnowledge (decorate pred) syms) AncEDB.finalEDB)
