@@ -52,7 +52,7 @@ newtype instance ProgramAnn ('ADelta a)   = ProgADelta (ProgramAnn a)
 newtype instance KnowledgeAnn ('ADelta a) = KnowADelta (KnowledgeAnn a)
 
 instance KB.KnowledgeMaker ann => KB.KnowledgeMaker ('ADelta ann) where
-  mkKnowledge pred syms = KB.Knowledge (KnowADelta (KB._annotation (KB.mkKnowledge (peel pred) syms))) pred syms
+  mkKnowledge clause pred syms = KB.Knowledge (KnowADelta (KB._annotation (KB.mkKnowledge (peel clause) (peel pred) syms))) pred syms
 
 deriving instance Show (PredicateAnn a) => Show (PredicateAnn ('ADelta a))
 deriving instance Show (LiteralAnn a)   => Show (LiteralAnn ('ADelta a))
@@ -114,8 +114,18 @@ instance DecorableAnn KnowledgeAnn 'ADelta where decorA = KnowADelta
 
 instance PeelableAnn PredicateAnn 'ADelta where
   peelA (PredADelta _ prevAnn) = prevAnn
+instance PeelableAnn LiteralAnn 'ADelta where
+  peelA (LitADelta prevAnn) = prevAnn
+instance PeelableAnn ClauseAnn 'ADelta where
+  peelA (ClADelta prevAnn) = prevAnn
 instance PeelableAnn KnowledgeAnn 'ADelta where
   peelA (KnowADelta prevAnn) = prevAnn
+
+instance PeelableAST (Literal ('ADelta a)) where
+  peel Literal{..} =
+      Literal { _annotation = peelA _annotation
+              , _predicate  = peel  _predicate
+              , ..}
 
 -- |For each clause, generate a version for each IDB predicate where the
 -- IDB predicate appears in delta form i.e. we focus on the newly generated

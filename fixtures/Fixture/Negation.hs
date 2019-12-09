@@ -60,7 +60,7 @@ program = Program (ProgABase NoSpan)
   ]
 
 rKB :: Set 'ABase
-rKB = fromList $ mkKnowledge rPred . fmap symbol . fromJust . V.fromList <$>
+rKB = fromList $ (Knowledge KnowABase) rPred . fmap symbol . fromJust . V.fromList <$>
   ([ [ "x"     , "y" ]
   , [ "x"     , "z" ]
   , [ "z"     , "x" ]
@@ -72,11 +72,11 @@ initEDB :: Set 'ABase
 initEDB = rKB
 
 vKB :: Set 'ABase
-vKB = fromList $ mkKnowledge vPred . fmap symbol . fromJust . V.fromList <$>
+vKB = fromList $ (Knowledge KnowABase) vPred . fmap symbol . fromJust . V.fromList <$>
   ([ [ "x" ], [ "y" ], [ "z" ], [ "w" ] ] :: [ [ Text ] ])
 
 tKB :: Set 'ABase
-tKB = fromList $ mkKnowledge tPred . fmap symbol . fromJust . V.fromList <$>
+tKB = fromList $ (Knowledge KnowABase) tPred . fmap symbol . fromJust . V.fromList <$>
   ([ [ "x"     , "x" ]
   , [ "x"     , "y" ]
   , [ "y"     , "w" ]
@@ -89,7 +89,7 @@ tKB = fromList $ mkKnowledge tPred . fmap symbol . fromJust . V.fromList <$>
   ] :: [ [ Text ] ])
 
 tcKB :: Set 'ABase
-tcKB = fromList $ mkKnowledge tcPred . fmap symbol . fromJust . V.fromList <$>
+tcKB = fromList $ (Knowledge KnowABase) tcPred . fmap symbol . fromJust . V.fromList <$>
   ([ [ "y"     , "x" ]
   , [ "y"     , "z" ]
   , [ "w"     , "z" ]

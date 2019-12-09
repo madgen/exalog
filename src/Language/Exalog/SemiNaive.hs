@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -8,6 +9,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ExistentialQuantification #-}
+
 
 module Language.Exalog.SemiNaive
   ( semiNaive
@@ -65,17 +67,26 @@ semiNaive stratum@(Stratum clss) = do
   -- Adds the current deltas to the normal version of the relation.
   -- Basicall S_{i+1} = S_i \cup delta S_i
   updateFromDelta :: KB.KnowledgeMaker a => kb ('ADelta a) -> kb ('ADelta a)
-  updateFromDelta edb = sconcat
-                      $ edb :| map (updateFromDelta' edb) intentionalPreds
+  updateFromDelta edb = 
+    sconcat $ edb :| map (updateFromDelta' edb) intentionalPreds
 
-  updateFromDelta' :: KB.KnowledgeMaker a => kb ('ADelta a) -> PredicateBox a -> kb ('ADelta a)
+  {-updateFromDelta' :: KB.KnowledgeMaker a => kb ('ADelta a) -> PredicateBox a -> kb ('ADelta a)
   updateFromDelta' edb (PredicateBox p) = KB.fromList $
     KB.mkKnowledge (mkDeltaPredicate Current p) <$> tuples
     where
     deltaTuples = KB.findByPred (mkDeltaPredicate Delta p) edb
     prevTuples  = KB.findByPred (mkDeltaPredicate Prev  p) edb
-    tuples = deltaTuples <> prevTuples
+    tuples = deltaTuples <> prevTuples-}
 
+  updateFromDelta' :: KB.KnowledgeMaker a => kb ('ADelta a) -> PredicateBox a -> kb ('ADelta a)
+  updateFromDelta' edb (PredicateBox p) = (`KB.atEach` prevAndDeltaKnowledges) $ \knowledge@(KB.Knowledge ann pred terms) ->
+    case decor pred of
+      Delta -> KB.Knowledge ann (updateDecor Current pred) terms
+      Prev  -> KB.Knowledge ann (updateDecor Current pred) terms
+      _       -> knowledge
+    where
+    prevAndDeltaKnowledges = KB.filter (\KB.Knowledge{_predicate} -> (PredicateBox _predicate) == (PredicateBox (mkDeltaPredicate Delta p)) || (PredicateBox _predicate) == (PredicateBox (mkDeltaPredicate Prev p))) edb  
+  
   -- Current to Prev
   shiftPrevs :: (Identifiable (KnowledgeAnn a) id, Ord id) => kb ('ADelta a) -> kb ('ADelta a)
   shiftPrevs kb = (`KB.atEach` kb) $ \knowledge@(KB.Knowledge ann pred terms) ->
@@ -120,10 +131,13 @@ evalClause cl@Clause{..} = deriveHead =<< foldM walkBody [ U.empty ] _body
   where
   deriveHead :: [ U.Unifier ] -> SemiNaive (kb a) (kb a)
   deriveHead unifiers
-    | Literal{_predicate = pred, _terms = terms} <- _head = do
-      let preTuples = map (`U.substitute` terms) unifiers
-      tuples <- lift $ traverse extractHeadTuple preTuples
-      pure $ KB.fromList $ map (KB.mkKnowledge pred) tuples
+    | Literal{_predicate = pred, _terms = terms} <- _head = 
+      fmap KB.fromList $ sequence $ do
+        unifier <- unifiers
+        let preTuple = unifier `U.substitute` terms
+        let groundClause = unifier `U.substitute` cl
+        let tupleM = lift $ extractHeadTuple preTuple
+        pure $ KB.mkKnowledge groundClause pred <$> tupleM
 
   walkBody :: [ U.Unifier ] -> Literal a -> SemiNaive (kb a) [ U.Unifier ]
   walkBody unifiers lit = fmap (catMaybes . concat) $ sequence $ do

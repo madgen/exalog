@@ -29,7 +29,7 @@ parentTuples = fromJust . V.fromList <$>
   ]
 
 parentKB :: Set 'ABase
-parentKB = KB.fromList $ mkKnowledge parPred . fmap symbol <$> parentTuples
+parentKB = KB.fromList $ (Knowledge KnowABase) parPred . fmap symbol <$> parentTuples
 
 ancestorTuples :: [ V.Vector 2 Text ]
 ancestorTuples =
@@ -47,7 +47,7 @@ ancestorTuples =
   ]
 
 ancestorKB :: Set 'ABase
-ancestorKB = KB.fromList $ mkKnowledge ancPred . fmap symbol <$> ancestorTuples
+ancestorKB = KB.fromList $ (Knowledge KnowABase) ancPred . fmap symbol <$> ancestorTuples
 
 initEDB :: Set 'ABase
 initEDB = parentKB

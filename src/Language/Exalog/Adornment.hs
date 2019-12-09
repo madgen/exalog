@@ -12,6 +12,11 @@
 
 module Language.Exalog.Adornment
   ( Adornment(..)
+  , PredicateAnn(..)
+  , LiteralAnn(..)
+  , ClauseAnn(..)
+  , ProgramAnn(..)
+  , KnowledgeAnn(..)
   , adornment
   , adornProgram
   , adornClauses
@@ -51,7 +56,7 @@ newtype instance ProgramAnn   ('AAdornment ann) = ProgAAdornment               (
 newtype instance KnowledgeAnn ('AAdornment ann) = KnowAAdornment               (KnowledgeAnn  ann)
 
 instance KB.KnowledgeMaker ann => KB.KnowledgeMaker ('AAdornment ann) where
-  mkKnowledge predicate syms = KB.Knowledge (KnowAAdornment (KB._annotation (KB.mkKnowledge (peel predicate) syms))) predicate syms
+  mkKnowledge clause predicate syms = KB.Knowledge (KnowAAdornment (KB._annotation (KB.mkKnowledge (peel clause) (peel predicate) syms))) predicate syms
 
 deriving instance Show (PredicateAnn a)  => Show (PredicateAnn ('AAdornment a))
 deriving instance Show (LiteralAnn a)    => Show (LiteralAnn   ('AAdornment a))
@@ -75,9 +80,10 @@ instance DecorableAnn PredicateAnn 'AAdornment where decorA = PredAAdornment
 instance DecorableAnn ClauseAnn    'AAdornment where decorA = ClAAdornment
 instance DecorableAnn ProgramAnn   'AAdornment where decorA = ProgAAdornment
 
-instance PeelableAnn PredicateAnn 'AAdornment where peelA (PredAAdornment ann)  = ann
+instance PeelableAnn PredicateAnn 'AAdornment where peelA (PredAAdornment  ann) = ann
 instance PeelableAnn LiteralAnn   'AAdornment where peelA (LitAAdornment _ ann) = ann
-instance PeelableAnn KnowledgeAnn 'AAdornment where peelA (KnowAAdornment ann)  = ann
+instance PeelableAnn ClauseAnn    'AAdornment where peelA (ClAAdornment    ann) = ann
+instance PeelableAnn KnowledgeAnn 'AAdornment where peelA (KnowAAdornment  ann) = ann
 
 instance IdentifiableAnn (PredicateAnn ann) b
     => IdentifiableAnn (PredicateAnn ('AAdornment ann)) b where
@@ -105,6 +111,12 @@ instance SpannableAnn (ProgramAnn a) => SpannableAnn (ProgramAnn ('AAdornment a)
   annSpan (ProgAAdornment ann) = annSpan ann
 instance SpannableAnn (KnowledgeAnn a) => SpannableAnn (KnowledgeAnn ('AAdornment a)) where
   annSpan (KnowAAdornment ann) = annSpan ann
+
+instance PeelableAST (Literal ('AAdornment a)) where
+  peel Literal{..} =
+      Literal { _annotation = peelA _annotation
+              , _predicate  = peel  _predicate
+              , ..}
 
 --------------------------------------------------------------------------------
 -- Accessor to the binding pattern
