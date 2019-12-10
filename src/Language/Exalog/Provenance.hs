@@ -9,7 +9,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
 module Language.Exalog.Provenance
-  () where
+  (Provenance, DecorableAST, DecorableAnn) where
 
 import Protolude hiding (head, pred)
 
@@ -18,16 +18,21 @@ import           Language.Exalog.Core
 import qualified Language.Exalog.KnowledgeBase.Knowledge as KB
 import qualified Language.Exalog.KnowledgeBase.Class as KB
 
+data Provenance a = Derived (Clause a) | Given
+deriving instance Eq   (Clause a) => Eq (Provenance a)
+deriving instance Ord  (Clause a) => Ord (Provenance a)
+deriving instance Show (Clause a) => Show (Provenance a)
+
 newtype instance PredicateAnn ('AProvenance a) = PredAProvenance (PredicateAnn a)
 newtype instance LiteralAnn   ('AProvenance a) = LitAProvenance (LiteralAnn a)
 newtype instance ClauseAnn    ('AProvenance a) = ClAProvenance (ClauseAnn a)
 newtype instance ProgramAnn   ('AProvenance a) = ProgAProvenance (ProgramAnn a)
-data instance KnowledgeAnn    ('AProvenance a) = KnowAProvenance {_clause :: Clause ('AProvenance a), _prevAnn :: KnowledgeAnn a }
+data instance KnowledgeAnn    ('AProvenance a) = KnowAProvenance {_provenance :: Provenance ('AProvenance a), _prevAnn :: KnowledgeAnn a }
 
 instance KB.KnowledgeMaker ann => KB.KnowledgeMaker ('AProvenance ann) where
   mkKnowledge clause pred syms = KB.Knowledge
     (KnowAProvenance
-        clause
+        (Derived clause)
         (KB._annotation previousKnowledge)
     )
     pred
@@ -91,7 +96,7 @@ instance IdentifiableAnn (ProgramAnn ann) b
     => IdentifiableAnn (ProgramAnn ('AProvenance ann)) b where
   idFragment (ProgAProvenance rest) = idFragment rest
 instance IdentifiableAnn (KnowledgeAnn ann) b
-    => IdentifiableAnn (KnowledgeAnn ('AProvenance ann)) (Clause ('AProvenance ann), b) where
+    => IdentifiableAnn (KnowledgeAnn ('AProvenance ann)) (Provenance ('AProvenance ann), b) where
   idFragment (KnowAProvenance clause rest) = (clause, idFragment rest)
 
 instance PeelableAnn PredicateAnn 'AProvenance where
@@ -108,3 +113,24 @@ instance PeelableAST (Literal ('AProvenance a)) where
         Literal { _annotation = peelA _annotation
                 , _predicate  = peel  _predicate
                 , ..}
+
+instance DecorableAnn PredicateAnn 'AProvenance where
+    decorA = PredAProvenance
+instance DecorableAnn LiteralAnn 'AProvenance where
+    decorA = LitAProvenance
+instance DecorableAnn ClauseAnn 'AProvenance where
+    decorA = ClAProvenance
+instance DecorableAnn KnowledgeAnn 'AProvenance where
+    decorA = KnowAProvenance Given
+
+instance DecorableAST (Literal a) 'AProvenance where
+    decorate Literal{..} =
+        Literal { _annotation = decorA   _annotation
+                , _predicate  = decorate _predicate
+                , ..}
+
+instance DecorableAST (KB.Knowledge a) 'AProvenance where
+    decorate KB.Knowledge{..} =
+        KB.Knowledge { _annotation = decorA _annotation
+                     , _predicate  = decorate _predicate
+                     , ..}
