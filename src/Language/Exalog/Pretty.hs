@@ -84,16 +84,16 @@ instance Pretty (PredicateAnn 'ABase) where pretty _ = empty
 instance Pretty (LiteralAnn   'ABase) where pretty _ = empty
 instance Pretty (ClauseAnn    'ABase) where pretty _ = empty
 instance Pretty (ProgramAnn   'ABase) where pretty _ = empty
-
+instance Pretty (KnowledgeAnn 'ABase) where pretty _ = empty
 -- Knowledge base related instances
 
-instance (Identifiable (KnowledgeAnn ann) a, Identifiable (PredicateAnn ann) b) => Pretty (KB.Knowledge ann) where
-  pretty (KB.Knowledge _ pred syms) = pretty pred <> (csep . prettyC) syms
+instance (Pretty (KnowledgeAnn ann), Identifiable (KnowledgeAnn ann) a, Identifiable (PredicateAnn ann) b) => Pretty (KB.Knowledge ann) where
+  pretty (KB.Knowledge ann pred syms) = pretty pred <> (csep . prettyC) syms <> pretty ann
 
-instance (Identifiable (KnowledgeAnn ann) a, Identifiable (PredicateAnn ann) b) => Pretty (KB.Set ann) where
+instance (Pretty (KnowledgeAnn ann), Identifiable (KnowledgeAnn ann) a, Identifiable (PredicateAnn ann) b) => Pretty (KB.Set ann) where
   pretty = vcat . map pretty . KB.toList
 
--- Common pretty instances
+  -- Common pretty instances
 
 instance Pretty Bool where
   pretty True  = "true"
@@ -106,3 +106,8 @@ instance Pretty a => PrettyCollection (NE.NonEmpty a) where
 
 instance Pretty a => PrettyCollection (V.Vector n a) where
   prettyC = map pretty . V.toList
+
+instance Pretty (KB.Set a) => Pretty (Maybe (KB.Set a)) where
+  pretty m = case m of 
+    Just s -> pretty s
+    Nothing -> empty
