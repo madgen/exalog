@@ -23,6 +23,7 @@ import           Data.List (lookup, nub)
 import qualified Data.List.NonEmpty as NE
 
 import           Language.Exalog.Core
+import qualified Language.Exalog.KnowledgeBase.Knowledge as KB
 
 type DependencyGr (a :: AnnType) = P.Gr (PredicateBox a) Polarity
 
@@ -32,6 +33,11 @@ newtype instance LiteralAnn ('ADependency a)   = LitADependency (LiteralAnn a)
 newtype instance ClauseAnn  ('ADependency a)   = ClADependency (ClauseAnn a)
 data    instance ProgramAnn ('ADependency a)   =
   ProgADependency (DependencyGr a) (ProgramAnn a)
+newtype instance KnowledgeAnn ('ADependency a) =
+    KnowADependency (KnowledgeAnn a)
+
+instance KB.KnowledgeMaker ann => KB.KnowledgeMaker ('ADependency ann) where
+  mkKnowledge clause predicate syms = KB.Knowledge (KnowADependency (KB._annotation (KB.mkKnowledge (peel clause) (peel predicate) syms))) predicate syms
 
 instance SpannableAnn (PredicateAnn a) => SpannableAnn (PredicateAnn ('ADependency a)) where
   annSpan (PredADependency ann) = annSpan ann

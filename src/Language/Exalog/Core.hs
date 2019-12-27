@@ -48,6 +48,7 @@ module Language.Exalog.Core
   , SpannableAST
   , Formula(..)
   , HasIntentionals(..)
+  , Decored
   -- * Helper functions
   , literals
   , sameArity
@@ -194,12 +195,12 @@ instance {-# OVERLAPPABLE #-}
   peel (PredicateBox p) = PredicateBox $ peel p
 
 -- Helpers for decorating the tree with an annotation
-type family Decored (ast :: Type) (ann :: AnnType -> AnnType) = (ast' :: Type) | ast' -> ast ann where
-  Decored (Program ann) f = Program (f ann)
-  Decored (Clause ann) f = Clause (f ann)
-  Decored (Literal ann) f = Literal (f ann)
-  Decored (Predicate n ann) f = Predicate n (f ann)
-  Decored (PredicateBox ann) f = PredicateBox (f ann)
+type family Decored (ast :: Type) (ann :: AnnType -> AnnType) = (ast' :: Type) | ast' -> ast ann
+type instance Decored (Program ann) f = Program (f ann)
+type instance Decored (Clause ann) f = Clause (f ann)
+type instance Decored (Literal ann) f = Literal (f ann)
+type instance Decored (Predicate n ann) f = Predicate n (f ann)
+type instance Decored (PredicateBox ann) f = PredicateBox (f ann)
 
 class DecorableAST (ast :: Type) (ann :: AnnType -> AnnType) where
   decorate :: ast -> Decored ast ann

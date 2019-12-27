@@ -77,7 +77,7 @@ instance Arbitrary Sym => Arbitrary (KB.Knowledge 'ABase) where
     withSomeSing n $
       \(snat :: SNat n) ->
         withKnownNat snat $
-          KB.Knowledge
+          (KB.Knowledge KnowABase)
             <$> (arbitrary :: Gen (Predicate n 'ABase))
             <*> (arbitrary :: Gen (V.Vector n Sym))
 

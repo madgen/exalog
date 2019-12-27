@@ -27,7 +27,9 @@ class Knowledgeable sol a where
   findByPred :: Predicate n a -> sol a -> [ V.Vector n Sym ]
 
   atEach :: IdentifiableAnn (PredicateAnn b) id
+         => IdentifiableAnn (KnowledgeAnn b) id1
          => Ord id
+         => Ord id1
          => (Knowledge a -> Knowledge b) -> sol a -> sol b
 
   singleton :: Knowledge a -> sol a

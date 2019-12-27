@@ -36,7 +36,9 @@ type Solver kb ann = StateT (SolverSt kb ann) (SemiNaive (kb ann))
 
 solve :: SpannableAST a
       => Identifiable (PredicateAnn a) b
+      => Identifiable (KnowledgeAnn a) c
       => KB.Knowledgeable kb a => KB.Knowledgeable kb ('ADelta a)
+      => KB.KnowledgeMaker a
       => Monoid (kb a) => Semigroup (kb ('ADelta a))
       => Program a -> kb a -> Logger (kb a)
 solve = evalSolver compute
@@ -49,7 +51,9 @@ evalSolver action pr sol = evalSemiNaiveT (evalStateT action (SolverSt pr sol)) 
 
 compute :: SpannableAST a
         => Identifiable (PredicateAnn a) b
+        => Identifiable (KnowledgeAnn a) c
         => KB.Knowledgeable kb a => KB.Knowledgeable kb ('ADelta a)
+        => KB.KnowledgeMaker a
         => Semigroup (kb a) => Semigroup (kb ('ADelta a))
         => Solver kb a (kb a)
 compute = do
@@ -62,12 +66,14 @@ compute = do
 
   -- Filter out non-query solutions
   let qPreds = _queries pr
-  pure $ KB.filter (\(KB.Knowledge p _) -> PredicateBox p `elem` qPreds) finalEDB
+  pure $ KB.filter (\(KB.Knowledge _ p _) -> PredicateBox p `elem` qPreds) finalEDB
 
-evalStratum :: forall a b kb
+evalStratum :: forall a b c kb
              . SpannableAST a
             => Identifiable (PredicateAnn a) b
+            => Identifiable (KnowledgeAnn a) c
             => KB.Knowledgeable kb a => KB.Knowledgeable kb ('ADelta a)
+            => KB.KnowledgeMaker a
             => Semigroup (kb a) => Semigroup (kb ('ADelta a))
             => Stratum a -> SemiNaive (kb a) (kb a)
 evalStratum stratum@(Stratum cls) = do
