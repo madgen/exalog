@@ -10,14 +10,14 @@ module Fixture.Ancestor.EDB
   , finalNonLinearProvEDB
   ) where
 
-import Protolude hiding (Set)
+import Protolude hiding (Set, head)
 
 import           Data.Maybe (fromJust)
 import qualified Data.Vector.Sized as V
 import qualified Data.List.NonEmpty as NE
-import           Data.List hiding (head)
+import           Data.List
 
-import           Language.Exalog.Core hiding (head)
+import           Language.Exalog.Core
 import qualified Language.Exalog.KnowledgeBase.Class as KB
 import           Language.Exalog.KnowledgeBase.Knowledge
 import           Language.Exalog.KnowledgeBase.Set
