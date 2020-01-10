@@ -7,7 +7,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE RecordWildCards #-}
 
 module Language.Exalog.KnowledgeBase.Knowledge where
 
@@ -22,18 +21,24 @@ import Data.Type.Equality ((:~:)(..))
 import Language.Exalog.Core
 
 data Knowledge a = forall n. Knowledge 
-  { _annotation :: (KnowledgeAnn a)
-  , _predicate  :: (Predicate n a)
-  , _terms      :: (V.Vector n Sym)
+  { _annotation :: KnowledgeAnn a
+  , _predicate  :: Predicate n a
+  , _terms      :: V.Vector n Sym
   }
+
+type instance Ann Knowledge = KnowledgeAnn
+type instance Decored (Knowledge ann) f = Knowledge (f ann)
 
 class KnowledgeMaker ann where
   mkKnowledge :: Clause ann -> Predicate n ann -> V.Vector n Sym -> Knowledge ann
 
 instance KnowledgeMaker 'ABase where
-  mkKnowledge _ pred syms = Knowledge KnowABase pred syms
+  mkKnowledge _ = Knowledge KnowABase
 
-deriving instance (Show (KnowledgeAnn ann), Show (PredicateAnn ann)) => Show (Knowledge ann)
+deriving instance
+  ( Show (KnowledgeAnn ann)
+  , Show (PredicateAnn ann)
+  ) => Show (Knowledge ann)
 
 instance
   ( IdentifiableAnn (PredicateAnn a) b
@@ -43,7 +48,8 @@ instance
   ) => Ord (Knowledge a) where
   Knowledge{_annotation = ann, _predicate = pred, _terms = terms} `compare`
     Knowledge{_annotation = ann', _predicate = pred', _terms = terms'}
-    | Proved Refl <- sameArity pred pred' = (idFragment ann, pred, terms) `compare` (idFragment ann', pred', terms')
+    | Proved Refl <- sameArity pred pred' =
+      (idFragment ann, pred, terms) `compare` (idFragment ann', pred', terms')
     | otherwise = fromSing (_arity pred) `compare` fromSing (_arity pred')
 
 instance
@@ -59,5 +65,3 @@ instance
       pred == pred' &&
       terms == terms'
     | otherwise = False
-
-type instance Decored (Knowledge ann) f = Knowledge (f ann)

@@ -42,7 +42,10 @@ newtype instance ProgramAnn   ('ARename a) = ProgARename {                      
 newtype instance KnowledgeAnn ('ARename a) = KnowARename {                              _prevAnn :: KnowledgeAnn a }
 
 instance KB.KnowledgeMaker ann => KB.KnowledgeMaker ('ARename ann) where
-  mkKnowledge clause predicate syms = KB.Knowledge (KnowARename (KB._annotation (KB.mkKnowledge (peel clause) (peel predicate) syms))) predicate syms
+  mkKnowledge clause pred syms =
+    KB.Knowledge (KnowARename oldAnn) pred syms
+    where
+    oldAnn = KB._annotation (KB.mkKnowledge (peel clause) (peel pred) syms)
 
 type PredicateIDMap ann = BM.Bimap (PredicateBox ('ARename ann)) PredicateID
 type LiteralIDMap ann   = BM.Bimap (Literal      ('ARename ann)) LiteralID

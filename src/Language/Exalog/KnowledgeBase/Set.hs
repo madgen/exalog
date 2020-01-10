@@ -23,13 +23,31 @@ import Language.Exalog.KnowledgeBase.Knowledge
 
 newtype Set ann = Set (S.Set (Knowledge ann))
 
-deriving instance (Identifiable (KnowledgeAnn ann) id1, Identifiable (PredicateAnn ann) id2) => Eq (Set ann)
-deriving instance (Identifiable (KnowledgeAnn ann) id1, Identifiable (PredicateAnn ann) id2) => Semigroup (Set ann)
-deriving instance (Identifiable (KnowledgeAnn ann) id1, Identifiable (PredicateAnn ann) id2) => Monoid (Set ann)
+deriving instance
+  ( IdentifiableAnn (Ann Knowledge ann) id1
+  , IdentifiableAnn (PredicateAnn ann)  id2
+  , Ord id1, Ord id2
+  ) => Eq (Set ann)
+
+deriving instance
+  ( IdentifiableAnn (Ann Knowledge ann) id1
+  , IdentifiableAnn (PredicateAnn ann)  id2
+  , Ord id1, Ord id2
+  ) => Semigroup (Set ann)
+
+deriving instance
+  ( IdentifiableAnn (Ann Knowledge ann) id1
+  , IdentifiableAnn (PredicateAnn ann)  id2
+  , Ord id1, Ord id2
+  ) => Monoid (Set ann)
 
 deriving instance (Show (KnowledgeAnn ann), Show (PredicateAnn ann)) => Show (Set ann)
 
-instance (Identifiable (KnowledgeAnn ann) id1, Identifiable (PredicateAnn ann) id2) => Knowledgeable Set ann where
+instance
+  ( IdentifiableAnn (Ann Knowledge ann) id1
+  , IdentifiableAnn (Ann (Predicate n) ann) id2
+  , Ord id1, Ord id2
+  ) => Knowledgeable Set ann where
   fromList = Set . S.fromList
   toList = S.toList . coerce
 

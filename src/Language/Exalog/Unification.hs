@@ -65,5 +65,5 @@ instance Substitutable (Clause a) where
   substitute unifier Clause{..} =
     Clause {
       _head = unifier `substitute` _head,
-      _body = (substitute unifier) <$> _body,
+      _body = substitute unifier <$> _body,
       ..}

@@ -87,7 +87,7 @@ srcTuples = fromJust . V.fromList <$>
   [ [ 10 ], [ 99 ], [ 100 ], [ 3000 ] ]
 
 initLeq100EDB :: Set 'ABase
-initLeq100EDB = fromList $ (Knowledge KnowABase) srcPred . fmap symbol <$> srcTuples
+initLeq100EDB = fromList $ Knowledge KnowABase srcPred . fmap symbol <$> srcTuples
 
 leq100Tuples :: [ V.Vector 1 Sym ]
 leq100Tuples = fmap symbol . fromJust . V.fromList <$>
@@ -140,7 +140,7 @@ src2Tuples = fromJust . V.fromList <$>
   :: [ [ Text ] ])
 
 initPrefixOfEDB :: Set 'ABase
-initPrefixOfEDB = fromList $ (Knowledge KnowABase) src2Pred . fmap symbol <$> src2Tuples
+initPrefixOfEDB = fromList $ Knowledge KnowABase src2Pred . fmap symbol <$> src2Tuples
 
 prefixOfTuples :: [ V.Vector 2 Sym ]
 prefixOfTuples = fmap symbol . fromJust . V.fromList <$>

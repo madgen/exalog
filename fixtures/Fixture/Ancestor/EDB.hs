@@ -1,20 +1,28 @@
 {-# LANGUAGE DataKinds #-}
 
-module Fixture.Ancestor.EDB (initEDB, finalEDB, ancAncKnowledge, parKnowledge, parAncKnowledge, finalLinearProvEDB, finalNonLinearProvEDB) where
+module Fixture.Ancestor.EDB
+  ( initEDB
+  , finalEDB
+  , ancAncKnowledge
+  , parKnowledge
+  , parAncKnowledge
+  , finalLinearProvEDB
+  , finalNonLinearProvEDB
+  ) where
 
 import Protolude hiding (Set)
 
 import           Data.Maybe (fromJust)
 import qualified Data.Vector.Sized as V
 import qualified Data.List.NonEmpty as NE
-import Data.List
+import           Data.List hiding (head)
 
+import           Language.Exalog.Core hiding (head)
 import qualified Language.Exalog.KnowledgeBase.Class as KB
 import           Language.Exalog.KnowledgeBase.Knowledge
 import           Language.Exalog.KnowledgeBase.Set
-import           Language.Exalog.Core
-import Language.Exalog.SrcLoc
-import Language.Exalog.Provenance
+import           Language.Exalog.Provenance
+import           Language.Exalog.SrcLoc
 
 import Fixture.Ancestor.Common
 import Fixture.Util
@@ -33,7 +41,7 @@ parentTuples = fromJust . V.fromList <$>
   ]
 
 parentKB :: Set 'ABase
-parentKB = KB.fromList $ (Knowledge KnowABase) parPred . fmap symbol <$> parentTuples
+parentKB = KB.fromList $ Knowledge KnowABase parPred . fmap symbol <$> parentTuples
 
 ancestorTuples :: [ V.Vector 2 Text ]
 ancestorTuples =
@@ -51,7 +59,7 @@ ancestorTuples =
   ]
 
 ancestorKB :: Set 'ABase
-ancestorKB = KB.fromList $ (Knowledge KnowABase) ancPred . fmap symbol <$> ancestorTuples
+ancestorKB = KB.fromList $ Knowledge KnowABase ancPred . fmap symbol <$> ancestorTuples
 
 initEDB :: Set 'ABase
 initEDB = parentKB
@@ -63,17 +71,23 @@ finalEDB = parentKB <> ancestorKB
 
 -- anc(X,Z) :- anc(X,Y), anc(Y,Z).
 ancAncClause :: Term -> Term -> Term -> Term -> Term -> Term -> Clause ('AProvenance 'ABase)
-ancAncClause h1 h2 b1 b2 b3 b4 = Clause 
+ancAncClause h1 h2 b1 b2 b3 b4 = Clause
   (ClAProvenance (ClABase NoSpan))
   (ancProv h1 h2)
-  (NE.fromList [ (ancProv b1 b2), (ancProv b3 b4) ])
+  (NE.fromList [ ancProv b1 b2, ancProv b3 b4 ])
 
 ancAncKnowledge :: [ Text ] -> Knowledge ('AProvenance 'ABase)
-ancAncKnowledge t = 
-  mkKnowledge 
-    (ancAncClause (TSym (SymText $ t!!0)) (TSym (SymText $ t!!1)) (TSym (SymText $ t!!2)) (TSym (SymText $ t!!3)) (TSym (SymText $ t!!4)) (TSym (SymText $ t!!5)))
+ancAncKnowledge t =
+  mkKnowledge
+    (ancAncClause
+      (TSym (SymText $ head t))
+      (TSym (SymText $ t !! 1))
+      (TSym (SymText $ t !! 2))
+      (TSym (SymText $ t !! 3))
+      (TSym (SymText $ t !! 4))
+      (TSym (SymText $ t !! 5)))
     ancPredProv
-    (V.fromTuple (SymText $ t!!0, SymText $ t!!1))
+    (V.fromTuple (SymText $ head t, SymText $ t !! 1))
 
 ancAncTuples :: [ [ Text ] ]
 ancAncTuples =
@@ -91,21 +105,25 @@ ancAncTuples =
   ]
 
 ancAncEDB :: Set ('AProvenance 'ABase)
-ancAncEDB = KB.fromList $ Data.List.map ancAncKnowledge ancAncTuples 
+ancAncEDB = KB.fromList $ Data.List.map ancAncKnowledge ancAncTuples
 
 -- anc(X,Y) :- par(X,Y).
 parClause :: Term -> Term -> Term -> Term -> Clause ('AProvenance 'ABase)
-parClause h1 h2 b1 b2 = Clause 
+parClause h1 h2 b1 b2 = Clause
   (ClAProvenance (ClABase NoSpan))
   (ancProv h1 h2)
-  (NE.fromList [ (parProv b1 b2) ])
+  (NE.fromList [ parProv b1 b2 ])
 
 parKnowledge :: [ Text ] -> Knowledge ('AProvenance 'ABase)
-parKnowledge t = 
-  mkKnowledge 
-    (parClause (TSym (SymText (t!!0))) (TSym (SymText (t!!1))) (TSym (SymText (t!!2))) (TSym (SymText (t!!3))))
+parKnowledge t =
+  mkKnowledge
+    (parClause
+      (TSym (SymText (head t)))
+      (TSym (SymText (t !! 1)))
+      (TSym (SymText (t !! 2)))
+      (TSym (SymText (t !! 3))))
     ancPredProv
-    (V.fromTuple (SymText (t!!0), SymText (t!!1)))
+    (V.fromTuple (SymText (head t), SymText (t!!1)))
 
 parTuples :: [ [ Text ] ]
 parTuples =
@@ -121,21 +139,27 @@ parTuples =
   ]
 
 parEDB :: Set ('AProvenance 'ABase)
-parEDB = KB.fromList $ Data.List.map parKnowledge parTuples 
+parEDB = KB.fromList $ Data.List.map parKnowledge parTuples
 
 -- anc(X,Z) :- par(X,Y), anc(Y,Z).
 parAncClause :: Term -> Term -> Term -> Term -> Term -> Term -> Clause ('AProvenance 'ABase)
-parAncClause h1 h2 b1 b2 b3 b4 = Clause 
+parAncClause h1 h2 b1 b2 b3 b4 = Clause
   (ClAProvenance (ClABase NoSpan))
   (ancProv h1 h2)
-  (NE.fromList [ (parProv b1 b2), (ancProv b3 b4) ])
+  (NE.fromList [ parProv b1 b2, ancProv b3 b4 ])
 
 parAncKnowledge :: [ Text ]-> Knowledge ('AProvenance 'ABase)
-parAncKnowledge t = 
-  mkKnowledge 
-    (parAncClause (TSym (SymText $ t!!0)) (TSym (SymText $ t!!1)) (TSym (SymText $ t!!2)) (TSym (SymText $ t!!3)) (TSym (SymText $ t!!4)) (TSym (SymText $ t!!5)))
+parAncKnowledge t =
+  mkKnowledge
+    (parAncClause
+      (TSym (SymText $ head t))
+      (TSym (SymText $ t !! 1))
+      (TSym (SymText $ t !! 2))
+      (TSym (SymText $ t !! 3))
+      (TSym (SymText $ t !! 4))
+      (TSym (SymText $ t !! 5)))
     ancPredProv
-    (V.fromTuple (SymText $ t!!0, SymText $ t!!1))
+    (V.fromTuple (SymText $ head t, SymText $ t !! 1))
 
 parAncTuples :: [ [ Text ] ]
 parAncTuples =
@@ -150,13 +174,13 @@ parAncTuples =
   ]
 
 parAncEDB :: Set ('AProvenance 'ABase)
-parAncEDB = KB.fromList $ Data.List.map parAncKnowledge parAncTuples 
+parAncEDB = KB.fromList $ parAncKnowledge <$> parAncTuples
 
 initProvEDB :: Set ('AProvenance 'ABase)
-initProvEDB = (KB.atEach (\(Knowledge ann pr syms) -> Knowledge (KnowAProvenance Given ann) (decorate pr) syms) initEDB)
+initProvEDB = KB.atEach decorate initEDB
 
 finalLinearProvEDB :: Set ('AProvenance 'ABase)
-finalLinearProvEDB = initProvEDB <> parAncEDB <> parEDB 
+finalLinearProvEDB = initProvEDB <> parAncEDB <> parEDB
 
 finalNonLinearProvEDB :: Set ('AProvenance 'ABase)
-finalNonLinearProvEDB = initProvEDB <> ancAncEDB <> parEDB 
+finalNonLinearProvEDB = initProvEDB <> ancAncEDB <> parEDB

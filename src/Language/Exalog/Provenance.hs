@@ -24,29 +24,40 @@ import Protolude hiding (head, pred)
 
 import           Language.Exalog.Core
 import qualified Language.Exalog.KnowledgeBase.Knowledge as KB
-import Language.Exalog.Pretty.Helper (Pretty(..), prettyC)
-import Language.Exalog.Pretty
+import           Language.Exalog.Pretty.Helper (Pretty(..))
+import           Language.Exalog.Pretty ()
 
 data Provenance a = Derived (Clause a) | Given
+
 deriving instance Eq   (Clause a) => Eq (Provenance a)
 deriving instance Ord  (Clause a) => Ord (Provenance a)
 deriving instance Show (Clause a) => Show (Provenance a)
 
-instance (Identifiable (PredicateAnn a) id, Identifiable (Ann Literal a) id2) => Pretty (Provenance a) where
-    pretty Given = " Provenance given"
-    pretty (Derived cl) = " Provenance derived from " <> pretty cl
+instance (Pretty (Clause a)) => Pretty (Provenance a) where
+  pretty Given        = "G"
+  pretty (Derived cl) = "D:" <> pretty cl
 
-
-instance (Identifiable (PredicateAnn a) id, Identifiable (Ann Literal a) id2, Pretty b) => Pretty (Provenance a, b) where
-    pretty (prov, b) = pretty prov <> "_" <> pretty b
+instance
+  ( Pretty (Provenance a)
+  , Pretty b
+  ) => Pretty (Provenance a, b) where
+  pretty (prov, b) = pretty prov <> "_" <> pretty b
 
 newtype instance PredicateAnn ('AProvenance a) = PredAProvenance (PredicateAnn a)
 newtype instance LiteralAnn   ('AProvenance a) = LitAProvenance (LiteralAnn a)
 newtype instance ClauseAnn    ('AProvenance a) = ClAProvenance (ClauseAnn a)
 newtype instance ProgramAnn   ('AProvenance a) = ProgAProvenance (ProgramAnn a)
-data instance KnowledgeAnn    ('AProvenance a) = KnowAProvenance {_provenance :: Provenance ('AProvenance a), _prevAnn :: KnowledgeAnn a }
+data    instance KnowledgeAnn ('AProvenance a) = KnowAProvenance
+  { _provenance :: Provenance ('AProvenance a)
+  , _prevAnn    :: KnowledgeAnn a
+  }
 
-instance (Identifiable (PredicateAnn a) id, Identifiable (Ann Literal a) id2, Pretty (KnowledgeAnn a)) => Pretty (KnowledgeAnn ('AProvenance a)) where pretty (KnowAProvenance prov prev) = pretty prov <> pretty prev
+instance
+  ( Identifiable (PredicateAnn a) id
+  , Identifiable (Ann Literal a) id2
+  , Pretty (KnowledgeAnn a)
+  ) => Pretty (KnowledgeAnn ('AProvenance a)) where
+  pretty (KnowAProvenance prov prev) = pretty prov <> pretty prev
 
 instance KB.KnowledgeMaker ann => KB.KnowledgeMaker ('AProvenance ann) where
   mkKnowledge clause pred syms = KB.Knowledge
@@ -56,8 +67,8 @@ instance KB.KnowledgeMaker ann => KB.KnowledgeMaker ('AProvenance ann) where
     )
     pred
     syms
-    where 
-    previousKnowledge = 
+    where
+    previousKnowledge =
         KB.mkKnowledge
             (peel clause)
             (peel pred)

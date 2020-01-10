@@ -67,44 +67,46 @@ semiNaive stratum@(Stratum clss) = do
   -- Adds the current deltas to the normal version of the relation.
   -- Basicall S_{i+1} = S_i \cup delta S_i
   updateFromDelta :: KB.KnowledgeMaker a => kb ('ADelta a) -> kb ('ADelta a)
-  updateFromDelta edb = 
+  updateFromDelta edb =
     sconcat $ edb :| map (updateFromDelta' edb) intentionalPreds
 
-  {-updateFromDelta' :: KB.KnowledgeMaker a => kb ('ADelta a) -> PredicateBox a -> kb ('ADelta a)
-  updateFromDelta' edb (PredicateBox p) = KB.fromList $
-    KB.mkKnowledge (mkDeltaPredicate Current p) <$> tuples
+  updateFromDelta' :: KB.KnowledgeMaker a
+                   => kb ('ADelta a) -> PredicateBox a -> kb ('ADelta a)
+  updateFromDelta' edb (PredicateBox p) = (`KB.atEach` prevsAndDeltas) $
+    \knowledge@(KB.Knowledge ann pred terms) ->
+      case decor pred of
+        Delta -> KB.Knowledge ann (updateDecor Current pred) terms
+        Prev  -> KB.Knowledge ann (updateDecor Current pred) terms
+        _     -> knowledge
     where
-    deltaTuples = KB.findByPred (mkDeltaPredicate Delta p) edb
-    prevTuples  = KB.findByPred (mkDeltaPredicate Prev  p) edb
-    tuples = deltaTuples <> prevTuples-}
 
-  updateFromDelta' :: KB.KnowledgeMaker a => kb ('ADelta a) -> PredicateBox a -> kb ('ADelta a)
-  updateFromDelta' edb (PredicateBox p) = (`KB.atEach` prevAndDeltaKnowledges) $ \knowledge@(KB.Knowledge ann pred terms) ->
-    case decor pred of
-      Delta -> KB.Knowledge ann (updateDecor Current pred) terms
-      Prev  -> KB.Knowledge ann (updateDecor Current pred) terms
-      _       -> knowledge
-    where
-    prevAndDeltaKnowledges = KB.filter (\KB.Knowledge{_predicate} -> (PredicateBox _predicate) == (PredicateBox (mkDeltaPredicate Delta p)) || (PredicateBox _predicate) == (PredicateBox (mkDeltaPredicate Prev p))) edb  
-  
+    prevsAndDeltas = (`KB.filter` edb) $ \KB.Knowledge{_predicate} ->
+      PredicateBox _predicate `elem`
+      [ PredicateBox (mkDeltaPredicate Delta p)
+      , PredicateBox (mkDeltaPredicate Prev p)
+      ]
+
   -- Current to Prev
-  shiftPrevs :: (Identifiable (KnowledgeAnn a) id, Ord id) => kb ('ADelta a) -> kb ('ADelta a)
+  shiftPrevs :: (Identifiable (KnowledgeAnn a) id, Ord id)
+             => kb ('ADelta a) -> kb ('ADelta a)
   shiftPrevs kb = (`KB.atEach` kb) $ \knowledge@(KB.Knowledge ann pred terms) ->
     case decor pred of
       Current -> KB.Knowledge ann (updateDecor Prev pred) terms
       _       -> knowledge
 
-  axeDeltaRedundancies :: (Identifiable (KnowledgeAnn a) id, Ord id) => kb ('ADelta a) -> kb ('ADelta a)
+  axeDeltaRedundancies :: (Identifiable (KnowledgeAnn a) id, Ord id)
+                       => kb ('ADelta a) -> kb ('ADelta a)
   axeDeltaRedundancies edb = (deltas `KB.difference` currentsAsDeltas) <> others
     where
     (deltas,others) =
       KB.partition (\(KB.Knowledge _ pred _) -> decor pred == Delta) edb
     currents =
       KB.filter (\(KB.Knowledge _ pred _) -> decor pred == Current) others
-    currentsAsDeltas =
-      KB.atEach (\(KB.Knowledge ann pred syms) -> KB.Knowledge ann (updateDecor Delta pred) syms) currents
+    currentsAsDeltas = (`KB.atEach` currents) $ \KB.Knowledge{_predicate,..} ->
+      KB.Knowledge{_predicate = updateDecor Delta _predicate,..}
 
-  step :: (KB.KnowledgeMaker a, Identifiable (KnowledgeAnn a) id, Ord id) => SemiNaive (kb ('ADelta a)) (kb ('ADelta a))
+  step :: (KB.KnowledgeMaker a, Identifiable (KnowledgeAnn a) id, Ord id)
+       => SemiNaive (kb ('ADelta a)) (kb ('ADelta a))
   step = do
     let evalClauses' = evalClauses clss
     let maintenance = updateFromDelta . shiftPrevs . elimDecor Prev
@@ -131,7 +133,7 @@ evalClause cl@Clause{..} = deriveHead =<< foldM walkBody [ U.empty ] _body
   where
   deriveHead :: [ U.Unifier ] -> SemiNaive (kb a) (kb a)
   deriveHead unifiers
-    | Literal{_predicate = pred, _terms = terms} <- _head = 
+    | Literal{_predicate = pred, _terms = terms} <- _head =
       fmap KB.fromList $ sequence $ do
         unifier <- unifiers
         let preTuple = unifier `U.substitute` terms

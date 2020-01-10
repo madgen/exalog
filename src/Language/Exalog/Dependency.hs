@@ -37,7 +37,10 @@ newtype instance KnowledgeAnn ('ADependency a) =
     KnowADependency (KnowledgeAnn a)
 
 instance KB.KnowledgeMaker ann => KB.KnowledgeMaker ('ADependency ann) where
-  mkKnowledge clause predicate syms = KB.Knowledge (KnowADependency (KB._annotation (KB.mkKnowledge (peel clause) (peel predicate) syms))) predicate syms
+  mkKnowledge clause pred syms =
+    KB.Knowledge (KnowADependency oldAnn) pred syms
+    where
+    oldAnn = KB._annotation (KB.mkKnowledge (peel clause) (peel pred) syms)
 
 instance SpannableAnn (PredicateAnn a) => SpannableAnn (PredicateAnn ('ADependency a)) where
   annSpan (PredADependency ann) = annSpan ann
