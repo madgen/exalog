@@ -12,6 +12,11 @@
 
 module Language.Exalog.Adornment
   ( Adornment(..)
+  , PredicateAnn(..)
+  , LiteralAnn(..)
+  , ClauseAnn(..)
+  , ProgramAnn(..)
+  , KnowledgeAnn(..)
   , adornment
   , adornProgram
   , adornClauses
@@ -30,6 +35,7 @@ import Text.PrettyPrint (hcat)
 
 import Language.Exalog.Pretty.Helper (Pretty(..), prettyC)
 import Language.Exalog.Core
+import qualified Language.Exalog.KnowledgeBase.Knowledge as KB
 
 data Adornment = Free | Bound deriving (Eq, Ord, Show)
 
@@ -43,32 +49,41 @@ instance Pretty [ Adornment ] where
 instance Pretty b => Pretty ([ Adornment ], b) where
   pretty (dec, b) = pretty dec <> "_" <> pretty b
 
-newtype instance PredicateAnn ('AAdornment ann) = PredAAdornment               (PredicateAnn ann)
-data    instance LiteralAnn   ('AAdornment ann) = LitAAdornment  [ Adornment ] (LiteralAnn   ann)
-newtype instance ClauseAnn    ('AAdornment ann) = ClAAdornment                 (ClauseAnn    ann)
-newtype instance ProgramAnn   ('AAdornment ann) = ProgAAdornment               (ProgramAnn   ann)
+newtype instance PredicateAnn ('AAdornment ann) = PredAAdornment               (PredicateAnn  ann)
+data    instance LiteralAnn   ('AAdornment ann) = LitAAdornment  [ Adornment ] (LiteralAnn    ann)
+newtype instance ClauseAnn    ('AAdornment ann) = ClAAdornment                 (ClauseAnn     ann)
+newtype instance ProgramAnn   ('AAdornment ann) = ProgAAdornment               (ProgramAnn    ann)
+newtype instance KnowledgeAnn ('AAdornment ann) = KnowAAdornment               (KnowledgeAnn  ann)
 
-deriving instance Show (PredicateAnn a) => Show (PredicateAnn ('AAdornment a))
-deriving instance Show (LiteralAnn a)   => Show (LiteralAnn   ('AAdornment a))
-deriving instance Show (ClauseAnn a)    => Show (ClauseAnn    ('AAdornment a))
-deriving instance Show (ProgramAnn a)   => Show (ProgramAnn   ('AAdornment a))
+instance KB.KnowledgeMaker ann => KB.KnowledgeMaker ('AAdornment ann) where
+  mkKnowledge clause predicate syms = KB.Knowledge (KnowAAdornment (KB._annotation (KB.mkKnowledge (peel clause) (peel predicate) syms))) predicate syms
+
+deriving instance Show (PredicateAnn a)  => Show (PredicateAnn ('AAdornment a))
+deriving instance Show (LiteralAnn a)    => Show (LiteralAnn   ('AAdornment a))
+deriving instance Show (ClauseAnn a)     => Show (ClauseAnn    ('AAdornment a))
+deriving instance Show (ProgramAnn a)    => Show (ProgramAnn   ('AAdornment a))
+deriving instance Show (KnowledgeAnn a)  => Show (KnowledgeAnn ('AAdornment a))
 
 deriving instance Eq (PredicateAnn a) => Eq (PredicateAnn ('AAdornment a))
 deriving instance Eq (LiteralAnn a)   => Eq (LiteralAnn   ('AAdornment a))
 deriving instance Eq (ClauseAnn a)    => Eq (ClauseAnn    ('AAdornment a))
 deriving instance Eq (ProgramAnn a)   => Eq (ProgramAnn   ('AAdornment a))
+deriving instance Eq (KnowledgeAnn a) => Eq (KnowledgeAnn ('AAdornment a))
 
-deriving instance Ord (PredicateAnn a) => Ord (PredicateAnn ('AAdornment a))
-deriving instance Ord (LiteralAnn a)   => Ord (LiteralAnn   ('AAdornment a))
-deriving instance Ord (ClauseAnn a)    => Ord (ClauseAnn    ('AAdornment a))
-deriving instance Ord (ProgramAnn a)   => Ord (ProgramAnn   ('AAdornment a))
+deriving instance Ord (PredicateAnn a) => Ord (PredicateAnn  ('AAdornment a))
+deriving instance Ord (LiteralAnn a)   => Ord (LiteralAnn    ('AAdornment a))
+deriving instance Ord (ClauseAnn a)    => Ord (ClauseAnn     ('AAdornment a))
+deriving instance Ord (ProgramAnn a)   => Ord (ProgramAnn    ('AAdornment a))
+deriving instance Ord (KnowledgeAnn a) => Ord (KnowledgeAnn  ('AAdornment a))
 
 instance DecorableAnn PredicateAnn 'AAdornment where decorA = PredAAdornment
 instance DecorableAnn ClauseAnn    'AAdornment where decorA = ClAAdornment
 instance DecorableAnn ProgramAnn   'AAdornment where decorA = ProgAAdornment
 
-instance PeelableAnn PredicateAnn 'AAdornment where peelA (PredAAdornment ann)  = ann
+instance PeelableAnn PredicateAnn 'AAdornment where peelA (PredAAdornment  ann) = ann
 instance PeelableAnn LiteralAnn   'AAdornment where peelA (LitAAdornment _ ann) = ann
+instance PeelableAnn ClauseAnn    'AAdornment where peelA (ClAAdornment    ann) = ann
+instance PeelableAnn KnowledgeAnn 'AAdornment where peelA (KnowAAdornment  ann) = ann
 
 instance IdentifiableAnn (PredicateAnn ann) b
     => IdentifiableAnn (PredicateAnn ('AAdornment ann)) b where
@@ -82,6 +97,9 @@ instance IdentifiableAnn (ClauseAnn ann) b
 instance IdentifiableAnn (ProgramAnn ann) b
     => IdentifiableAnn (ProgramAnn ('AAdornment ann)) b where
   idFragment (ProgAAdornment rest) = idFragment rest
+instance IdentifiableAnn (KnowledgeAnn ann) b
+    => IdentifiableAnn (KnowledgeAnn ('AAdornment ann)) b where
+  idFragment (KnowAAdornment rest) = idFragment rest
 
 instance SpannableAnn (PredicateAnn a) => SpannableAnn (PredicateAnn ('AAdornment a)) where
   annSpan (PredAAdornment ann) = annSpan ann
@@ -91,6 +109,14 @@ instance SpannableAnn (ClauseAnn a) => SpannableAnn (ClauseAnn ('AAdornment a)) 
   annSpan (ClAAdornment ann) = annSpan ann
 instance SpannableAnn (ProgramAnn a) => SpannableAnn (ProgramAnn ('AAdornment a)) where
   annSpan (ProgAAdornment ann) = annSpan ann
+instance SpannableAnn (KnowledgeAnn a) => SpannableAnn (KnowledgeAnn ('AAdornment a)) where
+  annSpan (KnowAAdornment ann) = annSpan ann
+
+instance PeelableAST (Literal ('AAdornment a)) where
+  peel Literal{..} =
+      Literal { _annotation = peelA _annotation
+              , _predicate  = peel  _predicate
+              , ..}
 
 --------------------------------------------------------------------------------
 -- Accessor to the binding pattern

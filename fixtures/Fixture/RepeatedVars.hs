@@ -54,7 +54,7 @@ qTuples = fromJust . V.fromList <$>
   ]
 
 qKB :: Set 'ABase
-qKB = fromList $ Knowledge qPred . fmap symbol <$> qTuples
+qKB = fromList $ Knowledge KnowABase qPred . fmap symbol <$> qTuples
 
 initEDB :: Set 'ABase
 initEDB = qKB

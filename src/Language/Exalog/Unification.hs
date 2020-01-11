@@ -60,3 +60,10 @@ instance Substitutable (V.Vector n Term) where
 instance Substitutable (Literal a) where
   substitute unifier Literal{..} =
     Literal {_terms = unifier `substitute` _terms, ..}
+
+instance Substitutable (Clause a) where
+  substitute unifier Clause{..} =
+    Clause {
+      _head = unifier `substitute` _head,
+      _body = substitute unifier <$> _body,
+      ..}

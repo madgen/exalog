@@ -28,7 +28,9 @@ import           Language.Exalog.Pretty.Helper
 instance Pretty PredicateSymbol where
   pretty (PredicateSymbol predSym) = pretty predSym
 
-instance Identifiable (Ann (Predicate n) ann) b
+instance ( IdentifiableAnn (Ann (Predicate n) ann) id
+         , Pretty id
+         )
     => Pretty (Predicate n ann) where
   pretty Predicate{..} =
       pretty _predSym
@@ -52,11 +54,15 @@ instance Pretty Term where
   pretty (TVar v) = pretty v
   pretty TWild    = "_"
 
-instance (Identifiable (PredicateAnn ann) a) => Pretty (PredicateBox ann) where
+instance ( IdentifiableAnn (PredicateAnn ann) id
+         , Pretty id
+         ) => Pretty (PredicateBox ann) where
   pretty (PredicateBox p) = pretty p
 
-instance ( Identifiable (PredicateAnn ann) a
-         , Identifiable (Ann Literal ann) b
+instance ( IdentifiableAnn (Ann (Predicate n) ann) id
+         , IdentifiableAnn (Ann Literal ann) id'
+         , Pretty id
+         , Pretty id'
          ) => Pretty (Literal ann) where
   pretty Literal{..} =
        cond (_polarity == Negative) (text "not" <> space)
@@ -84,13 +90,23 @@ instance Pretty (PredicateAnn 'ABase) where pretty _ = empty
 instance Pretty (LiteralAnn   'ABase) where pretty _ = empty
 instance Pretty (ClauseAnn    'ABase) where pretty _ = empty
 instance Pretty (ProgramAnn   'ABase) where pretty _ = empty
+instance Pretty (KnowledgeAnn 'ABase) where pretty _ = empty
 
 -- Knowledge base related instances
 
-instance Identifiable (PredicateAnn ann) b => Pretty (KB.Knowledge ann) where
-  pretty (KB.Knowledge pred syms) = pretty pred <> (csep . prettyC) syms
+instance
+  ( Pretty (KnowledgeAnn ann)
+  , Identifiable (KnowledgeAnn ann) id
+  , Identifiable (PredicateAnn ann) id'
+  ) => Pretty (KB.Knowledge ann) where
+  pretty (KB.Knowledge ann pred syms) =
+    pretty pred <> pretty ann <> (csep . prettyC) syms
 
-instance Identifiable (PredicateAnn ann) b => Pretty (KB.Set ann) where
+instance
+  ( Pretty (KnowledgeAnn ann)
+  , Identifiable (KnowledgeAnn ann) id
+  , Identifiable (PredicateAnn ann) id'
+  ) => Pretty (KB.Set ann) where
   pretty = vcat . map pretty . KB.toList
 
 -- Common pretty instances

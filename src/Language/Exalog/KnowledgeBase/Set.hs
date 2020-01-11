@@ -23,13 +23,31 @@ import Language.Exalog.KnowledgeBase.Knowledge
 
 newtype Set ann = Set (S.Set (Knowledge ann))
 
-deriving instance Identifiable (PredicateAnn ann) id => Eq (Set ann)
-deriving instance Identifiable (PredicateAnn ann) id => Semigroup (Set ann)
-deriving instance Identifiable (PredicateAnn ann) id => Monoid (Set ann)
+deriving instance
+  ( IdentifiableAnn (Ann Knowledge ann) id1
+  , IdentifiableAnn (PredicateAnn ann)  id2
+  , Ord id1, Ord id2
+  ) => Eq (Set ann)
 
-deriving instance Show (PredicateAnn ann) => Show (Set ann)
+deriving instance
+  ( IdentifiableAnn (Ann Knowledge ann) id1
+  , IdentifiableAnn (PredicateAnn ann)  id2
+  , Ord id1, Ord id2
+  ) => Semigroup (Set ann)
 
-instance (Identifiable (PredicateAnn ann) id) => Knowledgeable Set ann where
+deriving instance
+  ( IdentifiableAnn (Ann Knowledge ann) id1
+  , IdentifiableAnn (PredicateAnn ann)  id2
+  , Ord id1, Ord id2
+  ) => Monoid (Set ann)
+
+deriving instance (Show (KnowledgeAnn ann), Show (PredicateAnn ann)) => Show (Set ann)
+
+instance
+  ( IdentifiableAnn (Ann Knowledge ann) id1
+  , IdentifiableAnn (Ann (Predicate n) ann) id2
+  , Ord id1, Ord id2
+  ) => Knowledgeable Set ann where
   fromList = Set . S.fromList
   toList = S.toList . coerce
 
@@ -43,7 +61,7 @@ instance (Identifiable (PredicateAnn ann) id) => Knowledgeable Set ann where
 
   findByPred pred kb = foldr' go mempty (toList kb)
     where
-    go (Knowledge pred' syms) acc
+    go (Knowledge _ pred' syms) acc
       | Proved Refl <- pred `sameArity` pred'
       , pred == pred' = syms : acc
       | otherwise = acc
