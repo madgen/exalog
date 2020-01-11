@@ -9,6 +9,7 @@ What we provide:
  - Semi-Naïve evaluation engine
  - Stratifier
  - Foreign predicate support (from Haskell)
+ - Data provenance tracking
  - Range restriction checker
  - Well-modedness checker (sufficient binding for foreign predicates)
  - Dataflow repair (achieve range restriction and well-modedness via program transformation)
