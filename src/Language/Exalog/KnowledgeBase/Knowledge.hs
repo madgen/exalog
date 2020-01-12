@@ -20,14 +20,17 @@ import Data.Type.Equality ((:~:)(..))
 
 import Language.Exalog.Core
 
-data Knowledge a = forall n. Knowledge 
+data Knowledge a = forall n. Knowledge
   { _annotation :: KnowledgeAnn a
   , _predicate  :: Predicate n a
   , _terms      :: V.Vector n Sym
   }
 
 type instance Ann Knowledge = KnowledgeAnn
+
 type instance Decored (Knowledge ann) f = Knowledge (f ann)
+
+type instance Peeled (Knowledge (f ann)) = Knowledge ann
 
 class KnowledgeMaker ann where
   mkKnowledge :: Clause ann -> Predicate n ann -> V.Vector n Sym -> Knowledge ann
@@ -58,7 +61,7 @@ instance
   , Eq b
   , Eq c
   ) => Eq (Knowledge a) where
-  Knowledge{_annotation = ann, _predicate = pred, _terms = terms} == 
+  Knowledge{_annotation = ann, _predicate = pred, _terms = terms} ==
     Knowledge{_annotation = ann', _predicate = pred', _terms = terms'}
     | Proved Refl <- pred `sameArity` pred' =
       idFragment ann == idFragment ann' &&

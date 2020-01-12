@@ -49,6 +49,7 @@ module Language.Exalog.Core
   , Formula(..)
   , HasIntentionals(..)
   , Decored
+  , Peeled
   -- * Helper functions
   , literals
   , sameArity
@@ -160,12 +161,12 @@ type instance Ann Literal = LiteralAnn
 type instance Ann (Predicate n) = PredicateAnn
 
 -- Helpers for stripping annotations from a tree
-type family Peeled (ast :: Type) = (ast' :: Type) where
-  Peeled (Program (ann a))      = Program a
-  Peeled (Clause (ann a))       = Clause a
-  Peeled (Literal (ann a))      = Literal a
-  Peeled (Predicate n (ann a))  = Predicate n a
-  Peeled (PredicateBox (ann a)) = PredicateBox a
+type family Peeled (ast :: Type) = (ast' :: Type)
+type instance Peeled (Program (ann a))      = Program a
+type instance Peeled (Clause (ann a))       = Clause a
+type instance Peeled (Literal (ann a))      = Literal a
+type instance Peeled (Predicate n (ann a))  = Predicate n a
+type instance Peeled (PredicateBox (ann a)) = PredicateBox a
 
 class PeelableAST (ast :: Type) where
   peel :: ast -> Peeled ast

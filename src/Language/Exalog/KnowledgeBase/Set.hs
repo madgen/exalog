@@ -1,8 +1,11 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
@@ -22,26 +25,6 @@ import Language.Exalog.KnowledgeBase.Class
 import Language.Exalog.KnowledgeBase.Knowledge
 
 newtype Set ann = Set (S.Set (Knowledge ann))
-
-deriving instance
-  ( IdentifiableAnn (Ann Knowledge ann) id1
-  , IdentifiableAnn (PredicateAnn ann)  id2
-  , Ord id1, Ord id2
-  ) => Eq (Set ann)
-
-deriving instance
-  ( IdentifiableAnn (Ann Knowledge ann) id1
-  , IdentifiableAnn (PredicateAnn ann)  id2
-  , Ord id1, Ord id2
-  ) => Semigroup (Set ann)
-
-deriving instance
-  ( IdentifiableAnn (Ann Knowledge ann) id1
-  , IdentifiableAnn (PredicateAnn ann)  id2
-  , Ord id1, Ord id2
-  ) => Monoid (Set ann)
-
-deriving instance (Show (KnowledgeAnn ann), Show (PredicateAnn ann)) => Show (Set ann)
 
 instance
   ( IdentifiableAnn (Ann Knowledge ann) id1
@@ -73,3 +56,45 @@ instance
   size = S.size . coerce
 
   null = S.null . coerce
+
+type instance Decored (Set ann) f = Set (f ann)
+
+instance ( IdentifiableAnn (PredicateAnn a) id
+         , IdentifiableAnn (PredicateAnn (ann a)) id'
+         , IdentifiableAnn (KnowledgeAnn a) id''
+         , IdentifiableAnn (KnowledgeAnn (ann a)) id'''
+         , Ord id, Ord id', Ord id'', Ord id'''
+         , DecorableAST (Knowledge a) ann
+         ) => DecorableAST (Set a) ann where
+  decorate = atEach decorate
+
+type instance Peeled (Set (ann a)) = Set a
+
+instance ( IdentifiableAnn (PredicateAnn a) id1
+         , IdentifiableAnn (PredicateAnn (f a)) id2
+         , IdentifiableAnn (KnowledgeAnn a) id3
+         , IdentifiableAnn (KnowledgeAnn (f a)) id4
+         , Ord id1, Ord id2, Ord id3, Ord id4
+         , PeelableAST (Knowledge (f a))
+         ) => PeelableAST (Set (f (a :: AnnType))) where
+  peel = atEach peel
+
+deriving instance
+  ( IdentifiableAnn (Ann Knowledge ann) id1
+  , IdentifiableAnn (PredicateAnn ann)  id2
+  , Ord id1, Ord id2
+  ) => Eq (Set ann)
+
+deriving instance
+  ( IdentifiableAnn (Ann Knowledge ann) id1
+  , IdentifiableAnn (PredicateAnn ann)  id2
+  , Ord id1, Ord id2
+  ) => Semigroup (Set ann)
+
+deriving instance
+  ( IdentifiableAnn (Ann Knowledge ann) id1
+  , IdentifiableAnn (PredicateAnn ann)  id2
+  , Ord id1, Ord id2
+  ) => Monoid (Set ann)
+
+deriving instance (Show (KnowledgeAnn ann), Show (PredicateAnn ann)) => Show (Set ann)

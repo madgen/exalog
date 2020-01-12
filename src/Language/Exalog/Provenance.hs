@@ -139,10 +139,16 @@ instance PeelableAnn KnowledgeAnn 'AProvenance where
   peelA (KnowAProvenance _ prevAnn) = prevAnn
 
 instance PeelableAST (Literal ('AProvenance a)) where
-    peel Literal{..} =
-        Literal { _annotation = peelA _annotation
-                , _predicate  = peel  _predicate
-                , ..}
+  peel Literal{..} = Literal
+    { _annotation = peelA _annotation
+    , _predicate  = peel  _predicate
+    , ..}
+
+instance PeelableAST (KB.Knowledge ('AProvenance a)) where
+  peel KB.Knowledge{..} = KB.Knowledge
+    { _annotation = peelA _annotation
+    , _predicate  = peel _predicate
+    , ..}
 
 instance DecorableAnn PredicateAnn 'AProvenance where
     decorA = PredAProvenance

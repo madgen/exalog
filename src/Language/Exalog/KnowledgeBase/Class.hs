@@ -26,10 +26,11 @@ class Knowledgeable sol a where
   difference :: sol a -> sol a -> sol a
   findByPred :: Predicate n a -> sol a -> [ V.Vector n Sym ]
 
-  atEach :: IdentifiableAnn (PredicateAnn b) id
-         => IdentifiableAnn (KnowledgeAnn b) id1
-         => Ord id
+  atEach :: forall b id1 id2
+          . IdentifiableAnn (PredicateAnn b) id1
+         => IdentifiableAnn (KnowledgeAnn b) id2
          => Ord id1
+         => Ord id2
          => (Knowledge a -> Knowledge b) -> sol a -> sol b
 
   singleton :: Knowledge a -> sol a
