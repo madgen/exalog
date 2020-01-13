@@ -301,12 +301,12 @@ instance ( IdentifiableAnn (PredicateAnn a) b
          , Eq b
          , Eq c
          ) => Eq (Literal a) where
-  lit@Literal{_annotation = ann, _predicate = pred, _terms = terms} ==
-    lit'@Literal{_annotation = ann', _predicate = pred', _terms = terms'}
+  Literal{_annotation = ann, _predicate = pred, _terms = terms, _polarity = pol} ==
+    Literal{_annotation = ann', _predicate = pred', _terms = terms', _polarity = pol'}
     | Proved Refl <- sameArity pred pred' =
       idFragment ann == idFragment ann' &&
       pred == pred' &&
-      _polarity lit == _polarity lit' &&
+      pol == pol' &&
       terms == terms'
     | otherwise = False
 

@@ -127,7 +127,7 @@ instance IdentifiableAnn (ProgramAnn ann) b
   idFragment (ProgAProvenance rest) = idFragment rest
 instance IdentifiableAnn (KnowledgeAnn ann) b
     => IdentifiableAnn (KnowledgeAnn ('AProvenance ann)) (Provenance ('AProvenance ann), b) where
-  idFragment (KnowAProvenance clause rest) = (clause, idFragment rest)
+  idFragment (KnowAProvenance provenance rest) = (provenance, idFragment rest)
 
 instance PeelableAnn PredicateAnn 'AProvenance where
   peelA (PredAProvenance prevAnn) = prevAnn
