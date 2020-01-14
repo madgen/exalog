@@ -43,7 +43,6 @@ instance ( IdentifiableAnn (Ann (Predicate n) ann) id
 instance Pretty Sym where
   pretty (SymText   t) = doubleQuotes $ pretty t
   pretty (SymInt    i) = int i
-  pretty (SymDouble d) = double d
   pretty (SymBool   b) = pretty b
 
 instance Pretty Var where

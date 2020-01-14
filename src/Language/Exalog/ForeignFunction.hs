@@ -147,7 +147,6 @@ consistent sym = \case
 type family NRets a :: Nat where
   NRets Text   = 1
   NRets Int    = 1
-  NRets Double = 1
   NRets Bool   = 1
   NRets (a,b) = NRets a + NRets b
   NRets (a,b,c) = NRets a + NRets b + NRets c
@@ -164,9 +163,6 @@ instance ReturnableBase Text where
 
 instance ReturnableBase Int where
   toReturnV i = V.singleton (SymInt i)
-
-instance ReturnableBase Double where
-  toReturnV f = V.singleton (SymDouble f)
 
 instance ReturnableBase Bool where
   toReturnV b = V.singleton (SymBool b)
@@ -187,7 +183,6 @@ instance (ReturnableBase a, ReturnableBase b, ReturnableBase c, ReturnableBase d
 type family IsReturnable' r :: Bool where
   IsReturnable' Text        = 'True
   IsReturnable' Int         = 'True
-  IsReturnable' Double      = 'True
   IsReturnable' Bool        = 'True
   IsReturnable' (a,b)       = 'True
   IsReturnable' (a,b,c)     = 'True
@@ -244,11 +239,6 @@ instance Argumentable Int where
   interpret (SymInt i) = pure i
   interpret _ =
     Left "Fatal error: Foreign function was expecting arugment of type Int."
-
-instance Argumentable Double where
-  interpret (SymDouble f) = pure f
-  interpret _ =
-    Left "Fatal error: Foreign function was expecting arugment of type Char."
 
 instance Argumentable Bool where
   interpret (SymBool b) = pure b

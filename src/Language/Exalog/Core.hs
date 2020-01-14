@@ -110,7 +110,6 @@ newtype Var = Var Text deriving (Eq, Ord, Show)
 data Sym =
     SymText   Text
   | SymInt    Int
-  | SymDouble Double
   | SymBool   Bool
   deriving (Eq, Ord, Show)
 
