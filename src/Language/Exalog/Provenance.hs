@@ -2,6 +2,7 @@
 
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -22,12 +23,15 @@ module Language.Exalog.Provenance
 
 import Protolude hiding (head, pred)
 
+import           Data.Aeson (ToJSON(..), Value(..))
+import qualified Data.HashMap.Strict as HM
+
 import           Language.Exalog.Core
 import qualified Language.Exalog.KnowledgeBase.Knowledge as KB
 import           Language.Exalog.Pretty.Helper (Pretty(..))
 import           Language.Exalog.Pretty ()
 
-data Provenance a = Derived (Clause a) | Given
+data Provenance a = Derived (Clause a) | Given deriving Generic
 
 deriving instance Eq   (Clause a) => Eq (Provenance a)
 deriving instance Ord  (Clause a) => Ord (Provenance a)
@@ -36,6 +40,8 @@ deriving instance Show (Clause a) => Show (Provenance a)
 instance (Pretty (Clause a)) => Pretty (Provenance a) where
   pretty Given        = "G"
   pretty (Derived cl) = "D:" <> pretty cl
+
+instance ToJSON (Provenance a) where
 
 instance
   ( Pretty (Provenance a)
@@ -172,3 +178,11 @@ instance DecorableAST (KB.Knowledge a) 'AProvenance where
         KB.Knowledge { _annotation = decorA _annotation
                      , _predicate  = decorate _predicate
                      , ..}
+
+instance ToJSON (KB.Knowledge ('AProvenance 'ABase)) where
+  toJSON kb@KB.Knowledge{..} =
+    case toJSON $ peel kb of
+      Object o -> Object $ HM.insert "provenance" provenance o
+      _ -> panic "Knowledge does not produce a JSON object."
+    where
+    provenance = toJSON $ _provenance _annotation

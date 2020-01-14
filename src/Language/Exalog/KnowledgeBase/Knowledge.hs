@@ -2,21 +2,23 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 module Language.Exalog.KnowledgeBase.Knowledge where
 
 import Protolude hiding (pred)
 
-import Data.Singletons
-import Data.Singletons.Decide (Decision(..))
-
+import           Data.Aeson (ToJSON(..), (.=), object)
+import           Data.Singletons
+import           Data.Singletons.Decide (Decision(..))
+import           Data.Type.Equality ((:~:)(..))
 import qualified Data.Vector.Sized as V
-import Data.Type.Equality ((:~:)(..))
 
 import Language.Exalog.Core
 
@@ -68,3 +70,9 @@ instance
       pred == pred' &&
       terms == terms'
     | otherwise = False
+
+instance ToJSON (Knowledge 'ABase) where
+  toJSON Knowledge{..} = object
+    [ "predicate" .= toJSON _predicate
+    , "terms"     .= toJSON _terms
+    ]

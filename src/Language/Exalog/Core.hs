@@ -2,6 +2,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -60,12 +61,13 @@ module Language.Exalog.Core
   , stratumOverA_
   ) where
 
-import Protolude hiding (head, pred)
+import Protolude hiding (head, pred, bool)
 
 import GHC.Base (coerce)
 
 import Control.Monad.Trans.Except (ExceptT)
 
+import           Data.Aeson (Value(..), ToJSON(..), (.=), object)
 import           Data.Kind (Type)
 import           Data.List (nub)
 import qualified Data.List.NonEmpty as NE
@@ -104,7 +106,7 @@ data Predicate (n :: Nat) a = Predicate
   }
 
 -- |Polarity indicates whether a literal has negation in front of it
-data Polarity = Positive | Negative deriving (Eq, Ord, Show)
+data Polarity = Positive | Negative deriving (Eq, Ord, Show, Generic)
 
 newtype Var = Var Text deriving (Eq, Ord, Show)
 data Sym =
@@ -114,7 +116,7 @@ data Sym =
   deriving (Eq, Ord, Show)
 
 -- |A term is a variable or a symbol
-data Term = TVar Var | TSym Sym | TWild deriving (Eq, Ord, Show)
+data Term = TVar Var | TSym Sym | TWild deriving (Eq, Ord, Show, Generic)
 
 -- |If p is a predicate with arity n and (x_1,...,x_n) is a tuple of terms,
 -- p(x_1,...,x_n) and neg p(x_1,...,x_n) are literals.
@@ -271,6 +273,18 @@ instance ( IdentifiableAnn (PredicateAnn a) b
 
 -- Instances for standard type classes like Eq, Ord, Show
 
+-- Terms
+instance ToJSON Var where toJSON (Var v) = toJSON v
+instance ToJSON Sym where
+  toJSON (SymText text)   = String text
+  toJSON (SymBool bool)   = Bool bool
+  toJSON (SymInt  int)    = Number (fromIntegral int)
+
+instance ToJSON Term where
+
+instance ToJSON (V.Vector n Sym)  where toJSON = toJSONList . V.toList
+instance ToJSON (V.Vector n Term) where toJSON = toJSONList . V.toList
+
 -- Predicate
 instance ( IdentifiableAnn (PredicateAnn ann) b
          , Eq b
@@ -293,6 +307,9 @@ instance Show (PredicateAnn ann) => Show (Predicate n ann) where
 deriving instance
   ( Show (PredicateAnn a)
   ) => Show (PredicateBox a)
+
+instance ToJSON (Predicate n ann) where
+  toJSON Predicate{_predSym = PredicateSymbol predSym} = toJSON predSym
 
 -- Literal
 instance ( IdentifiableAnn (PredicateAnn a) b
@@ -324,6 +341,15 @@ deriving instance
   ( Show (LiteralAnn a)
   , Show (PredicateAnn a)
   ) => Show (Literal a)
+
+instance ToJSON Polarity where
+
+instance ToJSON (Literal ann) where
+  toJSON Literal{..} = object
+    [ "predicate" .= toJSON _predicate
+    , "polarity"  .= toJSON _polarity
+    , "terms"     .= toJSON _terms
+    ]
 
 -- Instances for obtaining sapns of AST nodes
 instance {-# OVERLAPPING #-}
@@ -366,6 +392,12 @@ instance ( IdentifiableAnn (ClauseAnn a) b
     (idFragment ann, head, body) `compare` (idFragment ann', head', body')
 
 deriving instance (Show (ClauseAnn a), Show (Literal a)) => Show (Clause a)
+
+instance ToJSON (Clause ann) where
+  toJSON Clause{..} = object
+    [ "head" .= toJSON _head
+    , "body" .= toJSON _body
+    ]
 
 -- Stratum
 instance Ord (Clause a) => Eq (Stratum a) where
