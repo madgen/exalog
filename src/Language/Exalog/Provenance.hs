@@ -181,8 +181,8 @@ instance DecorableAST (KB.Knowledge a) 'AProvenance where
 
 instance ToJSON (KB.Knowledge ('AProvenance 'ABase)) where
   toJSON kb@KB.Knowledge{..} =
-    case toJSON $ peel kb of
-      Object o -> Object $ HM.insert "provenance" provenance o
+    case (_provenance _annotation, toJSON $ peel kb) of
+      (Given, json) -> json
+      (Derived clause, Object o) ->
+        Object $ HM.insert "provenance" (toJSON clause) o
       _ -> panic "Knowledge does not produce a JSON object."
-    where
-    provenance = toJSON $ _provenance _annotation
