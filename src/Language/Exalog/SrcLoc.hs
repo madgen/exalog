@@ -82,9 +82,9 @@ prettySpan src (Span _ loc1 loc2) = vcat
   , vcat $ map (uncurry contextLine) contextLines
   , if nOfLines == 1
       then hcat
-         $ replicate 6 " "               -- ^ Line number gap
-        ++ replicate (_col loc1 - 1) " " -- ^ Up to the beginning of the error
-        ++ replicate nOfCols "^"         -- ^ Highlight
+         $ replicate 6 " "               -- Line number gap
+        ++ replicate (_col loc1 - 1) " " -- Up to the beginning of the error
+        ++ replicate nOfCols "^"         -- Highlight
       else mempty
   ]
   where
