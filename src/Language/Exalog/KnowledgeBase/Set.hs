@@ -18,7 +18,6 @@ import GHC.Prim (coerce)
 
 import qualified Data.Set as S
 import           Data.Singletons.Decide (Decision(Proved))
-import           Data.Type.Equality ((:~:)(Refl))
 
 import Language.Exalog.Core
 import Language.Exalog.KnowledgeBase.Class

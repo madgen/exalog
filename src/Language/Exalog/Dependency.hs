@@ -16,7 +16,6 @@ module Language.Exalog.Dependency
 
 import Protolude hiding (pred)
 
-import           Data.Bifunctor (bimap)
 import qualified Data.Graph.Inductive.Graph as G
 import qualified Data.Graph.Inductive.PatriciaTree as P
 import           Data.List (lookup, nub)

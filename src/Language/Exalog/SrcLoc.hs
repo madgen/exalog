@@ -17,7 +17,7 @@ module Language.Exalog.SrcLoc
 
 import Protolude hiding ((<>), empty, SrcLoc)
 
-import Data.Text (lines, justifyLeft, pack, unpack)
+import Data.Text (justifyLeft, pack, unpack)
 
 import Text.PrettyPrint
 

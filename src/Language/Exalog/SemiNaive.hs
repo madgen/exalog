@@ -20,9 +20,6 @@ module Language.Exalog.SemiNaive
 
 import Protolude hiding (head, pred, sym)
 
-import Control.Monad.Trans.Reader (ReaderT)
-
-import           Data.Maybe (mapMaybe, catMaybes)
 import qualified Data.Vector.Sized as V
 
 import           Language.Exalog.Core

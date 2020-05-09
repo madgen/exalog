@@ -1,16 +1,13 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
@@ -65,13 +62,9 @@ import Protolude hiding (head, pred, bool)
 
 import GHC.Base (coerce)
 
-import Control.Monad.Trans.Except (ExceptT)
-
 import           Data.Aeson (Value(..), ToJSON(..), (.=), object)
-import           Data.Kind (Type)
 import           Data.List (nub)
 import qualified Data.List.NonEmpty as NE
-import           Data.Maybe (mapMaybe)
 import qualified Data.Set as S
 import           Data.Singletons (fromSing)
 import           Data.Singletons.TypeLits (SNat)

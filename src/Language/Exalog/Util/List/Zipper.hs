@@ -12,8 +12,6 @@ module Language.Exalog.Util.List.Zipper
 import Protolude hiding (toList)
 
 import qualified Data.List.NonEmpty as NE
-import           Data.List (unfoldr)
-import           Data.Maybe (fromMaybe)
 
 import           Control.Comonad (Comonad(..))
 

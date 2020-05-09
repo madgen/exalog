@@ -17,7 +17,6 @@ import Protolude hiding (pred)
 import           Data.Aeson (ToJSON(..), (.=), object)
 import           Data.Singletons
 import           Data.Singletons.Decide (Decision(..))
-import           Data.Type.Equality ((:~:)(..))
 import qualified Data.Vector.Sized as V
 
 import Language.Exalog.Core
