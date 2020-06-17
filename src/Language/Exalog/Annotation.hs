@@ -5,7 +5,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
 module Language.Exalog.Annotation

@@ -1,5 +1,4 @@
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 
 module Language.Exalog.Unification

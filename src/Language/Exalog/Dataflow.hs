@@ -109,10 +109,13 @@ isPredPredicate :: (IdentifiableAnn (PredicateAnn ann) a) => Ord a
                 => PositiveFlowGr ann -> Literal ('ARename ann) -> Int -> Bool
 isPredPredicate (PositiveFlowGr gr nodeDict) lit ix =
   case NLiteral lit ix `BM.lookup` nodeDict of
-    Just node -> any (\case {NPredicate{} -> True; _ -> False})
-               . map (nodeDict BM.!>)
+    Just node -> any (isPredicateNode . (nodeDict BM.!>))
                $ Gr.pre gr node
     Nothing   -> False
+  where
+  isPredicateNode :: Node a -> Bool
+  isPredicateNode NPredicate{} = True
+  isPredicateNode _ = False
 
 --------------------------------------------------------------------------------
 -- Internal data types
