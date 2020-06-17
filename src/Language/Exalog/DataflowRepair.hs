@@ -29,8 +29,7 @@ import           Language.Exalog.Logger
 import           Language.Exalog.SrcLoc
 
 data RepairResult kb =
-    DeadDataPath
-  | NotFixable
+    NotFixable
   | Guard (Literal 'ABase) [ Clause 'ABase ] (kb 'ABase)
 
 type Repair = RepairT Logger
@@ -70,7 +69,6 @@ fixDataflowClause violationFinder errMsg cl@Clause{..} = do
   (guardLits, guardClausess, guardSols) <-
     fmap (unzip3 . catMaybes) $ forM repairResults $ \case
       Guard gLit gCls gSol -> pure $ Just (gLit, gCls, gSol)
-      DeadDataPath         -> pure Nothing
       NotFixable           -> lift $ lift $ scold (span _head) errMsg
 
   pure ( Clause
@@ -94,7 +92,7 @@ attemptFix sp flowSink var = do
 
   case nearestCoveringPositives flowGr flowSink of
     Just flowSources -> mkGuard sp flowSources var
-    Nothing          -> pure DeadDataPath
+    Nothing          -> pure NotFixable
 
 mkGuard :: Monad m
         => Monoid (kb 'ABase)
