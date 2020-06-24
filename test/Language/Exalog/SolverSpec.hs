@@ -11,8 +11,6 @@ module Language.Exalog.SolverSpec (spec, execSolver) where
 
 import Protolude hiding (Set)
 
-import Control.Monad (liftM2)
-
 import qualified Data.Set as S
 
 import Test.Hspec
@@ -30,6 +28,7 @@ import qualified Fixture.Foreign as Foreign
 import qualified Fixture.Negation as NegFix
 import qualified Fixture.RepeatedVars as Repeated
 import qualified Fixture.SpanIrrelevance as SpanIrr
+import qualified Fixture.Unification as Unification
 import           Fixture.Util
 import qualified Fixture.Wildcard as Wildcard
 
@@ -51,6 +50,12 @@ shouldBeish xs ys = S.fromList <$> xs `shouldBe` S.fromList <$> ys
 spec :: Spec
 spec =
   describe "Solver " $ do
+    -- finalEDB <- execSolver Unification.program Unification.initEDB
+    it "unification runs to completion" $
+      -- Activate for scalability tests
+      -- KB.size <$> finalEDB `shouldBe` Nothing
+      pendingWith "Engine is not efficient enough to run this test yet =("
+
     finalEDB <- execSolver NegFix.program NegFix.initEDB
     it "evaluates complement of a subgraph correctly" $
       finalEDB `shouldBe` Just NegFix.finalEDB
